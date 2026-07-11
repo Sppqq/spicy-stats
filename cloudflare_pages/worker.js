@@ -340,6 +340,12 @@ async function scrapeAndSave(userId, username, env) {
         return;
     }
 
+    if (data.total_views === 0 && (!data.songs || data.songs.length === 0)) {
+        console.warn(`User @${username} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
+        await deleteUserFromDB(userId, env);
+        return;
+    }
+
     const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, data.total_views).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
