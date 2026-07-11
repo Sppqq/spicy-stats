@@ -41,6 +41,7 @@
         button {
             font: inherit;
             cursor: pointer;
+            color: inherit;
         }
 
         .page {
@@ -286,46 +287,78 @@
 
         .mini-card {
             padding: 24px;
-            background: var(--ink);
-            color: var(--white);
+            background: var(--white);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .mini-card .eyebrow {
-            color: var(--green);
+            color: var(--blue);
+            font-size: 11px;
+            text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.1em;
         }
 
         .mini-card h2 {
-            font-size: 30px;
-            line-height: 1.02;
-            letter-spacing: -0.07em;
+            font-size: 24px;
+            line-height: 1.2;
+            letter-spacing: -0.05em;
+            margin: 0;
+            font-weight: 800;
         }
 
         .mini-card p {
-            color: #555860;
-            font-size: 12px;
+            color: var(--muted);
+            font-size: 13px;
             line-height: 1.6;
-            margin-top: 16px;
+            margin: 0;
         }
 
-        .mini-line {
-            height: 1px;
-            background: #34373d;
-            margin: 25px 0;
-        }
-
-        .mini-highlight {
+        .mini-stats-grid {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            font-family: 'DM Mono', monospace;
-            font-size: 11px;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
         }
 
-        .mini-highlight strong {
-            color: var(--blue);
-            font-weight: 500;
+        .mini-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--line);
+            font-size: 13px;
+        }
+
+        .mini-row:last-child {
+            border-bottom: none;
+        }
+
+        .mini-row span {
+            color: var(--muted);
+        }
+
+        .mini-row strong {
+            font-family: 'DM Mono', monospace;
+            color: var(--ink);
             text-align: right;
+            max-width: 60%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mini-accent-box {
+            background: var(--paper-dark);
+            padding: 12px;
+            border-left: 3px solid var(--green);
+            font-size: 12px;
+            color: var(--ink);
+            line-height: 1.5;
         }
 
         .profile-chart {
@@ -545,18 +578,31 @@
                         ...
                     </p>
 
-                    <div class="mini-line"></div>
-
-                    <div class="mini-highlight">
-                        <span>Best track</span>
-                        <strong id="perf-best-track">...</strong>
+                    <div class="mini-accent-box" id="perf-tip">
+                        <!-- Custom smart tip based on performance -->
                     </div>
 
-                    <div class="mini-line"></div>
-
-                    <div class="mini-highlight">
-                        <span>Weekly growth</span>
-                        <strong id="perf-growth-pct">...</strong>
+                    <div class="mini-stats-grid">
+                        <div class="mini-row">
+                            <span>Best track</span>
+                            <strong id="perf-best-track">...</strong>
+                        </div>
+                        <div class="mini-row">
+                            <span>Top track share</span>
+                            <strong id="perf-share">...</strong>
+                        </div>
+                        <div class="mini-row">
+                            <span>Avg views / track</span>
+                            <strong id="perf-avg-views">...</strong>
+                        </div>
+                        <div class="mini-row">
+                            <span>Active tracks (24h)</span>
+                            <strong id="perf-active-count">...</strong>
+                        </div>
+                        <div class="mini-row">
+                            <span>Total growth</span>
+                            <strong id="perf-growth-pct">...</strong>
+                        </div>
                     </div>
                 </aside>
             </section>
@@ -960,41 +1006,87 @@
             const growthPercent = firstVal > 0 ? ((growthVal / firstVal) * 100) : 0;
             const growthSign = growthVal >= 0 ? '+' : '';
             
+            // 1. Best Track & share of views
             let topSong = 'None';
+            let topSongViews = 0;
+            let topSongShare = 0;
             if (profileData.songs && profileData.songs.length > 0) {
                 const sortedByViews = [...profileData.songs].sort((a,b)=>b.views - a.views);
                 topSong = sortedByViews[0].title;
+                topSongViews = sortedByViews[0].views;
+                if (profileData.total_views > 0) {
+                    topSongShare = (topSongViews / profileData.total_views) * 100;
+                }
             }
             
+            // 2. Fastest Growing Track (by absolute growth)
             let fastSong = '';
+            let fastSongGrowth = 0;
             if (profileData.songs && profileData.songs.length > 0) {
                 const sortedByGrowth = [...profileData.songs].sort((a,b)=>b.growth - a.growth);
                 if (sortedByGrowth[0] && sortedByGrowth[0].growth > 0) {
                     fastSong = sortedByGrowth[0].title;
+                    fastSongGrowth = sortedByGrowth[0].growth;
                 }
             }
             
+            // 3. Average views per track
+            let avgViews = 0;
+            if (profileData.total_songs > 0) {
+                avgViews = Math.round(profileData.total_views / profileData.total_songs);
+            }
+            
+            // 4. Active tracks (tracks with growth > 0)
+            let activeTracks = 0;
+            if (profileData.songs) {
+                activeTracks = profileData.songs.filter(s => s.growth > 0).length;
+            }
+
+            // Headline selection
             if (headline) {
                 if (growthPercent > 15) {
-                    headline.textContent = `This profile is accelerating rapidly, up by ${growthPercent.toFixed(1)}% recently.`;
+                    headline.textContent = `Rapid Acceleration (+${growthPercent.toFixed(1)}%)`;
                 } else if (growthPercent > 5) {
-                    headline.textContent = `This profile shows steady moderate growth of ${growthPercent.toFixed(1)}%.`;
+                    headline.textContent = `Steady Growth (+${growthPercent.toFixed(1)}%)`;
                 } else if (growthPercent >= 0) {
-                    headline.textContent = `This profile's view metrics are stable (growth of ${growthPercent.toFixed(1)}%).`;
+                    headline.textContent = `Stable Performance (+${growthPercent.toFixed(1)}%)`;
                 } else {
-                    headline.textContent = `This profile shows a slight decline in view acceleration.`;
+                    headline.textContent = `Decline in Activity (${growthPercent.toFixed(1)}%)`;
                 }
             }
             
+            // Description sentence
             if (desc) {
                 if (fastSong) {
-                    desc.textContent = `Most of the recent growth in view activity comes from the track “${fastSong}”.`;
+                    desc.textContent = `The profile is driven by "${fastSong}", which gained +${formatViews(fastSongGrowth)} views recently.`;
                 } else {
-                    desc.textContent = `Views count has remained consistent across the artist's tracked repertoire.`;
+                    desc.textContent = `Views are stable and evenly distributed across the artist's tracked catalog.`;
+                }
+            }
+
+            // Custom smart tip based on performance
+            const tipEl = document.getElementById('perf-tip');
+            if (tipEl) {
+                if (topSongShare > 50) {
+                    tipEl.innerHTML = `<strong>High dependency:</strong> Over half of this author's views (${topSongShare.toFixed(1)}%) come from a single track ("${topSong}").`;
+                    tipEl.style.borderLeftColor = 'var(--coral)';
+                } else if (activeTracks === 0 && profileData.total_songs > 0) {
+                    tipEl.innerHTML = `<strong>Flat activity:</strong> None of the tracked songs showed view growth in the last tracking interval.`;
+                    tipEl.style.borderLeftColor = 'var(--muted)';
+                } else {
+                    tipEl.innerHTML = `<strong>Healthy stats:</strong> Views are well distributed, indicating a balanced catalog of tracks.`;
+                    tipEl.style.borderLeftColor = 'var(--green)';
                 }
             }
             
+            // Render grid
             if (bestTrack) bestTrack.textContent = topSong;
+            const shareEl = document.getElementById('perf-share');
+            if (shareEl) shareEl.textContent = `${topSongShare.toFixed(1)}%`;
+            const avgViewsEl = document.getElementById('perf-avg-views');
+            if (avgViewsEl) avgViewsEl.textContent = formatViews(avgViews);
+            const activeCountEl = document.getElementById('perf-active-count');
+            if (activeCountEl) activeCountEl.textContent = `${activeTracks} / ${profileData.total_songs}`;
             if (growthPct) growthPct.textContent = `${growthSign}${growthPercent.toFixed(1)}%`;
         }
 
