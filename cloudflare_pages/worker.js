@@ -342,7 +342,14 @@ async function fetchUserDataFromAPI(username) {
     const html = await response.text();
 
     let userId = null;
-    const patterns = [/"userId"\s*:\s*"?(\d{1,21})"?/i, /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i, /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i, /avatars\/(\d{1,21})/];
+    const patterns = [
+        /"userId"\s*:\s*"?(\d{1,21})"?/i,
+        /\\"userId\\":\s*\\"(\d{1,21})\\"/,
+        /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i,
+        /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i,
+        /\/users\/(\d{1,21})\/avatars\//,
+        /avatars\/(\d{1,21})/
+    ];
     for (const pattern of patterns) {
         const match = html.match(pattern);
         if (match) { userId = match[1]; break; }
@@ -369,10 +376,12 @@ async function fetchUserDataFromAPI(username) {
 
     let total_views = 0, songs = [];
     for (const item of makesList) {
-        const detail = tracksMap.get(item.id) || { title: "Скрыто настройками", artist: "SpicyLyrics" };
         const views = item.view_count || 0;
         total_views += views;
-        songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, views: views });
+        const detail = tracksMap.get(item.id);
+        if (detail) {
+            songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, views: views });
+        }
     }
 
     return { total_views, songs };
