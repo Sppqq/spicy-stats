@@ -313,28 +313,27 @@ async function scrapeSingleUser(username, env) {
     if (user) await scrapeAndSave(user.id, user.username, env);
 }
 
+async function deleteUserFromDB(userId, env) {
+    await env.DB.batch([
+        env.DB.prepare("DELETE FROM snapshot_songs WHERE snapshot_id IN (SELECT id FROM snapshots WHERE user_id = ?)").bind(userId),
+        env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId),
+        env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId)
+    ]);
+}
+
 async function scrapeAndSave(userId, username, env) {
     let data = null;
-    try { data = await fetchUserDataFromAPI(username); } catch (err) { }
-
-    if (!data) {
-        // Проверяем: были ли у юзера хоть раз треки (успешный скрейп)
-        const hasSongs = await env.DB.prepare(
-            "SELECT 1 FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? LIMIT 1"
-        ).bind(userId).first();
-
-        const snapCount = await env.DB.prepare(
-            "SELECT COUNT(*) as cnt FROM snapshots WHERE user_id = ?"
-        ).bind(userId).first();
-
-        if (!hasSongs && snapCount && snapCount.cnt >= 3) {
-            // Никогда не найден на сайте после 3+ попыток — удаляем
-            await env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId).run();
-            await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+    try {
+        data = await fetchUserDataFromAPI(username);
+    } catch (err) {
+        if (err.message === "USER_NOT_FOUND") {
+            console.warn(`User @${username} (id: ${userId}) returned 404. Removing from tracked users.`);
+            await deleteUserFromDB(userId, env);
             return;
         }
+    }
 
-        // Временная ошибка или новый юзер — сохраняем пустой снапшот
+    if (!data) {
         const lastSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
         const lastViews = lastSnap ? lastSnap.total_views : 0;
         await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, lastViews).run();
@@ -355,6 +354,9 @@ async function fetchUserDataFromAPI(username) {
     const pageUrl = `https://spicylyrics.org/${username}`;
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" };
     const response = await fetch(pageUrl, { headers });
+    if (response.status === 404) {
+        throw new Error("USER_NOT_FOUND");
+    }
     if (!response.ok) return null;
     const html = await response.text();
 
