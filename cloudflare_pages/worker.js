@@ -103,6 +103,7 @@ async function handleDashboardAPI(env) {
         s_latest.total_views AS current_views, 
         s_latest.timestamp AS last_updated, 
         s_past.total_views AS past_views,
+        s_past_7d.id AS past_7d_id,
         COALESCE(sc_latest.cnt, 0) AS total_songs,
         COALESCE(sc_past.cnt, 0) AS total_songs_7d
     FROM users u 
@@ -123,9 +124,9 @@ async function handleDashboardAPI(env) {
         users: users.map(u => ({
             username: u.username,
             views: u.current_views || 0,
-            growth: (u.current_views || 0) - (u.past_views || 0),
+            growth: u.past_views !== null ? (u.current_views || 0) - u.past_views : 0,
             total_songs: u.total_songs || 0,
-            tracks_growth_7d: u.total_songs_7d !== null ? (u.total_songs || 0) - (u.total_songs_7d || 0) : 0,
+            tracks_growth_7d: u.past_7d_id !== null ? (u.total_songs || 0) - (u.total_songs_7d || 0) : 0,
             last_updated: u.last_updated || null
         }))
     };
