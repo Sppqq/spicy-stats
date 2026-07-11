@@ -318,6 +318,23 @@ async function scrapeAndSave(userId, username, env) {
     try { data = await fetchUserDataFromAPI(username); } catch (err) { }
 
     if (!data) {
+        // Проверяем: были ли у юзера хоть раз треки (успешный скрейп)
+        const hasSongs = await env.DB.prepare(
+            "SELECT 1 FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? LIMIT 1"
+        ).bind(userId).first();
+
+        const snapCount = await env.DB.prepare(
+            "SELECT COUNT(*) as cnt FROM snapshots WHERE user_id = ?"
+        ).bind(userId).first();
+
+        if (!hasSongs && snapCount && snapCount.cnt >= 3) {
+            // Никогда не найден на сайте после 3+ попыток — удаляем
+            await env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId).run();
+            await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+            return;
+        }
+
+        // Временная ошибка или новый юзер — сохраняем пустой снапшот
         const lastSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
         const lastViews = lastSnap ? lastSnap.total_views : 0;
         await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, lastViews).run();
