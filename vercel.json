@@ -3,6 +3,10 @@
     {
       "source": "/user/:username",
       "destination": "/user.html"
+    },
+    {
+      "source": "/",
+      "destination": "/dashboard.html"
     }
   ]
 }

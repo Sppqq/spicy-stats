@@ -1,0 +1,1255 @@
+<!-- File: dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spicy Monitor — Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --paper: #101114;
+            --paper-dark: #1b1c21;
+            --ink: #f1f0ea;
+            --muted: #8e9099;
+            --line: #2d2f39;
+            --blue: #4d65ff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #16171c;
+            --positive-text: #b9f227;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: 'Manrope', sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .brand-mark {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            background: var(--ink);
+            color: var(--green);
+            font-size: 18px;
+            transform: rotate(-8deg);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 1px solid var(--ink);
+        }
+
+        .dashboard-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 72px 0 40px;
+        }
+
+        .eyebrow {
+            color: var(--blue);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 14px;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            max-width: 670px;
+            font-size: clamp(42px, 7vw, 88px);
+            line-height: 0.93;
+            letter-spacing: -0.085em;
+        }
+
+        .heading-note {
+            max-width: 260px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat {
+            min-height: 160px;
+            padding: 20px;
+            border: 1px solid var(--ink);
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stat.dark {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .stat.green {
+            background: var(--green);
+            color: #101114;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 39px;
+            font-weight: 800;
+            letter-spacing: -0.07em;
+        }
+
+        .stat-change {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+        }
+
+        .positive {
+            color: var(--positive-text);
+        }
+
+        .dark .positive {
+            color: #3b5c00;
+        }
+
+        .main-grid {
+            display: block;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px solid var(--ink);
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 140ms ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        [data-theme="light"] {
+            --paper: #e9e5dc;
+            --paper-dark: #d8d3c8;
+            --ink: #17181c;
+            --muted: #686b72;
+            --line: #b9b5ac;
+            --blue: #304cff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #f8f6f0;
+            --positive-text: #4f7600;
+        }
+
+        [data-theme="light"] .search,
+        [data-theme="light"] #new-username {
+            color: var(--ink);
+        }
+
+        [data-theme="light"] .dark {
+            background: #17181c;
+            color: #f1f0ea;
+        }
+
+        .panel {
+            border: 1px solid var(--ink);
+            background: var(--white);
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--ink);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-meta {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        .chart-wrap {
+            padding: 22px 20px 16px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 225px;
+            display: block;
+            background:
+                linear-gradient(to bottom, transparent 49.5%, var(--paper-dark) 50%, transparent 50.5%);
+            background-size: 100% 56px;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        .author-list {
+            padding: 6px 12px 12px;
+        }
+
+        .author-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 28px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 13px 8px;
+            border: 0;
+            border-bottom: 1px solid var(--paper-dark);
+            background: transparent;
+            text-align: left;
+            transition: 140ms ease;
+        }
+
+        .author-row:hover {
+            background: var(--green);
+            color: var(--paper);
+        }
+        .author-row:hover * {
+            color: var(--paper) !important;
+        }
+
+        .rank {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+        }
+
+        .author-name {
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .author-subtitle {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        .author-views {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .author-growth {
+            color: var(--positive-text);
+            font-size: 10px;
+            margin-top: 3px;
+            text-align: right;
+        }
+
+        .database {
+            margin-top: 12px;
+        }
+
+        .database-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-bottom: 1px solid var(--ink);
+        }
+
+        .search {
+            width: 190px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px solid var(--ink);
+            background: var(--paper);
+            outline: none;
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 13px 20px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            font-weight: 400;
+            text-align: left;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--line);
+        }
+
+        td {
+            padding: 15px 20px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--paper-dark);
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: 140ms ease;
+        }
+
+        tbody tr:hover {
+            background: var(--green);
+            color: var(--paper);
+        }
+        tbody tr:hover td {
+            color: var(--paper) !important;
+        }
+
+        .table-user {
+            font-weight: 800;
+        }
+
+        .table-muted {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        @media (max-width: 850px) {
+
+            .stats-grid,
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .page {
+                padding: 17px;
+            }
+
+            .topbar-right .live-status {
+                display: none;
+            }
+
+            .database-head {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .search {
+                width: 100%;
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 680px;
+            }
+        }
+
+        .back-button {
+            border: 1px solid var(--ink);
+            background: transparent;
+            padding: 9px 13px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            transition: 140ms ease;
+        }
+
+        .back-button:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">S</div>
+                <span>Spicy Monitor</span>
+            </div>
+
+            <div class="topbar-right">
+                <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
+                    <span id="theme-toggle-icon">☾</span>
+                    <span id="theme-toggle-label">Dark</span>
+                </button>
+
+                <div class="live-status">
+                    <span class="live-dot"></span>
+                    Live database
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="dashboard-heading">
+                <div>
+                    <div class="eyebrow" id="dashboard-date-eyebrow">Overview / July 2026</div>
+                    <h1>Know what is moving.</h1>
+                </div>
+
+                <p class="heading-note">
+                    A focused view of your authors, tracks and audience growth. Everything important, without the noise.
+                </p>
+            </section>
+
+            <section class="stats-grid">
+                <article class="stat dark">
+                    <div class="stat-label">
+                        <span>Total views</span>
+                        <span>01</span>
+                    </div>
+
+                    <div>
+                        <div class="stat-value" id="stat-total-views">...</div>
+                        <div class="stat-change positive" id="stat-total-views-growth">...</div>
+                    </div>
+                </article>
+
+                <article class="stat">
+                    <div class="stat-label">
+                        <span>Authors</span>
+                        <span>02</span>
+                    </div>
+
+                    <div>
+                        <div class="stat-value" id="stat-authors-count">...</div>
+                        <div class="stat-change positive" id="stat-authors-subtext">...</div>
+                    </div>
+                </article>
+
+                <article class="stat green">
+                    <div class="stat-label">
+                        <span>Tracks tracked</span>
+                        <span>03</span>
+                    </div>
+
+                    <div>
+                        <div class="stat-value" id="stat-tracks-count">...</div>
+                        <div class="stat-change" id="stat-tracks-subtext">...</div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="main-grid">
+
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">Top authors</h2>
+                            <div class="panel-meta">By total views</div>
+                        </div>
+                    </div>
+
+                    <div class="author-list" id="top-authors-list">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </article>
+            </section>
+
+            <section class="panel database">
+                <div class="database-head">
+                    <div>
+                        <h2 class="panel-title">Author database</h2>
+                        <div class="panel-meta">Click any row to open a profile</div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input class="search" id="search-input" placeholder="Search authors...">
+                        <button class="back-button" id="add-author-btn" style="margin: 0; white-space: nowrap; height: 34px;">+ Add Author</button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')">Author <span id="sort-username"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')">Views <span id="sort-views"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')">24h growth <span id="sort-growth"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')">Tracks <span id="sort-tracks"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')">7d tracks <span id="sort-tracks_growth_7d"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')">Updated <span id="sort-last_updated"></span></th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="database-tbody">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Author Modal -->
+    <div id="add-author-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button id="close-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" style="margin-bottom: 8px;">Add New Profile</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Track new author</h2>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
+                Enter the Spotify creator username from SpicyLyrics. The system will start fetching their snapshots immediately.
+            </p>
+            <form id="add-author-form" onsubmit="submitAddAuthor(event)">
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+                    <label for="new-username" style="font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--muted);">Username</label>
+                    <input type="text" id="new-username" placeholder="e.g. gayan_" required style="padding: 10px 12px; border: 1px solid var(--ink); outline: none; font-size: 13px; background: var(--paper);">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" id="cancel-modal-btn" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace;">Cancel</button>
+                    <button type="submit" id="submit-modal-btn" style="border: 1px solid var(--ink); background: var(--ink); color: var(--white); padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace; transition: 140ms ease;">Add Profile</button>
+                </div>
+            </form>
+            <div id="modal-feedback" style="display: none; margin-top: 16px; padding: 10px; font-size: 12px; border: 1px solid var(--ink); font-family: 'DM Mono', monospace;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Base configuration
+        const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+
+        // State
+        let dashboardData = null;
+        let allUsersDetailed = [];
+        let filteredUsers = [];
+        let sortColumn = 'views';
+        let sortDirection = 'desc'; // 'asc' or 'desc'
+
+        // On load
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initLiveIndicator();
+            loadDashboard();
+            setupModal();
+            setupSearch();
+            setDashboardDate();
+        });
+
+        // Set dynamic date in header
+        function setDashboardDate() {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const now = new Date();
+            const dateText = `Overview / ${months[now.getMonth()]} ${now.getFullYear()}`;
+            const dateEl = document.getElementById('dashboard-date-eyebrow');
+            if (dateEl) dateEl.textContent = dateText;
+        }
+
+        // Theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('spicy-theme');
+            const preferredTheme = savedTheme || (
+                window.matchMedia('(prefers-color-scheme: light)').matches
+                    ? 'light'
+                    : 'dark'
+            );
+
+            applyTheme(preferredTheme);
+
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.dataset.theme || 'dark';
+                    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+                });
+            }
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem('spicy-theme', theme);
+
+            const icon = document.getElementById('theme-toggle-icon');
+            const label = document.getElementById('theme-toggle-label');
+
+            if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
+            if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+
+        // Animate live dot
+        function initLiveIndicator() {
+            const dot = document.querySelector('.live-dot');
+            if (dot) {
+                dot.style.animation = 'pulse 2s infinite ease-in-out';
+                
+                // Inject animation rule
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    @keyframes pulse {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.25); opacity: 0.6; }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Formatters
+        function formatViews(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return num.toString();
+        }
+
+        // Always show formatted numbers with comma grouping in tooltips/details
+        function formatFullNumber(num) {
+            return num.toLocaleString('en-US');
+        }
+
+        function formatGrowth(num) {
+            if (num > 0) return '+' + formatViews(num);
+            if (num < 0) return '-' + formatViews(Math.abs(num));
+            return '0';
+        }
+
+        function parseUTCDate(dateStr) {
+            if (!dateStr) return null;
+            let s = dateStr.trim();
+            if (!s.endsWith('Z') && !s.includes('+')) {
+                s = s.replace(' ', 'T') + 'Z';
+            }
+            return new Date(s);
+        }
+
+        function timeAgo(dateStr) {
+            const date = parseUTCDate(dateStr);
+            if (!date) return 'never';
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+
+        // Fetch dashboard and details
+        async function loadDashboard() {
+            showLoadingState();
+            try {
+                const res = await fetch(`${API_BASE}/dashboard`);
+                if (!res.ok) throw new Error('Failed to fetch dashboard data');
+                dashboardData = await res.json();
+
+                // The dashboard endpoint is now the only request needed here.
+                // Detailed profile data loads only after opening a user profile.
+                allUsersDetailed = dashboardData.users || [];
+
+                filteredUsers = [...allUsersDetailed];
+                
+                renderOverview();
+                renderTopAuthors();
+                applySortAndRenderTable();
+
+                // Запускаем фоновую дозагрузку количества треков
+                hydrateTrackCounts();
+            } catch (err) {
+                console.error('Error initializing dashboard', err);
+                showErrorState();
+            }
+        }
+
+        // Show skeleton loading / loaders
+        function showLoadingState() {
+            document.getElementById('database-tbody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        Loading live metrics...
+                    </td>
+                </tr>
+            `;
+            document.getElementById('top-authors-list').innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    Analyzing growth...
+                </div>
+            `;
+        }
+
+        function showErrorState() {
+            document.getElementById('database-tbody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                        Error loading data. Please reload the page.
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Фоновую дозагрузка треков по каждому пользователю
+        async function hydrateTrackCounts() {
+            const batchSize = 5; // Запрашиваем по 5 человек за раз, чтобы не "положить" API
+            for (let i = 0; i < allUsersDetailed.length; i += batchSize) {
+                const batch = allUsersDetailed.slice(i, i + batchSize);
+                
+                await Promise.all(batch.map(async (u) => {
+                    // Если данные уже откуда-то появились, пропускаем
+                    if (u.total_songs !== null && u.total_songs !== undefined) return;
+                    
+                    try {
+                        const res = await fetch(`${API_BASE}/user/${u.username}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            // Ищем total_songs или считаем длину массива songs
+                            u.total_songs = data.total_songs !== undefined 
+                                ? data.total_songs 
+                                : (data.songs ? data.songs.length : 0);
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch tracks for', u.username);
+                    }
+                }));
+                
+                // Перерисовываем интерфейс с новыми данными после каждой пачки
+                renderOverview();
+                renderTopAuthors();
+                applySortAndRenderTable();
+            }
+        }
+
+        // Render Overview Statistics
+        function renderOverview() {
+            if (!dashboardData) return;
+            
+            // Total Views card
+            document.getElementById('stat-total-views').textContent = formatViews(dashboardData.global_views);
+            // Dynamic Growth: calculate the sum of positive growth across all users
+            const totalGrowth = allUsersDetailed.reduce(
+                (sum, u) => sum + (Number(u.growth) > 0 ? Number(u.growth) : 0),
+                0
+            );
+            document.getElementById('stat-total-views-growth').innerHTML = `+${formatViews(totalGrowth)} views 24h`;
+            
+            // Authors card
+            document.getElementById('stat-authors-count').textContent = dashboardData.total_users;
+            document.getElementById('stat-authors-subtext').textContent = 'Monitored profiles';
+            
+            // Tracks tracked card
+            document.getElementById('stat-tracks-count').textContent = formatViews(dashboardData.global_tracks || 0);
+            document.getElementById('stat-tracks-subtext').textContent = 'Across all profiles';
+        }
+
+        // Render Top Authors Panel (Top 4 by views)
+        function renderTopAuthors() {
+            const listContainer = document.getElementById('top-authors-list');
+            listContainer.innerHTML = '';
+            
+            // Sort by views descending
+            const sorted = [...allUsersDetailed]
+                .sort((a, b) => Number(b.views || 0) - Number(a.views || 0))
+                .slice(0, 4);
+            
+            sorted.forEach((u, i) => {
+                const rank = (i + 1).toString().padStart(2, '0');
+                const views = Number(u.views || 0);
+                const growth = Number(u.growth || 0);
+                const growthPercent = views - growth > 0
+                    ? ((growth / (views - growth)) * 100).toFixed(1)
+                    : '0';
+                const growthText = growth >= 0
+                    ? `+${growthPercent}%`
+                    : `${growthPercent}%`;
+                
+                const row = document.createElement('button');
+                row.className = 'author-row';
+                row.onclick = () => openProfile(u.username);
+                row.innerHTML = `
+                    <span class="rank">${rank}</span>
+                    <span>
+                        <div class="author-name">@${u.username}</div>
+                        <div class="author-subtitle">
+                            ${u.total_songs === null || u.total_songs === undefined
+                                ? 'Track count unavailable'
+                                : `${Number(u.total_songs)} tracks`}
+                        </div>
+                    </span>
+                    <span>
+                        <div class="author-views">${formatViews(Number(u.views || 0))}</div>
+                        <div class="author-growth ${growth >= 0 ? 'positive' : ''}" style="color: ${growth >= 0 ? 'var(--positive-text)' : 'var(--coral)'};">${growthText}</div>
+                    </span>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+
+        // Render Main Chart (Aggregated daily view count)
+        function renderChart() {
+            const svgArea = document.getElementById('chart-area-path');
+            const svgLine = document.getElementById('chart-line-path');
+            const labelsContainer = document.getElementById('chart-labels');
+            
+            if (!svgArea || !svgLine) return;
+            
+            const dailyViews = {};
+            
+            allUsersDetailed.forEach(u => {
+                u.chart_data.forEach(pt => {
+                    const dateStr = pt.x.split(' ')[0];
+                    if (!dailyViews[dateStr]) {
+                        dailyViews[dateStr] = { count: 0, users: {} };
+                    }
+                    dailyViews[dateStr].users[u.username] = pt.y;
+                });
+            });
+            
+            const sortedDates = Object.keys(dailyViews).sort();
+            if (sortedDates.length < 2) return;
+            
+            const aggregatedPoints = [];
+            const lastKnownViews = {};
+            
+            allUsersDetailed.forEach(u => {
+                lastKnownViews[u.username] = 0;
+            });
+            
+            sortedDates.forEach(dateStr => {
+                const entry = dailyViews[dateStr];
+                allUsersDetailed.forEach(u => {
+                    if (entry.users[u.username] !== undefined) {
+                        lastKnownViews[u.username] = entry.users[u.username];
+                    }
+                });
+                
+                const sum = Object.values(lastKnownViews).reduce((a, b) => a + b, 0);
+                aggregatedPoints.push({ date: dateStr, views: sum });
+            });
+            
+            const minViews = Math.min(...aggregatedPoints.map(p => p.views));
+            const maxViews = Math.max(...aggregatedPoints.map(p => p.views));
+            
+            const width = 800;
+            const height = 225;
+            const paddingLeft = 0;
+            const paddingRight = 0;
+            const paddingTop = 30;
+            const paddingBottom = 10;
+            
+            const chartHeight = height - paddingTop - paddingBottom;
+            const chartWidth = width - paddingLeft - paddingRight;
+            
+            const pointsCount = aggregatedPoints.length;
+            const scaledPoints = aggregatedPoints.map((p, i) => {
+                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
+                return { x, y, date: p.date, views: p.views };
+            });
+            
+            let linePathStr = '';
+            scaledPoints.forEach((p, i) => {
+                const cmd = i === 0 ? 'M' : 'L';
+                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+            });
+            
+            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
+            
+            svgArea.setAttribute('d', areaPathStr);
+            svgLine.setAttribute('d', linePathStr);
+            
+            labelsContainer.innerHTML = '';
+            const labelIndices = [
+                0, 
+                Math.floor(pointsCount * 0.2), 
+                Math.floor(pointsCount * 0.4), 
+                Math.floor(pointsCount * 0.6), 
+                Math.floor(pointsCount * 0.8), 
+                pointsCount - 1
+            ].filter(idx => idx >= 0 && idx < pointsCount);
+            
+            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
+            
+            uniqueIndices.forEach(idx => {
+                const p = scaledPoints[idx];
+                const dateObj = new Date(p.date);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                const label = document.createElement('span');
+                label.textContent = formattedDate;
+                labelsContainer.appendChild(label);
+            });
+            
+            setupChartTooltip(scaledPoints);
+        }
+
+        // Setup Interactive SVG tooltip
+        function setupChartTooltip(scaledPoints) {
+            const chartWrap = document.querySelector('.chart-wrap');
+            const svgElement = document.querySelector('.chart');
+            let tooltip = document.getElementById('chart-tooltip');
+            
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'chart-tooltip';
+                tooltip.style.position = 'absolute';
+                tooltip.style.display = 'none';
+                tooltip.style.background = 'var(--ink)';
+                tooltip.style.color = 'var(--white)';
+                tooltip.style.padding = '8px 12px';
+                tooltip.style.fontSize = '11px';
+                tooltip.style.fontFamily = "'DM Mono', monospace";
+                tooltip.style.border = '1px solid var(--line)';
+                tooltip.style.boxShadow = '3px 3px 0 var(--line)';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.zIndex = '100';
+                chartWrap.appendChild(tooltip);
+            }
+            
+            chartWrap.style.position = 'relative';
+            
+            svgElement.addEventListener('mousemove', (e) => {
+                const rect = svgElement.getBoundingClientRect();
+                const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
+                
+                let closestPt = scaledPoints[0];
+                let minDist = Math.abs(closestPt.x - mouseX);
+                
+                for (let i = 1; i < scaledPoints.length; i++) {
+                    const dist = Math.abs(scaledPoints[i].x - mouseX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPt = scaledPoints[i];
+                    }
+                }
+                
+                const dateObj = new Date(closestPt.date);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                
+                tooltip.style.display = 'block';
+                tooltip.innerHTML = `
+                    <div style="color: var(--green); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
+                    <div>Views: ${formatFullNumber(closestPt.views)}</div>
+                `;
+                
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const posX = ((closestPt.x / 800) * rect.width);
+                const posY = ((closestPt.y / 225) * rect.height) - 10;
+                
+                let left = posX + 20;
+                if (left + tooltipRect.width > rect.width) {
+                    left = posX - tooltipRect.width - 20;
+                }
+                
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${posY}px`;
+            });
+            
+            svgElement.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+        }
+
+        // Setup Search Functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    filteredUsers = allUsersDetailed.filter(u =>
+                String(u.username || '').toLowerCase().includes(query)
+            );
+                    applySortAndRenderTable();
+                });
+            }
+        }
+
+        // Setup Column Header Sorting
+        function toggleSort(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'desc';
+            }
+            
+            applySortAndRenderTable();
+        }
+
+        function applySortAndRenderTable() {
+            filteredUsers.sort((a, b) => {
+                let valA, valB;
+                if (sortColumn === 'username') {
+                    valA = a.username.toLowerCase();
+                    valB = b.username.toLowerCase();
+                } else if (sortColumn === 'views') {
+                    valA = a.views;
+                    valB = b.views;
+                } else if (sortColumn === 'growth') {
+                    valA = a.growth;
+                    valB = b.growth;
+                } else if (sortColumn === 'tracks_growth_7d') {
+                    valA = a.tracks_growth_7d;
+                    valB = b.tracks_growth_7d;
+                } else if (sortColumn === 'tracks') {
+                    valA = (a.total_songs !== null && a.total_songs !== undefined)
+                        ? Number(a.total_songs)
+                        : -1;
+                    valB = (b.total_songs !== null && b.total_songs !== undefined)
+                        ? Number(b.total_songs)
+                        : -1;
+                } else if (sortColumn === 'last_updated') {
+                    valA = a.last_updated ? new Date(a.last_updated.replace(' ', 'T')).getTime() : 0;
+                    valB = b.last_updated ? new Date(b.last_updated.replace(' ', 'T')).getTime() : 0;
+                }
+                
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable();
+            updateSortIndicators();
+        }
+
+        // Render Database Table
+        function renderTable() {
+            const tbody = document.getElementById('database-tbody');
+            tbody.innerHTML = '';
+            
+            if (filteredUsers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            No profiles matched your search.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            filteredUsers.forEach(u => {
+                const row = document.createElement('tr');
+                row.onclick = () => openProfile(u.username);
+                row.innerHTML = `
+                    <td class="table-user">@${u.username}</td>
+                    <td>${formatFullNumber(Number(u.views || 0))}</td>
+                    <td class="${Number(u.growth || 0) >= 0 ? 'positive' : ''}" style="color: ${Number(u.growth || 0) >= 0 ? 'var(--positive-text)' : 'var(--coral)'}; font-family: 'DM Mono', monospace;">
+                        ${Number(u.growth || 0) >= 0 ? '+' : ''}${formatFullNumber(Number(u.growth || 0))}
+                    </td>
+                    <td>
+                        ${u.total_songs === null || u.total_songs === undefined
+                            ? '—'
+                            : Number(u.total_songs)}
+                    </td>
+                    <td class="${Number(u.tracks_growth_7d || 0) >= 0 ? 'positive' : ''}" style="color: ${Number(u.tracks_growth_7d || 0) >= 0 ? 'var(--positive-text)' : 'var(--coral)'}; font-family: 'DM Mono', monospace;">
+                        ${Number(u.tracks_growth_7d || 0) >= 0 ? '+' : ''}${formatFullNumber(Number(u.tracks_growth_7d || 0))}
+                    </td>
+                    <td class="table-muted">${timeAgo(u.last_updated)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateSortIndicators() {
+            const columns = ['username', 'views', 'growth', 'tracks', 'tracks_growth_7d', 'last_updated'];
+            columns.forEach(col => {
+                const indicator = document.getElementById(`sort-${col}`);
+                if (indicator) {
+                    if (sortColumn === col) {
+                        indicator.textContent = sortDirection === 'asc' ? ' ▲' : ' ▼';
+                        indicator.style.opacity = '1';
+                        indicator.style.color = 'var(--blue)';
+                    } else {
+                        indicator.textContent = '';
+                        indicator.style.opacity = '0.3';
+                    }
+                }
+            });
+        }
+
+        // Add Author Modal Setup
+        function setupModal() {
+            const modal = document.getElementById('add-author-modal');
+            const openBtn = document.getElementById('add-author-btn');
+            const closeBtn = document.getElementById('close-modal-btn');
+            const cancelBtn = document.getElementById('cancel-modal-btn');
+            const form = document.getElementById('add-author-form');
+            const feedback = document.getElementById('modal-feedback');
+            const input = document.getElementById('new-username');
+            
+            if (!modal) return;
+            
+            openBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                feedback.style.display = 'none';
+                input.value = '';
+                input.focus();
+            });
+            
+            const closeModal = () => {
+                modal.style.display = 'none';
+            };
+            
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        async function submitAddAuthor(event) {
+            event.preventDefault();
+            const input = document.getElementById('new-username');
+            const feedback = document.getElementById('modal-feedback');
+            const submitBtn = document.getElementById('submit-modal-btn');
+            const username = input.value.trim();
+            
+            if (!username) return;
+            
+            feedback.style.display = 'block';
+            feedback.style.background = 'var(--paper-dark)';
+            feedback.style.color = 'var(--ink)';
+            feedback.style.borderColor = 'var(--ink)';
+            feedback.textContent = 'Adding user to queue...';
+            submitBtn.disabled = true;
+            
+            try {
+                const res = await fetch(`${API_BASE}/add-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    feedback.style.background = 'var(--green)';
+                    feedback.style.color = 'var(--ink)';
+                    feedback.textContent = `Success! @${data.cleanName} has been queued.`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('add-author-modal').style.display = 'none';
+                        loadDashboard();
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Server error adding author');
+                }
+            } catch (err) {
+                console.error(err);
+                feedback.style.background = 'var(--coral)';
+                feedback.style.color = 'var(--white)';
+                feedback.style.borderColor = 'var(--ink)';
+                feedback.textContent = err.message || 'Error communicating with server.';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        function openProfile(username) {
+            window.location.href = `/user/${username}`;
+        }
+    </script>
+</body>
+</html>

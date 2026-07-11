@@ -1,207 +1,1006 @@
+<!-- File: user.html -->
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль | Spicy Stats</title>
+    <title>Spicy Monitor — Profile</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }, colors: { dark: { 900: '#0F111A', 800: '#181A25', 700: '#232535' }, brand: { 500: '#8A2BE2', 400: '#A25DF2', 300: '#c084fc' } } } } }</script>
+
     <style>
-        body {
-            background-color: #0F111A;
-            color: #E2E8F0;
+        :root {
+            --paper: #101114;
+            --paper-dark: #1b1c21;
+            --ink: #f1f0ea;
+            --muted: #8e9099;
+            --line: #2d2f39;
+            --blue: #4d65ff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #16171c;
+            --positive-text: #b9f227;
         }
 
-        .glass-panel {
-            background: rgba(24, 26, 37, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: 'Manrope', sans-serif;
+        }
+
+        button {
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .brand-mark {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            background: var(--ink);
+            color: var(--green);
+            font-size: 18px;
+            transform: rotate(-8deg);
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 1px solid var(--ink);
+        }
+
+        .profile-header {
+            padding: 70px 0 34px;
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .back-button {
+            border: 1px solid var(--ink);
+            background: transparent;
+            padding: 9px 13px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            transition: 140ms ease;
+        }
+
+        .back-button:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .eyebrow {
+            color: var(--blue);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 14px;
+        }
+
+        .profile-title {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .profile-avatar {
+            width: 70px;
+            height: 70px;
+            display: grid;
+            place-items: center;
+            background: var(--blue);
+            color: var(--white);
+            font-size: 23px;
+            font-weight: 800;
+            transform: rotate(4deg);
+        }
+
+        .profile-title h1 {
+            margin: 0;
+            font-size: clamp(42px, 7vw, 78px);
+            letter-spacing: -0.08em;
+            line-height: 0.9;
+        }
+
+        .profile-caption {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            margin-top: 12px;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .profile-stat {
+            min-height: 155px;
+            padding: 21px;
+            border: 1px solid var(--ink);
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .profile-stat:nth-child(2) {
+            background: var(--coral);
+            color: #101114;
+        }
+
+        .profile-stat:nth-child(3) {
+            background: var(--green);
+            color: #101114;
+        }
+
+        .profile-stat-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .profile-stat-value {
+            font-size: 35px;
+            font-weight: 800;
+            letter-spacing: -0.07em;
+        }
+
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 12px;
+        }
+
+        .panel {
+            border: 1px solid var(--ink);
+            background: var(--white);
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--ink);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-meta {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .tracks {
+            padding: 7px 12px 12px;
+        }
+
+        .track {
+            display: grid;
+            grid-template-columns: 32px 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 15px 8px;
+            border-bottom: 1px solid var(--paper-dark);
+            transition: 140ms ease;
+        }
+
+        .track:hover {
+            background: var(--green);
+            color: var(--paper);
+        }
+        .track:hover * {
+            color: var(--paper) !important;
+        }
+
+        .track:last-child {
+            border-bottom: 0;
+        }
+
+        .track-number {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+        }
+
+        .track-title {
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .track-artist {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .track-views {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .track-growth {
+            color: var(--positive-text);
+            font-size: 10px;
+            margin-top: 3px;
+            text-align: right;
+        }
+
+        .mini-card {
+            padding: 24px;
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .mini-card .eyebrow {
+            color: var(--green);
+        }
+
+        .mini-card h2 {
+            font-size: 30px;
+            line-height: 1.02;
+            letter-spacing: -0.07em;
+        }
+
+        .mini-card p {
+            color: #555860;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 16px;
+        }
+
+        .mini-line {
+            height: 1px;
+            background: #34373d;
+            margin: 25px 0;
+        }
+
+        .mini-highlight {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+        }
+
+        .mini-highlight strong {
+            color: var(--blue);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .profile-chart {
+            margin-top: 12px;
+        }
+
+        .chart-wrap {
+            padding: 22px 20px 16px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 190px;
+            display: block;
+            background:
+                linear-gradient(to bottom, transparent 49.5%, var(--paper-dark) 50%, transparent 50.5%);
+            background-size: 100% 48px;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px solid var(--ink);
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 140ms ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        [data-theme="light"] {
+            --paper: #e9e5dc;
+            --paper-dark: #d8d3c8;
+            --ink: #17181c;
+            --muted: #686b72;
+            --line: #b9b5ac;
+            --blue: #304cff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #f8f6f0;
+            --positive-text: #4f7600;
+        }
+
+        @media (max-width: 850px) {
+
+            .profile-header,
+            .profile-content {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .profile-content {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .page {
+                padding: 17px;
+            }
+
+            .profile-title {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .topbar .live-status {
+                display: none;
+            }
         }
     </style>
 </head>
 
-<body class="antialiased min-h-screen pb-12 flex flex-col items-center overflow-y-scroll">
-    <div class="w-full max-w-6xl mt-6 px-6 relative z-10 flex flex-col gap-6">
-
-        <div
-            class="flex flex-col sm:flex-row justify-between items-center bg-dark-800 border border-white/5 p-4 rounded-[20px] gap-4 backdrop-blur shadow-lg">
-            <a href="/"
-                class="flex items-center gap-2 text-brand-400 hover:text-brand-300 font-bold bg-brand-500/10 px-4 py-2 rounded-xl"><i
-                    class="fa-solid fa-arrow-left"></i> На главную</a>
-            <div class="flex gap-2 w-full sm:w-auto">
-                <a id="export-btn" href="#"
-                    class="px-4 py-2 rounded-xl bg-emerald-500 text-dark-900 text-xs font-extrabold flex items-center gap-2"><i
-                        class="fa-solid fa-download"></i> Экспорт JSON</a>
+<body>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">S</div>
+                <span>Spicy Monitor</span>
             </div>
-        </div>
 
-        <div class="flex flex-col lg:flex-row gap-6 mt-4 relative z-10">
-            <div
-                class="flex-shrink-0 bg-gradient-to-tr from-brand-500 via-purple-500 to-fuchsia-400 p-[1px] rounded-[32px] w-full lg:w-1/3">
-                <div class="bg-dark-900 w-full h-full rounded-[31px] p-8 flex flex-col justify-center">
-                    <h2 id="prof-username"
-                        class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 mb-4">
-                        ...</h2>
-                    <p
-                        class="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
-                        <i class="fa-regular fa-clock"></i> АКТУАЛЬНОЕ СУММАРНО:
+            <div style="display: flex; align-items: center; gap: 18px;">
+                <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
+                    <span id="theme-toggle-icon">☾</span>
+                    <span id="theme-toggle-label">Dark</span>
+                </button>
+
+                <div class="live-status">
+                    <span class="live-dot"></span>
+                    Live database
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="profile-header">
+                <div>
+                    <button class="back-button" onclick="goBack()">
+                        ← Back to dashboard
+                    </button>
+
+                    <div class="profile-title" style="margin-top: 35px;">
+                        <div class="profile-avatar" id="profile-avatar">--</div>
+
+                        <div>
+                            <div class="eyebrow" id="profile-rank">Author profile / Rank #--</div>
+                            <h1 id="profile-name">@username</h1>
+                            <div class="profile-caption" id="profile-updated">
+                                Last updated 2 minutes ago
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="back-button" id="export-json-btn">
+                    Export JSON ↓
+                </button>
+            </section>
+
+            <section class="profile-stats">
+                <article class="profile-stat">
+                    <div class="profile-stat-label">Total views</div>
+                    <div class="profile-stat-value" id="stat-views">...</div>
+                </article>
+
+                <article class="profile-stat">
+                    <div class="profile-stat-label">24h growth</div>
+                    <div class="profile-stat-value" id="stat-growth">...</div>
+                </article>
+
+                <article class="profile-stat">
+                    <div class="profile-stat-label">Tracks</div>
+                    <div class="profile-stat-value" id="stat-tracks">...</div>
+                </article>
+            </section>
+
+            <section class="panel profile-chart">
+                <div class="panel-heading">
+                    <div>
+                        <h2 class="panel-title">Profile activity</h2>
+                        <div class="panel-meta">Total views over the last 30 days</div>
+                    </div>
+
+                    <div class="panel-meta" id="profile-chart-growth-header">+0.0%</div>
+                </div>
+
+                <div class="chart-wrap" style="position: relative;">
+                    <svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="profileArea" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#ff715b" stop-opacity="0.28" />
+                                <stop offset="100%" stop-color="#ff715b" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+
+                        <path id="profile-chart-area-path"
+                            d=""
+                            fill="url(#profileArea)" />
+
+                        <path id="profile-chart-line-path"
+                            d=""
+                            fill="none" stroke="#ff715b" stroke-width="4" vector-effect="non-scaling-stroke" />
+                    </svg>
+
+                    <div class="chart-labels" id="profile-chart-labels">
+                        <span></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="profile-content" style="margin-top: 12px;">
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">Top tracks</h2>
+                            <div class="panel-meta">Sorted by total views</div>
+                        </div>
+                    </div>
+
+                    <div class="tracks" id="tracks-list">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </article>
+
+                <aside class="mini-card">
+                    <div class="eyebrow">Performance note</div>
+
+                    <h2 id="perf-headline">
+                        ...
+                    </h2>
+
+                    <p id="perf-desc">
+                        ...
                     </p>
-                    <div id="prof-views" class="text-[52px] font-mono font-black text-white leading-none mt-2">...</div>
-                    <div class="mt-4 flex gap-3 flex-wrap" id="prof-badges">
+
+                    <div class="mini-line"></div>
+
+                    <div class="mini-highlight">
+                        <span>Best track</span>
+                        <strong id="perf-best-track">...</strong>
                     </div>
-                </div>
-            </div>
 
-            <div class="w-full lg:w-2/3">
-                <div class="flex items-center gap-3 mb-4 pl-2">
-                    <div
-                        class="w-8 h-8 rounded bg-orange-500/20 text-orange-400 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-fire"></i>
+                    <div class="mini-line"></div>
+
+                    <div class="mini-highlight">
+                        <span>Weekly growth</span>
+                        <strong id="perf-growth-pct">...</strong>
                     </div>
-                    <h3 class="text-lg font-bold text-white font-mono tracking-tight uppercase">Топовые растущие треки
-                    </h3>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 h-[calc(100%-2.5rem)]" id="prof-highlights">
-                </div>
-            </div>
-        </div>
-
-        <div class="w-full glass-panel border border-white/5 rounded-[24px] p-6 shadow-2xl mt-4">
-            <div class="h-80 w-full relative"><canvas id="viewChart"></canvas></div>
-        </div>
-
-        <div class="w-full glass-panel border border-white/5 rounded-[24px] overflow-hidden shadow-2xl mt-4 mb-16">
-            <div class="p-6 border-b border-white/5 flex justify-between gap-4 bg-dark-800">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i
-                        class="fa-solid fa-list-ul text-brand-400"></i> Библиотека (Детально)</h3>
-                <input type="text" id="trackSearch" placeholder="Поиск песни..."
-                    class="bg-dark-900 border border-white/5 rounded-full py-2 px-4 text-sm text-slate-200">
-            </div>
-            <div class="overflow-x-auto">
-                <table id="profTable" class="w-full whitespace-nowrap min-w-[700px]">
-                    <thead>
-                        <tr class="bg-dark-900 border-b border-white/10">
-                            <th data-sort="num" class="px-5 py-3 text-left text-[11px] font-bold text-slate-500">№</th>
-                            <th data-sort="str" class="px-5 py-3 text-left text-[11px] font-bold text-slate-500 w-full">
-                                Трек и Артист</th>
-                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-brand-400">
-                                Суммарно</th>
-                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-emerald-400">
-                                Суточный прирост</th>
-                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-slate-500">%
-                                Отрыв</th>
-                        </tr>
-                    </thead>
-                    <tbody id="prof-songs" class="divide-y divide-white/5 text-slate-300">
-                        <tr>
-                            <td colspan="5" class="text-center py-6">Загрузка...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                </aside>
+            </section>
+        </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // УКАЖИ ЗДЕСЬ URL ТВОЕГО CLOUDFLARE WORKER (без слеша на конце)
-        const API_BASE = "https://spicy-api.glyph-labs.site";
+        const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+        let profileData = null;
+        let username = null;
 
-        const username = window.location.pathname.split('/').pop();
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initLiveIndicator();
+            username = getUsername();
+            if (!username) {
+                showError('No username provided in the URL.');
+                return;
+            }
+            loadProfile();
+        });
 
-        async function loadUser() {
-            try {
-                const res = await fetch(`${API_BASE}/api/user/${username}`);
-                if (!res.ok) { document.getElementById('prof-username').innerText = "Не найдено"; return; }
-                const data = await res.json();
+        // Theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('spicy-theme');
+            const preferredTheme = savedTheme || (
+                window.matchMedia('(prefers-color-scheme: light)').matches
+                    ? 'light'
+                    : 'dark'
+            );
 
-                document.getElementById('export-btn').href = `${API_BASE}/api/export/${data.username}`;
-                document.title = `Профиль @${data.username} | Spicy Stats`;
-                document.getElementById('prof-username').innerText = `@${data.username}`;
-                document.getElementById('prof-views').innerText = data.total_views.toLocaleString('ru-RU');
+            applyTheme(preferredTheme);
 
-                let badgesHtml = `<div class="bg-white/5 text-slate-300 px-3 py-1.5 rounded-lg border border-white/10 font-mono font-bold"><i class="fa-solid fa-music mr-1"></i> ${data.total_songs} тр.</div>`;
-                if (data.growth24h > 0) {
-                    badgesHtml = `<div class="bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-mono font-bold"><i class="fa-solid fa-bolt mr-1"></i> +${data.growth24h.toLocaleString('ru-RU')} <span class="text-xs ml-1">24H</span></div>` + badgesHtml;
-                }
-                document.getElementById('prof-badges').innerHTML = badgesHtml;
-
-                const hlContainer = document.getElementById('prof-highlights');
-                if (data.highlights.length > 0) {
-                    hlContainer.innerHTML = data.highlights.map((t, idx) => {
-                        let badgeColor = idx === 0 ? "bg-amber-500/20 text-amber-400" : idx === 1 ? "bg-slate-400/20 text-slate-300" : "bg-orange-800/20 text-orange-400";
-                        return `
-                     <div class="glass-panel p-5 rounded-[20px] bg-gradient-to-t from-dark-800/80 flex flex-col justify-between">
-                         <div>
-                             <div class="inline-flex mb-3 items-center gap-2 border border-transparent px-2 py-0.5 rounded-md text-[10px] font-bold ${badgeColor}">Место #${idx + 1}</div>
-                             <h4 class="text-lg font-bold text-white mb-1 truncate">${t.title}</h4>
-                             <p class="text-xs text-slate-400 truncate mb-5">${t.artist}</p>
-                         </div>
-                         <div class="flex items-end justify-between">
-                             <div><span class="block text-[10px] text-slate-500 font-bold mb-0.5 uppercase">Просмотры</span><span class="font-mono text-xl font-bold text-slate-200">${t.views.toLocaleString('ru-RU')}</span></div>
-                             ${t.growth > 0 ? `<div class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded font-mono font-bold text-sm">+${t.growth.toLocaleString('ru-RU')}</div>` : ''}
-                         </div>
-                     </div>`;
-                    }).join('');
-                } else {
-                    hlContainer.innerHTML = '<div class="text-slate-500 glass-panel p-10 text-center rounded-2xl w-full col-span-3">Нет данных</div>';
-                }
-
-                const songsHtml = data.songs.map((s, i) => `
-               <tr class="search-row hover:bg-dark-800 border-b border-white/5">
-                 <td class="px-5 py-3.5 font-mono text-xs w-12">${i + 1}</td>
-                 <td class="px-5 py-3.5"><div class="font-bold text-sm text-slate-200 track-name">${s.title}</div><div class="text-[11px] text-slate-400 track-artist">${s.artist}</div></td>
-                 <td class="px-5 py-3.5 text-right font-mono text-[15px]">${s.views.toLocaleString('ru-RU')}</td>
-                 <td class="px-5 py-3.5 text-right font-mono font-bold">${s.growth > 0 ? `<span class="text-emerald-400">+${s.growth.toLocaleString('ru-RU')}</span>` : '0'}</td>
-                 <td class="px-5 py-3.5 text-right font-mono text-[13px]">${s.pct > 0 ? `<span class="text-emerald-500">${s.pct.toFixed(1)}%</span>` : '0.0%'}</td>
-               </tr>`).join('');
-                document.getElementById('prof-songs').innerHTML = songsHtml || '<tr><td colspan="5" class="text-center py-6 text-slate-500">Нет треков</td></tr>';
-
-                drawChart(data.chart_data);
-            } catch (e) {
-                console.error(e);
-                document.getElementById('prof-username').innerText = "Ошибка загрузки";
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.dataset.theme || 'dark';
+                    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+                });
             }
         }
 
-        function drawChart(chartDataRaw) {
-            const ctx = document.getElementById('viewChart').getContext('2d');
-            const tLabels = []; const dPoints = [];
-            chartDataRaw.forEach(item => {
-                let s = item.x.trim();
-                if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) s = s.replace(' ', 'T') + 'Z'; else s = s.replace(' ', 'T');
-                const dx = new Date(s);
-                if (!isNaN(dx.getTime())) {
-                    tLabels.push(dx.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
-                    dPoints.push(item.y);
+        function applyTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem('spicy-theme', theme);
+
+            const icon = document.getElementById('theme-toggle-icon');
+            const label = document.getElementById('theme-toggle-label');
+
+            if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
+            if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+
+        // Animate live dot
+        function initLiveIndicator() {
+            const dot = document.querySelector('.live-dot');
+            if (dot) {
+                dot.style.animation = 'pulse 2s infinite ease-in-out';
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    @keyframes pulse {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.25); opacity: 0.6; }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        function getUsername() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let name = urlParams.get('username');
+            if (name) return name.trim().replace(/^@/, '');
+
+            const pathParts = window.location.pathname.split('/');
+            const cleanParts = pathParts.filter(Boolean);
+            if (cleanParts.length >= 2 && cleanParts[cleanParts.length - 2] === 'user') {
+                return cleanParts[cleanParts.length - 1].trim().replace(/^@/, '');
+            }
+            const lastPart = cleanParts[cleanParts.length - 1];
+            if (lastPart && !lastPart.endsWith('.html') && lastPart !== 'user') {
+                return lastPart.trim().replace(/^@/, '');
+            }
+            return null;
+        }
+
+        // Formatters
+        function formatViews(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return num.toString();
+        }
+
+        function formatFullNumber(num) {
+            return num.toLocaleString('en-US');
+        }
+
+        function parseUTCDate(dateStr) {
+            if (!dateStr) return null;
+            let s = dateStr.trim();
+            if (!s.endsWith('Z') && !s.includes('+')) {
+                s = s.replace(' ', 'T') + 'Z';
+            }
+            return new Date(s);
+        }
+
+        function timeAgo(dateStr) {
+            const date = parseUTCDate(dateStr);
+            if (!date) return 'never';
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+
+        async function loadProfile() {
+            showLoading();
+            try {
+                // First, fetch dashboard to find the rank
+                let rankText = 'Rank #--';
+                try {
+                    const dashRes = await fetch(`${API_BASE}/dashboard`);
+                    if (dashRes.ok) {
+                        const dashData = await dashRes.json();
+                        const userIdx = dashData.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+                        if (userIdx !== -1) {
+                            rankText = `Rank #${(userIdx + 1).toString().padStart(2, '0')}`;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to resolve rank', e);
                 }
+                
+                const res = await fetch(`${API_BASE}/user/${username}`);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        throw new Error(`Profile @${username} was not found in the Spicy database.`);
+                    } else {
+                        throw new Error('Failed to load profile details.');
+                    }
+                }
+                profileData = await res.json();
+                
+                renderProfile(rankText);
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('profile-name').textContent = `@${username}...`;
+            document.getElementById('profile-updated').textContent = 'Loading profile details...';
+            document.getElementById('tracks-list').innerHTML = `
+                <div style="padding: 30px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    Loading tracks...
+                </div>
+            `;
+        }
+
+        function showError(msg) {
+            document.getElementById('profile-name').textContent = 'Error';
+            document.getElementById('profile-updated').style.color = 'var(--coral)';
+            document.getElementById('profile-updated').textContent = msg;
+            document.getElementById('tracks-list').innerHTML = `
+                <div style="padding: 30px; text-align: center; color: var(--coral); font-family: 'DM Mono', monospace; border: 1px solid var(--coral); background: rgba(255,113,91,0.05);">
+                    ${msg}
+                    <div style="margin-top: 15px;">
+                        <button class="back-button" onclick="goBack()" style="background: var(--white);">Return to Dashboard</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProfile(rankText) {
+            if (!profileData) return;
+            
+            const initials = username.substring(0, 2).toUpperCase();
+            document.getElementById('profile-avatar').textContent = initials;
+            document.getElementById('profile-rank').textContent = `Author profile / ${rankText}`;
+            document.getElementById('profile-name').textContent = `@${profileData.username}`;
+            
+            let updatedTime = null;
+            if (profileData.chart_data && profileData.chart_data.length > 0) {
+                updatedTime = profileData.chart_data[profileData.chart_data.length - 1].x;
+            }
+            document.getElementById('profile-updated').textContent = updatedTime ? `Last updated ${timeAgo(updatedTime)}` : 'No update history';
+            
+            document.getElementById('stat-views').textContent = formatViews(profileData.total_views);
+            
+            const growth = profileData.growth24h;
+            const growthSign = growth >= 0 ? '+' : '';
+            document.getElementById('stat-growth').textContent = `${growthSign}${formatViews(growth)}`;
+            document.getElementById('stat-tracks').textContent = profileData.total_songs;
+            
+            const exportBtn = document.getElementById('export-json-btn');
+            if (exportBtn) {
+                exportBtn.onclick = () => {
+                    window.location.href = `${API_BASE}/export/${profileData.username}`;
+                };
+            }
+            
+            renderChart();
+            renderTracks();
+            renderPerformanceNote();
+        }
+
+        function renderChart() {
+            const svgArea = document.getElementById('profile-chart-area-path');
+            const svgLine = document.getElementById('profile-chart-line-path');
+            const labelsContainer = document.getElementById('profile-chart-labels');
+            
+            if (!svgArea || !svgLine || !profileData.chart_data || profileData.chart_data.length < 2) return;
+            
+            const points = profileData.chart_data;
+            
+            const firstVal = points[0].y;
+            const lastVal = points[points.length - 1].y;
+            const totalGrowthPct = firstVal > 0 ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : '0';
+            const totalGrowthSign = lastVal >= firstVal ? '+' : '';
+            
+            const growthEl = document.getElementById('profile-chart-growth-header');
+            if (growthEl) {
+                growthEl.textContent = `${totalGrowthSign}${totalGrowthPct}%`;
+                growthEl.style.color = lastVal >= firstVal ? 'var(--positive-text)' : 'var(--coral)';
+            }
+            
+            const minViews = Math.min(...points.map(p => p.y));
+            const maxViews = Math.max(...points.map(p => p.y));
+            
+            const width = 800;
+            const height = 190;
+            const paddingLeft = 0;
+            const paddingRight = 0;
+            const paddingTop = 25;
+            const paddingBottom = 10;
+            
+            const chartHeight = height - paddingTop - paddingBottom;
+            const chartWidth = width - paddingLeft - paddingRight;
+            
+            const pointsCount = points.length;
+            const scaledPoints = points.map((p, i) => {
+                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const y = height - paddingBottom - ((p.y - minViews) / (maxViews - minViews || 1)) * chartHeight;
+                return { x, y, date: p.x, views: p.y };
             });
+            
+            let linePathStr = '';
+            scaledPoints.forEach((p, i) => {
+                const cmd = i === 0 ? 'M' : 'L';
+                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+            });
+            
+            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
+            
+            svgArea.setAttribute('d', areaPathStr);
+            svgLine.setAttribute('d', linePathStr);
+            
+            labelsContainer.innerHTML = '';
+            const labelIndices = [
+                0, 
+                Math.floor(pointsCount * 0.2), 
+                Math.floor(pointsCount * 0.4), 
+                Math.floor(pointsCount * 0.6), 
+                Math.floor(pointsCount * 0.8), 
+                pointsCount - 1
+            ].filter(idx => idx >= 0 && idx < pointsCount);
+            
+            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
+            
+            uniqueIndices.forEach(idx => {
+                const p = scaledPoints[idx];
+                const dateObj = parseUTCDate(p.date);
+                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) : '';
+                const label = document.createElement('span');
+                label.textContent = formattedDate;
+                labelsContainer.appendChild(label);
+            });
+            
+            setupProfileChartTooltip(scaledPoints);
+        }
 
-            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, "rgba(162, 93, 242, 0.4)"); gradient.addColorStop(1, "rgba(162, 93, 242, 0)");
-
-            new Chart(ctx, {
-                type: 'line', data: { labels: tLabels, datasets: [{ data: dPoints, borderColor: '#c084fc', backgroundColor: gradient, borderWidth: 3, fill: true, pointRadius: 0, pointHoverRadius: 6 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
+        function setupProfileChartTooltip(scaledPoints) {
+            const chartWrap = document.querySelector('.profile-chart .chart-wrap');
+            const svgElement = document.querySelector('.profile-chart .chart');
+            let tooltip = document.getElementById('profile-chart-tooltip');
+            
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'profile-chart-tooltip';
+                tooltip.style.position = 'absolute';
+                tooltip.style.display = 'none';
+                tooltip.style.background = 'var(--ink)';
+                tooltip.style.color = 'var(--white)';
+                tooltip.style.padding = '8px 12px';
+                tooltip.style.fontSize = '11px';
+                tooltip.style.fontFamily = "'DM Mono', monospace";
+                tooltip.style.border = '1px solid var(--line)';
+                tooltip.style.boxShadow = '3px 3px 0 var(--line)';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.zIndex = '100';
+                chartWrap.appendChild(tooltip);
+            }
+            
+            chartWrap.style.position = 'relative';
+            
+            svgElement.addEventListener('mousemove', (e) => {
+                const rect = svgElement.getBoundingClientRect();
+                const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
+                
+                let closestPt = scaledPoints[0];
+                let minDist = Math.abs(closestPt.x - mouseX);
+                
+                for (let i = 1; i < scaledPoints.length; i++) {
+                    const dist = Math.abs(scaledPoints[i].x - mouseX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPt = scaledPoints[i];
+                    }
+                }
+                
+                const dateObj = parseUTCDate(closestPt.date);
+                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+                
+                tooltip.style.display = 'block';
+                tooltip.innerHTML = `
+                    <div style="color: var(--green); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
+                    <div>Views: ${formatFullNumber(closestPt.views)}</div>
+                `;
+                
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const posX = ((closestPt.x / 800) * rect.width);
+                const posY = ((closestPt.y / 190) * rect.height) - 10;
+                
+                let left = posX + 20;
+                if (left + tooltipRect.width > rect.width) {
+                    left = posX - tooltipRect.width - 20;
+                }
+                
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${posY}px`;
+            });
+            
+            svgElement.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
             });
         }
 
-        document.getElementById('trackSearch').addEventListener('keyup', e => {
-            const v = e.target.value.toLowerCase();
-            document.querySelectorAll('#profTable tbody .search-row').forEach(row => {
-                const name = row.querySelector('.track-name').textContent.toLowerCase();
-                const artist = row.querySelector('.track-artist').textContent.toLowerCase();
-                row.style.display = (name.includes(v) || artist.includes(v)) ? '' : 'none';
+        function renderTracks() {
+            const list = document.getElementById('tracks-list');
+            list.innerHTML = '';
+            
+            if (!profileData.songs || profileData.songs.length === 0) {
+                list.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        No track details tracked for this profile.
+                    </div>
+                `;
+                return;
+            }
+            
+            const sortedSongs = [...profileData.songs].sort((a, b) => b.views - a.views);
+            
+            sortedSongs.forEach((song, i) => {
+                const rank = (i + 1).toString().padStart(2, '0');
+                const growthSign = song.growth >= 0 ? '+' : '';
+                const growthText = `${growthSign}${formatFullNumber(song.growth)}`;
+                
+                const row = document.createElement('div');
+                row.className = 'track';
+                row.innerHTML = `
+                    <div class="track-number">${rank}</div>
+                    <div>
+                        <div class="track-title">${song.title}</div>
+                        <div class="track-artist">${song.artist}</div>
+                    </div>
+                    <div>
+                        <div class="track-views">${formatViews(song.views)}</div>
+                        <div class="track-growth" style="color: ${song.growth >= 0 ? 'var(--positive-text)' : 'var(--coral)'};">${growthText}</div>
+                    </div>
+                `;
+                list.appendChild(row);
             });
-        });
+        }
 
-        loadUser();
+        function renderPerformanceNote() {
+            const headline = document.getElementById('perf-headline');
+            const desc = document.getElementById('perf-desc');
+            const bestTrack = document.getElementById('perf-best-track');
+            const growthPct = document.getElementById('perf-growth-pct');
+            
+            const firstVal = profileData.chart_data && profileData.chart_data.length > 0 ? profileData.chart_data[0].y : 0;
+            const lastVal = profileData.chart_data && profileData.chart_data.length > 0 ? profileData.chart_data[profileData.chart_data.length - 1].y : 0;
+            const growthVal = lastVal - firstVal;
+            const growthPercent = firstVal > 0 ? ((growthVal / firstVal) * 100) : 0;
+            const growthSign = growthVal >= 0 ? '+' : '';
+            
+            let topSong = 'None';
+            if (profileData.songs && profileData.songs.length > 0) {
+                const sortedByViews = [...profileData.songs].sort((a,b)=>b.views - a.views);
+                topSong = sortedByViews[0].title;
+            }
+            
+            let fastSong = '';
+            if (profileData.songs && profileData.songs.length > 0) {
+                const sortedByGrowth = [...profileData.songs].sort((a,b)=>b.growth - a.growth);
+                if (sortedByGrowth[0] && sortedByGrowth[0].growth > 0) {
+                    fastSong = sortedByGrowth[0].title;
+                }
+            }
+            
+            if (headline) {
+                if (growthPercent > 15) {
+                    headline.textContent = `This profile is accelerating rapidly, up by ${growthPercent.toFixed(1)}% recently.`;
+                } else if (growthPercent > 5) {
+                    headline.textContent = `This profile shows steady moderate growth of ${growthPercent.toFixed(1)}%.`;
+                } else if (growthPercent >= 0) {
+                    headline.textContent = `This profile's view metrics are stable (growth of ${growthPercent.toFixed(1)}%).`;
+                } else {
+                    headline.textContent = `This profile shows a slight decline in view acceleration.`;
+                }
+            }
+            
+            if (desc) {
+                if (fastSong) {
+                    desc.textContent = `Most of the recent growth in view activity comes from the track “${fastSong}”.`;
+                } else {
+                    desc.textContent = `Views count has remained consistent across the artist's tracked repertoire.`;
+                }
+            }
+            
+            if (bestTrack) bestTrack.textContent = topSong;
+            if (growthPct) growthPct.textContent = `${growthSign}${growthPercent.toFixed(1)}%`;
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
     </script>
 </body>
-
 </html>

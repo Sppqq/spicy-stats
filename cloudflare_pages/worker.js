@@ -84,19 +84,48 @@ async function handleDashboardAPI(env) {
   `).first();
 
     const { results: users } = await env.DB.prepare(`
-    SELECT u.username, s_latest.total_views AS current_views, s_latest.timestamp AS last_updated, s_past.total_views AS past_views
-    FROM users u LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+    WITH target_snapshots AS (
+        SELECT u.id AS user_id, s_latest.id AS latest_id, s_past_7d.id AS past_7d_id
+        FROM users u
+        LEFT JOIN snapshots s_latest ON s_latest.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+        LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
+    ),
+    song_counts AS (
+        SELECT 
+            snapshot_id, 
+            COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Скрыто')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) AS cnt
+        FROM snapshot_songs
+        WHERE snapshot_id IN (SELECT latest_id FROM target_snapshots UNION SELECT past_7d_id FROM target_snapshots WHERE past_7d_id IS NOT NULL)
+        GROUP BY snapshot_id
+    )
+    SELECT 
+        u.username, 
+        s_latest.total_views AS current_views, 
+        s_latest.timestamp AS last_updated, 
+        s_past.total_views AS past_views,
+        COALESCE(sc_latest.cnt, 0) AS total_songs,
+        COALESCE(sc_past.cnt, 0) AS total_songs_7d
+    FROM users u 
+    LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
     LEFT JOIN snapshots s_past ON s_past.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-24 hours') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = s_latest.id
+    LEFT JOIN song_counts sc_past ON sc_past.snapshot_id = s_past_7d.id
     ORDER BY current_views DESC
   `).all();
+
+    const globalSongs = users.reduce((sum, u) => sum + (u.total_songs || 0), 0);
 
     const data = {
         total_users: globalQuery.total_users || 0,
         global_views: totalViewsQuery.global_views || 0,
+        global_tracks: globalSongs,
         users: users.map(u => ({
             username: u.username,
             views: u.current_views || 0,
             growth: (u.current_views || 0) - (u.past_views || 0),
+            total_songs: u.total_songs || 0,
+            tracks_growth_7d: u.total_songs_7d !== null ? (u.total_songs || 0) - (u.total_songs_7d || 0) : 0,
             last_updated: u.last_updated || null
         }))
     };

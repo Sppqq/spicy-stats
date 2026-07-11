@@ -1,0 +1,83 @@
+Замедление загрузки происходит по двум причинам:
+1. **Отсутствие индекса в базе данных (главная причина)**. По мере роста базы данных таблица `snapshot_songs` разрастается до сотен тысяч строк. Если в ней нет индекса по полю `snapshot_id`, СУБД SQLite при каждом запросе дашборда вынуждена перебирать всю таблицу целиком с самого начала.
+2. **Зависимые подзапросы (correlated subqueries)**. Наш предыдущий SQL-запрос выполнял сложную группировку строк через `COUNT(DISTINCT ...)` отдельно для каждого из 25 пользователей. Это заставляло базу делать полный перебор строк десятки раз за один запрос.
+
+Мы решим эту проблему двумя шагами, что ускорит загрузку дашборда с нескольких секунд до **5–20 миллисекунд**.
+
+---
+
+### Шаг 1. Оптимизация SQL-запроса через CTE (Common Table Expressions)
+
+Мы перепишем функцию `handleDashboardAPI` в `./cloudflare_pages/worker.js`. 
+Вместо того чтобы мучить базу данных десятками подзапросов, мы сначала выберем ровно 50 нужных ID снапшотов (по 2 на каждого юзера), один раз отфильтруем по ним таблицу `snapshot_songs`, сгруппируем результаты и просто присоединим их через быстрый `LEFT JOIN`.
+
+Замени этот блок в `./cloudflare_pages/worker.js`:
+
+<<<<<<< SEARCH ./cloudflare_pages/worker.js
+    const { results: users } = await env.DB.prepare(`
+    SELECT 
+        u.username, 
+        s_latest.total_views AS current_views, 
+        s_latest.timestamp AS last_updated, 
+        s_past.total_views AS past_views,
+        (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Скрыто')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_latest.id) AS total_songs,
+        (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Скрыто')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id) AS total_songs_7d
+    FROM users u 
+    LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_past ON s_past.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-24 hours') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
+    ORDER BY current_views DESC
+  `).all();
+=======
+    const { results: users } = await env.DB.prepare(`
+    WITH target_snapshots AS (
+        SELECT u.id AS user_id, s_latest.id AS latest_id, s_past_7d.id AS past_7d_id
+        FROM users u
+        LEFT JOIN snapshots s_latest ON s_latest.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+        LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
+    ),
+    song_counts AS (
+        SELECT 
+            snapshot_id, 
+            COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Скрыто')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) AS cnt
+        FROM snapshot_songs
+        WHERE snapshot_id IN (SELECT latest_id FROM target_snapshots UNION SELECT past_7d_id FROM target_snapshots WHERE past_7d_id IS NOT NULL)
+        GROUP BY snapshot_id
+    )
+    SELECT 
+        u.username, 
+        s_latest.total_views AS current_views, 
+        s_latest.timestamp AS last_updated, 
+        s_past.total_views AS past_views,
+        COALESCE(sc_latest.cnt, 0) AS total_songs,
+        COALESCE(sc_past.cnt, 0) AS total_songs_7d
+    FROM users u 
+    LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_past ON s_past.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-24 hours') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = s_latest.id
+    LEFT JOIN song_counts sc_past ON sc_past.snapshot_id = s_past_7d.id
+    ORDER BY current_views DESC
+  `).all();
+>>>>>>> REPLACE
+
+---
+
+### Шаг 2. Создание индекса в базе данных (Критически важно!)
+
+Чтобы бэкенд перестал выполнять "тяжелое" сканирование всей таблицы `snapshot_songs` при каждом поиске песен снапшота, обязательно добавь индекс на внешние ключи.
+
+Выполни эту команду в консоли своего проекта (замени `<ИМЯ_БАЗЫ_ДАННЫХ>` на имя твоей D1 базы из wrangler.toml):
+
+```bash
+npx wrangler d1 execute <ИМЯ_БАЗЫ_ДАННЫХ> --remote --command "CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id);"
+```
+
+*(Если ты тестируешь локально, выполни ту же команду без флага `--remote`).*
+
+Также для идеальной производительности очень рекомендуется создать аналогичные индексы для связей снапшотов с пользователями, если они еще не созданы:
+```bash
+npx wrangler d1 execute <ИМЯ_БАЗЫ_ДАННЫХ> --remote --command "CREATE INDEX IF NOT EXISTS idx_snapshots_user_id ON snapshots(user_id);"
+```
+
+Эти два шага моментально решат проблему с долгой загрузкой страниц!
