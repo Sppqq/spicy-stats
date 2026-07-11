@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль | Spicy Stats</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }, colors: { dark: { 900: '#0F111A', 800: '#181A25', 700: '#232535' }, brand: { 500: '#8A2BE2', 400: '#A25DF2', 300: '#c084fc' } } } } }</script>
+    <style>
+        body {
+            background-color: #0F111A;
+            color: #E2E8F0;
+        }
+
+        .glass-panel {
+            background: rgba(24, 26, 37, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen pb-12 flex flex-col items-center overflow-y-scroll">
+    <div class="w-full max-w-6xl mt-6 px-6 relative z-10 flex flex-col gap-6">
+
+        <div
+            class="flex flex-col sm:flex-row justify-between items-center bg-dark-800 border border-white/5 p-4 rounded-[20px] gap-4 backdrop-blur shadow-lg">
+            <a href="/"
+                class="flex items-center gap-2 text-brand-400 hover:text-brand-300 font-bold bg-brand-500/10 px-4 py-2 rounded-xl"><i
+                    class="fa-solid fa-arrow-left"></i> На главную</a>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <a id="export-btn" href="#"
+                    class="px-4 py-2 rounded-xl bg-emerald-500 text-dark-900 text-xs font-extrabold flex items-center gap-2"><i
+                        class="fa-solid fa-download"></i> Экспорт JSON</a>
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6 mt-4 relative z-10">
+            <div
+                class="flex-shrink-0 bg-gradient-to-tr from-brand-500 via-purple-500 to-fuchsia-400 p-[1px] rounded-[32px] w-full lg:w-1/3">
+                <div class="bg-dark-900 w-full h-full rounded-[31px] p-8 flex flex-col justify-center">
+                    <h2 id="prof-username"
+                        class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 mb-4">
+                        ...</h2>
+                    <p
+                        class="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                        <i class="fa-regular fa-clock"></i> АКТУАЛЬНОЕ СУММАРНО:
+                    </p>
+                    <div id="prof-views" class="text-[52px] font-mono font-black text-white leading-none mt-2">...</div>
+                    <div class="mt-4 flex gap-3 flex-wrap" id="prof-badges">
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-2/3">
+                <div class="flex items-center gap-3 mb-4 pl-2">
+                    <div
+                        class="w-8 h-8 rounded bg-orange-500/20 text-orange-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white font-mono tracking-tight uppercase">Топовые растущие треки
+                    </h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 h-[calc(100%-2.5rem)]" id="prof-highlights">
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full glass-panel border border-white/5 rounded-[24px] p-6 shadow-2xl mt-4">
+            <div class="h-80 w-full relative"><canvas id="viewChart"></canvas></div>
+        </div>
+
+        <div class="w-full glass-panel border border-white/5 rounded-[24px] overflow-hidden shadow-2xl mt-4 mb-16">
+            <div class="p-6 border-b border-white/5 flex justify-between gap-4 bg-dark-800">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i
+                        class="fa-solid fa-list-ul text-brand-400"></i> Библиотека (Детально)</h3>
+                <input type="text" id="trackSearch" placeholder="Поиск песни..."
+                    class="bg-dark-900 border border-white/5 rounded-full py-2 px-4 text-sm text-slate-200">
+            </div>
+            <div class="overflow-x-auto">
+                <table id="profTable" class="w-full whitespace-nowrap min-w-[700px]">
+                    <thead>
+                        <tr class="bg-dark-900 border-b border-white/10">
+                            <th data-sort="num" class="px-5 py-3 text-left text-[11px] font-bold text-slate-500">№</th>
+                            <th data-sort="str" class="px-5 py-3 text-left text-[11px] font-bold text-slate-500 w-full">
+                                Трек и Артист</th>
+                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-brand-400">
+                                Суммарно</th>
+                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-emerald-400">
+                                Суточный прирост</th>
+                            <th data-sort="num" class="px-5 py-3 text-right text-[11px] font-bold text-slate-500">%
+                                Отрыв</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prof-songs" class="divide-y divide-white/5 text-slate-300">
+                        <tr>
+                            <td colspan="5" class="text-center py-6">Загрузка...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // УКАЖИ ЗДЕСЬ URL ТВОЕГО CLOUDFLARE WORKER (без слеша на конце)
+        const API_BASE = "https://spicy-api.glyph-labs.site";
+
+        const username = window.location.pathname.split('/').pop();
+
+        async function loadUser() {
+            try {
+                const res = await fetch(`${API_BASE}/api/user/${username}`);
+                if (!res.ok) { document.getElementById('prof-username').innerText = "Не найдено"; return; }
+                const data = await res.json();
+
+                document.getElementById('export-btn').href = `${API_BASE}/api/export/${data.username}`;
+                document.title = `Профиль @${data.username} | Spicy Stats`;
+                document.getElementById('prof-username').innerText = `@${data.username}`;
+                document.getElementById('prof-views').innerText = data.total_views.toLocaleString('ru-RU');
+
+                let badgesHtml = `<div class="bg-white/5 text-slate-300 px-3 py-1.5 rounded-lg border border-white/10 font-mono font-bold"><i class="fa-solid fa-music mr-1"></i> ${data.total_songs} тр.</div>`;
+                if (data.growth24h > 0) {
+                    badgesHtml = `<div class="bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-mono font-bold"><i class="fa-solid fa-bolt mr-1"></i> +${data.growth24h.toLocaleString('ru-RU')} <span class="text-xs ml-1">24H</span></div>` + badgesHtml;
+                }
+                document.getElementById('prof-badges').innerHTML = badgesHtml;
+
+                const hlContainer = document.getElementById('prof-highlights');
+                if (data.highlights.length > 0) {
+                    hlContainer.innerHTML = data.highlights.map((t, idx) => {
+                        let badgeColor = idx === 0 ? "bg-amber-500/20 text-amber-400" : idx === 1 ? "bg-slate-400/20 text-slate-300" : "bg-orange-800/20 text-orange-400";
+                        return `
+                     <div class="glass-panel p-5 rounded-[20px] bg-gradient-to-t from-dark-800/80 flex flex-col justify-between">
+                         <div>
+                             <div class="inline-flex mb-3 items-center gap-2 border border-transparent px-2 py-0.5 rounded-md text-[10px] font-bold ${badgeColor}">Место #${idx + 1}</div>
+                             <h4 class="text-lg font-bold text-white mb-1 truncate">${t.title}</h4>
+                             <p class="text-xs text-slate-400 truncate mb-5">${t.artist}</p>
+                         </div>
+                         <div class="flex items-end justify-between">
+                             <div><span class="block text-[10px] text-slate-500 font-bold mb-0.5 uppercase">Просмотры</span><span class="font-mono text-xl font-bold text-slate-200">${t.views.toLocaleString('ru-RU')}</span></div>
+                             ${t.growth > 0 ? `<div class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded font-mono font-bold text-sm">+${t.growth.toLocaleString('ru-RU')}</div>` : ''}
+                         </div>
+                     </div>`;
+                    }).join('');
+                } else {
+                    hlContainer.innerHTML = '<div class="text-slate-500 glass-panel p-10 text-center rounded-2xl w-full col-span-3">Нет данных</div>';
+                }
+
+                const songsHtml = data.songs.map((s, i) => `
+               <tr class="search-row hover:bg-dark-800 border-b border-white/5">
+                 <td class="px-5 py-3.5 font-mono text-xs w-12">${i + 1}</td>
+                 <td class="px-5 py-3.5"><div class="font-bold text-sm text-slate-200 track-name">${s.title}</div><div class="text-[11px] text-slate-400 track-artist">${s.artist}</div></td>
+                 <td class="px-5 py-3.5 text-right font-mono text-[15px]">${s.views.toLocaleString('ru-RU')}</td>
+                 <td class="px-5 py-3.5 text-right font-mono font-bold">${s.growth > 0 ? `<span class="text-emerald-400">+${s.growth.toLocaleString('ru-RU')}</span>` : '0'}</td>
+                 <td class="px-5 py-3.5 text-right font-mono text-[13px]">${s.pct > 0 ? `<span class="text-emerald-500">${s.pct.toFixed(1)}%</span>` : '0.0%'}</td>
+               </tr>`).join('');
+                document.getElementById('prof-songs').innerHTML = songsHtml || '<tr><td colspan="5" class="text-center py-6 text-slate-500">Нет треков</td></tr>';
+
+                drawChart(data.chart_data);
+            } catch (e) {
+                console.error(e);
+                document.getElementById('prof-username').innerText = "Ошибка загрузки";
+            }
+        }
+
+        function drawChart(chartDataRaw) {
+            const ctx = document.getElementById('viewChart').getContext('2d');
+            const tLabels = []; const dPoints = [];
+            chartDataRaw.forEach(item => {
+                let s = item.x.trim();
+                if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) s = s.replace(' ', 'T') + 'Z'; else s = s.replace(' ', 'T');
+                const dx = new Date(s);
+                if (!isNaN(dx.getTime())) {
+                    tLabels.push(dx.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }));
+                    dPoints.push(item.y);
+                }
+            });
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, "rgba(162, 93, 242, 0.4)"); gradient.addColorStop(1, "rgba(162, 93, 242, 0)");
+
+            new Chart(ctx, {
+                type: 'line', data: { labels: tLabels, datasets: [{ data: dPoints, borderColor: '#c084fc', backgroundColor: gradient, borderWidth: 3, fill: true, pointRadius: 0, pointHoverRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
+        }
+
+        document.getElementById('trackSearch').addEventListener('keyup', e => {
+            const v = e.target.value.toLowerCase();
+            document.querySelectorAll('#profTable tbody .search-row').forEach(row => {
+                const name = row.querySelector('.track-name').textContent.toLowerCase();
+                const artist = row.querySelector('.track-artist').textContent.toLowerCase();
+                row.style.display = (name.includes(v) || artist.includes(v)) ? '' : 'none';
+            });
+        });
+
+        loadUser();
+    </script>
+</body>
+
+</html>
