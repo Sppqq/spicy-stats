@@ -1,0 +1,23 @@
+name: Deploy Backend to Cloudflare Worker
+
+on:
+  push:
+    branches:
+      - main     # Название вашей основной ветки (измените на master, если основная ветка master)
+    paths:
+      - 'cloudflare_pages/**' # Запуск деплоя только при изменении файлов в этой папке
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'cloudflare_pages'

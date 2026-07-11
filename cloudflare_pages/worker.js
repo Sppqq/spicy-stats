@@ -7,6 +7,42 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "Content-Type",
 };
 
+// Внутрипамятевое ограничение запросов (Rate Limiting)
+const rateLimitMap = new Map();
+
+function isRateLimited(ip, limit, windowMs) {
+    const now = Date.now();
+    
+    // Самоочистка карты от старых записей при превышении размера
+    if (rateLimitMap.size > 10000) {
+        for (const [key, timestamps] of rateLimitMap.entries()) {
+            const active = timestamps.filter(ts => now - ts < windowMs);
+            if (active.length === 0) {
+                rateLimitMap.delete(key);
+            } else {
+                rateLimitMap.set(key, active);
+            }
+        }
+    }
+
+    if (!rateLimitMap.has(ip)) {
+        rateLimitMap.set(ip, [now]);
+        return false;
+    }
+    
+    const timestamps = rateLimitMap.get(ip);
+    const activeTimestamps = timestamps.filter(ts => now - ts < windowMs);
+    
+    if (activeTimestamps.length >= limit) {
+        rateLimitMap.set(ip, activeTimestamps);
+        return true;
+    }
+    
+    activeTimestamps.push(now);
+    rateLimitMap.set(ip, activeTimestamps);
+    return false;
+}
+
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -14,6 +50,24 @@ export default {
         // Обработка CORS preflight
         if (request.method === "OPTIONS") {
             return new Response(null, { headers: corsHeaders });
+        }
+
+        // Защита от спама и парсинга (Rate Limiting)
+        const ip = request.headers.get("CF-Connecting-IP") || "anonymous";
+        if (url.pathname === "/api/add-user" && request.method === "POST") {
+            if (isRateLimited(ip, 5, 60000)) { // 5 запросов в минуту для добавления пользователей
+                return new Response(JSON.stringify({ error: "Слишком много запросов. Пожалуйста, попробуйте позже." }), { 
+                    status: 429, 
+                    headers: { "Content-Type": "application/json", ...corsHeaders } 
+                });
+            }
+        } else if (url.pathname.startsWith("/api/")) {
+            if (isRateLimited(ip, 60, 60000)) { // 60 запросов в минуту для остальных эндпоинтов
+                return new Response(JSON.stringify({ error: "Слишком много запросов. Пожалуйста, попробуйте позже." }), { 
+                    status: 429, 
+                    headers: { "Content-Type": "application/json", ...corsHeaders } 
+                });
+            }
         }
 
         try {
@@ -61,6 +115,9 @@ async function handleAddUser(request, env, ctx) {
     }
 
     const cleanName = username.trim().replace(/^@/, "");
+    if (cleanName.length === 0 || cleanName.length > 50 || !/^[a-zA-Z0-9_\.\-]+$/.test(cleanName)) {
+        return new Response(JSON.stringify({ error: "Некорректный формат никнейма. Разрешены только латинские буквы, цифры, точки, дефисы и нижние подчеркивания (до 50 символов)." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
 
     await env.DB.prepare("INSERT INTO users (username) VALUES (?) ON CONFLICT(username) DO NOTHING")
         .bind(cleanName)
@@ -336,13 +393,19 @@ async function scrapeAndSave(userId, username, env) {
 
     if (!data) {
         const lastSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
-        const lastViews = lastSnap ? lastSnap.total_views : 0;
+        if (!lastSnap) {
+            // Новый пользователь, но мы не смогли загрузить его данные (ошибочный никнейм/профиль)
+            console.warn(`New user @${username} (id: ${userId}) failed to yield data on first scrape. Removing.`);
+            await deleteUserFromDB(userId, env);
+            return;
+        }
+        const lastViews = lastSnap.total_views;
         await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, lastViews).run();
         return;
     }
 
-    if (data.total_views === 0 && (!data.songs || data.songs.length === 0)) {
-        console.warn(`User @${username} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
+    if (!data.songs || data.songs.length === 0) {
+        console.warn(`User @${username} (id: ${userId}) has 0 tracks. Removing from tracked users.`);
         await deleteUserFromDB(userId, env);
         return;
     }

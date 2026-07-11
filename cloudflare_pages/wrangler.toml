@@ -1,0 +1,10 @@
+# Настройки для развертывания Worker в Cloudflare
+name = "spicy-stats"
+main = "worker.js"
+compatibility_date = "2024-03-01"
+
+# Привязка вашей базы данных D1
+[[d1_databases]]
+binding = "DB"                               # Обязательно "DB", так как это используется в worker.js
+database_name = "spicy-stats-db"             # Замените на имя вашей D1 базы данных в Cloudflare
+database_id = "a6621547-77f3-4411-850a-18e42620c3cf"   # Реальный ID вашей D1 базы данных
