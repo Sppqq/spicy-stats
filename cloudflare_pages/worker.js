@@ -633,6 +633,10 @@ async function handleExport(username, env) {
 // Scraper & parser functions
 // remain IDENTICAL to your original file.
 async function runScraper(env) {
+    const countQuery = await env.DB.prepare("SELECT COUNT(id) as total FROM users").first();
+    const totalUsers = countQuery ? countQuery.total : 0;
+    const limit = Math.max(1, Math.ceil(totalUsers / 2));
+
     const { results: users } = await env.DB.prepare(`
     SELECT u.id, u.username, s_latest.id AS latest_snap_id
     FROM users u
@@ -640,8 +644,8 @@ async function runScraper(env) {
         SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
     )
     ORDER BY latest_snap_id ASC
-    LIMIT 100
-  `).all();
+    LIMIT ?
+  `).bind(limit).all();
 
     if (!users || users.length === 0) return;
 
