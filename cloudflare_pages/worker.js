@@ -253,19 +253,19 @@ async function handleDashboardAPI(env) {
     FROM users u 
     LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
-        SELECT id FROM snapshots 
-        WHERE user_id = u.id 
-          AND timestamp >= datetime(ls.latest_timestamp, '-30 hours') 
-          AND timestamp <= datetime(ls.latest_timestamp, '-18 hours') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(ls.latest_timestamp, '-24 hours'))) ASC 
+        SELECT id FROM snapshots s_past_in
+        WHERE s_past_in.user_id = u.id 
+          AND s_past_in.timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-30 hours') 
+          AND s_past_in.timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-18 hours') 
+        ORDER BY ABS(strftime('%s', s_past_in.timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-24 hours'))) ASC 
         LIMIT 1
     )
     LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
-        SELECT id FROM snapshots 
-        WHERE user_id = u.id 
-          AND timestamp >= datetime(ls.latest_timestamp, '-8.5 days') 
-          AND timestamp <= datetime(ls.latest_timestamp, '-5.5 days') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(ls.latest_timestamp, '-7 days'))) ASC 
+        SELECT id FROM snapshots s_7d_in
+        WHERE s_7d_in.user_id = u.id 
+          AND s_7d_in.timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-8.5 days') 
+          AND s_7d_in.timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-5.5 days') 
+        ORDER BY ABS(strftime('%s', s_7d_in.timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC 
         LIMIT 1
     )
     ORDER BY current_views DESC
