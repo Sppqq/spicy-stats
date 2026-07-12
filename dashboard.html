@@ -1312,24 +1312,24 @@
                         </button>
                         <button class="theme-option" data-theme-value="cupertino">
                             <span class="theme-swatch" style="background: #1c1c1e; border-color: #0a84ff; border-radius: 4px;"></span>
-                            <span> Cupertino</span>
+                            <span>⌘ Cupertino</span>
                             <span class="theme-check">✓</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="lang-selector" id="lang-selector">
-                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language">
-                        <span>🌐</span>
+                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="display: flex; align-items: center; gap: 6px;">
+                        <span id="lang-toggle-flag">🇬🇧</span>
                         <span id="lang-toggle-label">EN</span>
                     </button>
                     <div class="lang-dropdown" id="lang-dropdown">
-                        <button class="lang-option" data-lang-value="en">English</button>
-                        <button class="lang-option" data-lang-value="ru">Русский</button>
-                        <button class="lang-option" data-lang-value="uk">Українська</button>
-                        <button class="lang-option" data-lang-value="de">Deutsch</button>
-                        <button class="lang-option" data-lang-value="it">Italiano</button>
-                        <button class="lang-option" data-lang-value="pl">Polski</button>
+                        <button class="lang-option" data-lang-value="en">🇬🇧 English</button>
+                        <button class="lang-option" data-lang-value="ru">🇷🇺 Русский</button>
+                        <button class="lang-option" data-lang-value="uk">🇺🇦 Українська</button>
+                        <button class="lang-option" data-lang-value="de">🇩🇪 Deutsch</button>
+                        <button class="lang-option" data-lang-value="it">🇮🇹 Italiano</button>
+                        <button class="lang-option" data-lang-value="pl">🇵🇱 Polski</button>
                     </div>
                 </div>
 
@@ -1531,12 +1531,12 @@
 
         // Localization
         const LANGUAGES = {
-            en: { name: 'EN' },
-            ru: { name: 'RU' },
-            uk: { name: 'UK' },
-            de: { name: 'DE' },
-            it: { name: 'IT' },
-            pl: { name: 'PL' }
+            en: { name: 'EN', flag: '🇬🇧' },
+            ru: { name: 'RU', flag: '🇷🇺' },
+            uk: { name: 'UK', flag: '🇺🇦' },
+            de: { name: 'DE', flag: '🇩🇪' },
+            it: { name: 'IT', flag: '🇮🇹' },
+            pl: { name: 'PL', flag: '🇵🇱' }
         };
 
         const TRANSLATIONS = {
@@ -1782,6 +1782,8 @@
             const info = LANGUAGES[lang] || LANGUAGES.en;
             const label = document.getElementById('lang-toggle-label');
             if (label) label.textContent = info.name;
+            const flagEl = document.getElementById('lang-toggle-flag');
+            if (flagEl) flagEl.textContent = info.flag;
             
             document.querySelectorAll('.lang-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.langValue === lang);
@@ -1847,7 +1849,7 @@
             glass: { icon: '◈', label: 'Glass' },
             terminal: { icon: '>', label: 'Terminal' },
             nordic: { icon: '☁', label: 'Nordic' },
-            cupertino: { icon: '', label: 'Cupertino' }
+            cupertino: { icon: '⌘', label: 'Cupertino' }
         };
 
         function initTheme() {
