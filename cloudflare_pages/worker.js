@@ -243,9 +243,9 @@ async function handleDashboardAPI(env) {
         LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
             SELECT id FROM snapshots 
             WHERE user_id = u.id 
-              AND timestamp >= datetime(s_latest.timestamp, '-8.5 days') 
-              AND timestamp <= datetime(s_latest.timestamp, '-5.5 days') 
-            ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(s_latest.timestamp, '-7 days'))) ASC 
+              AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-8.5 days') 
+              AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-5.5 days') 
+            ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC 
             LIMIT 1
         )
     ),
@@ -271,18 +271,18 @@ async function handleDashboardAPI(env) {
     LEFT JOIN snapshots s_past ON s_past.id = (
         SELECT id FROM snapshots 
         WHERE user_id = u.id 
-          AND timestamp >= datetime(s_latest.timestamp, '-30 hours') 
-          AND timestamp <= datetime(s_latest.timestamp, '-18 hours') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(s_latest.timestamp, '-24 hours'))) ASC 
+          AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-30 hours') 
+          AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-18 hours') 
+        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-24 hours'))) ASC 
         LIMIT 1
     )
     LEFT JOIN snapshots s_first ON s_first.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1)
     LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
         SELECT id FROM snapshots 
         WHERE user_id = u.id 
-          AND timestamp >= datetime(s_latest.timestamp, '-8.5 days') 
-          AND timestamp <= datetime(s_latest.timestamp, '-5.5 days') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(s_latest.timestamp, '-7 days'))) ASC 
+          AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-8.5 days') 
+          AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-5.5 days') 
+        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC 
         LIMIT 1
     )
     LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = s_latest.id
