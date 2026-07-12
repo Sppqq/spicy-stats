@@ -1577,7 +1577,13 @@
                 m: "m",
                 no_results: "No profiles matched your search.",
                 months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-                contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq"
+                contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq",
+                updated_history: "No update history",
+                ago: "ago",
+                hour: "hour",
+                hours: "hours",
+                day: "day",
+                days: "days"
             },
             ru: {
                 headline: "Знай, что популярно.",
@@ -1616,7 +1622,13 @@
                 m: "м",
                 no_results: "Профили не найдены.",
                 months: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
-                contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq"
+                contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq",
+                updated_history: "История обновлений отсутствует",
+                ago: "назад",
+                hour: "час",
+                hours: "часа(ов)",
+                day: "день",
+                days: "дня(ей)"
             },
             uk: {
                 headline: "Знай, що популярно.",
@@ -1655,7 +1667,13 @@
                 m: "хв",
                 no_results: "Профілі не знайдено.",
                 months: ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'],
-                contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq"
+                contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq",
+                updated_history: "Історія оновлень відсутня",
+                ago: "тому",
+                hour: "годину",
+                hours: "години(ин)",
+                day: "день",
+                days: "діб"
             },
             de: {
                 headline: "Wisse, was sich bewegt.",
@@ -1694,7 +1712,13 @@
                 m: "Min.",
                 no_results: "Keine Profile entsprechen Ihrer Suche.",
                 months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
-                contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq"
+                contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq",
+                updated_history: "Keine Aktualisierungshistorie",
+                ago: "",
+                hour: "Stunde",
+                hours: "Stunden",
+                day: "Tag",
+                days: "Tagen"
             },
             it: {
                 headline: "Sappi cosa si muove.",
@@ -1733,7 +1757,13 @@
                 m: "m",
                 no_results: "Nessun profilo corrisponde alla ricerca.",
                 months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
-                contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq"
+                contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq",
+                updated_history: "Nessuna cronologia aggiornamenti",
+                ago: "fa",
+                hour: "ora",
+                hours: "ore",
+                day: "giorno",
+                days: "giorni"
             },
             pl: {
                 headline: "Wiedz, co jest na czasie.",
@@ -1772,7 +1802,13 @@
                 m: "min",
                 no_results: "Brak profilów pasujących do wyszukiwania.",
                 months: ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'],
-                contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq"
+                contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
+                updated_history: "Brak historii aktualizacji",
+                ago: "temu",
+                hour: "godzinę",
+                hours: "godziny",
+                day: "dzień",
+                days: "dni"
             }
         };
 
@@ -1808,7 +1844,9 @@
             setDashboardDate();
             
             if (dashboardData) {
-                renderDashboard();
+                renderOverview();
+                renderTopAuthors();
+                renderTable();
             }
         }
         
@@ -1976,17 +2014,32 @@
         }
 
         function timeAgo(dateStr) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            
             const date = parseUTCDate(dateStr);
-            if (!date) return 'never';
+            if (!date) return dict.updated_history || 'never';
             const now = new Date();
             const diffMs = now - date;
             const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins < 1) return 'just now';
-            if (diffMins < 60) return `${diffMins} min ago`;
+            if (diffMins < 1) {
+                return currentLang === 'ru' ? 'только что' : (currentLang === 'uk' ? 'щойно' : (currentLang === 'de' ? 'gerade eben' : (currentLang === 'it' ? 'proprio ora' : (currentLang === 'pl' ? 'przed chwilą' : 'just now'))));
+            }
+            if (diffMins < 60) {
+                const minText = currentLang === 'ru' ? 'мин' : (currentLang === 'uk' ? 'хв' : (currentLang === 'de' ? 'Min.' : (currentLang === 'it' ? 'min' : (currentLang === 'pl' ? 'min' : 'min'))));
+                const agoText = dict.ago || 'ago';
+                return `${diffMins} ${minText} ${agoText}`;
+            }
             const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) {
+                const hrText = diffHours === 1 ? dict.hour : dict.hours;
+                const agoText = dict.ago || 'ago';
+                return `${diffHours} ${hrText} ${agoText}`;
+            }
             const diffDays = Math.floor(diffHours / 24);
-            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            const dayText = diffDays === 1 ? dict.day : dict.days;
+            const agoText = dict.ago || 'ago';
+            return `${diffDays} ${dayText} ${agoText}`;
         }
 
         // Fetch dashboard and details
