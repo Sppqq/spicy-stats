@@ -419,7 +419,7 @@ async function handleAdminStats(request, env) {
 
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
-    const songCount = await env.DB.prepare("SELECT COUNT(DISTINCT spotify_id) as cnt FROM snapshot_songs").first();
+    const songCount = await env.DB.prepare("SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) as cnt FROM snapshot_songs").first();
     
     const { results: usersList } = await env.DB.prepare(`
         SELECT u.id, u.username, 
@@ -431,8 +431,9 @@ async function handleAdminStats(request, env) {
     `).all();
 
     // Fetch the song counts for the latest snapshot of each user in ONE query to avoid full table scans
+    // Aggregate by title and artist to exactly match dashboard and profile counts
     const { results: songCounts } = await env.DB.prepare(`
-        SELECT snapshot_id, COUNT(DISTINCT spotify_id) as cnt
+        SELECT snapshot_id, COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) as cnt
         FROM snapshot_songs
         WHERE snapshot_id IN (
             SELECT MAX(id) FROM snapshots GROUP BY user_id
