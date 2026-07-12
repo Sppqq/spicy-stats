@@ -528,6 +528,14 @@
             letter-spacing: -0.06em;
         }
 
+        [data-theme="glass"] #chart-tooltip {
+            background: rgba(20,20,40,0.9) !important;
+            color: #e8e8f0 !important;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+
         /* ===== THEME: Terminal (Full Design Change) ===== */
         [data-theme="terminal"] {
             --paper: #000000;
@@ -723,6 +731,13 @@
         [data-theme="terminal"] .live-dot {
             background: #00ff41;
             box-shadow: 0 0 8px rgba(0,255,65,0.6);
+        }
+
+        [data-theme="terminal"] #chart-tooltip {
+            background: #000000 !important;
+            color: #00ff41 !important;
+            border-color: #00ff41 !important;
+            box-shadow: 3px 3px 0 #003300 !important;
         }
 
         .panel {

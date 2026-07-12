@@ -396,6 +396,11 @@
             font-size: 10px;
         }
 
+        /* Theme Selector Dropdown */
+        .theme-selector {
+            position: relative;
+        }
+
         .theme-toggle {
             display: inline-flex;
             align-items: center;
@@ -417,6 +422,70 @@
             color: var(--white);
         }
 
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 180px;
+            background: var(--white);
+            border: 1px solid var(--ink);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+        }
+
+        .theme-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: left;
+            transition: background 120ms ease;
+        }
+
+        .theme-option:hover {
+            background: var(--line);
+        }
+
+        .theme-option.active {
+            color: var(--green);
+        }
+
+        .theme-option .theme-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid var(--muted);
+            flex-shrink: 0;
+        }
+
+        .theme-option .theme-check {
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0;
+        }
+
+        .theme-option.active .theme-check {
+            opacity: 1;
+        }
+
+        /* ===== THEME: Light ===== */
         [data-theme="light"] {
             --paper: #e9e5dc;
             --paper-dark: #d8d3c8;
@@ -428,6 +497,357 @@
             --coral: #ff715b;
             --white: #f8f6f0;
             --positive-text: #4f7600;
+        }
+
+        /* ===== THEME: Cyber ===== */
+        [data-theme="cyber"] {
+            --paper: #0a0a1a;
+            --paper-dark: #0f0f2a;
+            --ink: #e0e0ff;
+            --muted: #6a6a9e;
+            --line: #1e1e4a;
+            --blue: #7b68ee;
+            --green: #00ffab;
+            --coral: #ff4d6a;
+            --white: #12122e;
+            --positive-text: #00ffab;
+        }
+
+        [data-theme="cyber"] .profile-avatar {
+            background: var(--blue);
+            color: #0a0a1a;
+        }
+
+        [data-theme="cyber"] .profile-stat:nth-child(2) {
+            background: var(--coral) !important;
+            color: #0a0a1a !important;
+        }
+
+        [data-theme="cyber"] .profile-stat:nth-child(3) {
+            background: var(--green) !important;
+            color: #0a0a1a !important;
+        }
+
+        [data-theme="cyber"] .track:hover {
+            background: var(--green);
+            color: var(--paper);
+        }
+        [data-theme="cyber"] .track:hover * {
+            color: var(--paper) !important;
+        }
+
+        /* ===== THEME: Glass (Full Design Change) ===== */
+        [data-theme="glass"] {
+            --paper: #0f0f1e;
+            --paper-dark: #1a1a2e;
+            --ink: #e8e8f0;
+            --muted: #8888aa;
+            --line: rgba(255,255,255,0.08);
+            --blue: #6c8cff;
+            --green: #5ef5b0;
+            --coral: #ff6b8a;
+            --white: rgba(255,255,255,0.04);
+            --positive-text: #5ef5b0;
+        }
+
+        [data-theme="glass"] body {
+            background: linear-gradient(160deg, #0a0a1a 0%, #151530 40%, #0d1b2a 100%);
+        }
+
+        [data-theme="glass"] .profile-avatar {
+            border-radius: 10px;
+            transform: none;
+            background: rgba(108,140,255,0.25);
+            backdrop-filter: blur(10px);
+            color: #6c8cff;
+        }
+
+        [data-theme="glass"] .profile-stat {
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(24px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="glass"] .profile-stat:nth-child(2) {
+            background: rgba(255,107,138,0.15) !important;
+            border: 1px solid rgba(255,107,138,0.25) !important;
+            color: #e8e8f0 !important;
+        }
+
+        [data-theme="glass"] .profile-stat:nth-child(3) {
+            background: rgba(94,245,176,0.15) !important;
+            border: 1px solid rgba(94,245,176,0.25) !important;
+            color: #e8e8f0 !important;
+        }
+
+        [data-theme="glass"] .panel {
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        [data-theme="glass"] .panel-heading {
+            border-bottom-color: rgba(255,255,255,0.06);
+        }
+
+        [data-theme="glass"] .track {
+            border-radius: 12px;
+            border-bottom: none;
+            margin-bottom: 4px;
+        }
+
+        [data-theme="glass"] .track:hover {
+            background: rgba(94,245,176,0.15) !important;
+            color: var(--ink) !important;
+            box-shadow: 0 4px 20px rgba(94,245,176,0.1);
+        }
+
+        [data-theme="glass"] .track:hover * {
+            color: var(--ink) !important;
+        }
+
+        [data-theme="glass"] .back-button {
+            border-radius: 10px;
+            border-color: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            color: var(--ink);
+        }
+
+        [data-theme="glass"] .back-button:hover {
+            background: rgba(108,140,255,0.2) !important;
+            color: var(--ink) !important;
+        }
+
+        [data-theme="glass"] .theme-toggle {
+            border-radius: 10px;
+            border-color: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        [data-theme="glass"] .theme-toggle:hover {
+            background: rgba(108,140,255,0.2) !important;
+            color: var(--ink) !important;
+        }
+
+        [data-theme="glass"] .theme-dropdown {
+            border-radius: 14px;
+            border-color: rgba(255,255,255,0.1);
+            background: rgba(20,20,40,0.9);
+            backdrop-filter: blur(24px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        [data-theme="glass"] .theme-option:hover {
+            background: rgba(255,255,255,0.06) !important;
+        }
+
+        [data-theme="glass"] .mini-card {
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            background: rgba(20,20,40,0.95) !important;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        [data-theme="glass"] #profile-chart-tooltip {
+            background: rgba(20,20,40,0.9) !important;
+            color: #e8e8f0 !important;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+
+        /* ===== THEME: Terminal (Full Design Change) ===== */
+        [data-theme="terminal"] {
+            --paper: #000000;
+            --paper-dark: #0a0a0a;
+            --ink: #00ff41;
+            --muted: #00aa2a;
+            --line: #003300;
+            --blue: #00ff41;
+            --green: #00ff41;
+            --coral: #ff3333;
+            --white: #0a0f0a;
+            --positive-text: #00ff41;
+        }
+
+        [data-theme="terminal"] body {
+            background: #000000;
+            font-family: 'DM Mono', 'Courier New', monospace;
+        }
+
+        [data-theme="terminal"] body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,255,65,0.03) 2px,
+                rgba(0,255,65,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        [data-theme="terminal"] .brand span,
+        [data-theme="terminal"] .panel-title,
+        [data-theme="terminal"] .profile-title h1,
+        [data-theme="terminal"] .profile-caption,
+        [data-theme="terminal"] .track-title,
+        [data-theme="terminal"] .track-artist,
+        [data-theme="terminal"] .track-views,
+        [data-theme="terminal"] .track-growth {
+            font-family: 'DM Mono', 'Courier New', monospace;
+        }
+
+        [data-theme="terminal"] .profile-title h1 {
+            font-size: clamp(28px, 5vw, 56px);
+            letter-spacing: -0.02em;
+            text-shadow: 0 0 20px rgba(0,255,65,0.3);
+        }
+
+        [data-theme="terminal"] .profile-avatar {
+            transform: none;
+            background: transparent;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            font-family: 'DM Mono', monospace;
+        }
+
+        [data-theme="terminal"] .profile-stat {
+            border: 1px solid #003300;
+            background: rgba(0,255,65,0.02);
+            color: #00ff41 !important;
+        }
+
+        [data-theme="terminal"] .profile-stat:nth-child(2) {
+            background: transparent !important;
+            border: 2px solid #ff3333 !important;
+            color: #ff3333 !important;
+            box-shadow: 0 0 15px rgba(255,51,51,0.15), inset 0 0 15px rgba(255,51,51,0.05);
+        }
+
+        [data-theme="terminal"] .profile-stat:nth-child(3) {
+            background: transparent !important;
+            border: 2px solid #00ff41 !important;
+            color: #00ff41 !important;
+            box-shadow: 0 0 15px rgba(0,255,65,0.15), inset 0 0 15px rgba(0,255,65,0.05);
+        }
+
+        [data-theme="terminal"] .profile-stat-value {
+            font-family: 'DM Mono', monospace;
+            text-shadow: 0 0 10px rgba(0,255,65,0.4);
+        }
+
+        [data-theme="terminal"] .profile-stat:nth-child(2) .profile-stat-value {
+            text-shadow: 0 0 10px rgba(255,51,51,0.4);
+        }
+
+        [data-theme="terminal"] .profile-stat:nth-child(3) .profile-stat-value {
+            text-shadow: 0 0 10px rgba(0,255,65,0.4);
+        }
+
+        [data-theme="terminal"] .panel {
+            border: 1px solid #003300;
+            background: rgba(0,255,65,0.02);
+        }
+
+        [data-theme="terminal"] .panel-heading {
+            border-bottom-color: #003300;
+        }
+
+        [data-theme="terminal"] .track {
+            border-bottom-color: #0a1a0a;
+        }
+
+        [data-theme="terminal"] .track:hover {
+            background: rgba(0,255,65,0.12) !important;
+            color: #000000 !important;
+        }
+
+        [data-theme="terminal"] .track:hover * {
+            color: #000000 !important;
+        }
+
+        [data-theme="terminal"] .back-button {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        [data-theme="terminal"] .back-button:hover {
+            background: #00ff41 !important;
+            color: #000000 !important;
+        }
+
+        [data-theme="terminal"] .theme-toggle {
+            border-color: #003300;
+            color: #00ff41;
+        }
+
+        [data-theme="terminal"] .theme-toggle:hover {
+            background: rgba(0,255,65,0.1) !important;
+            color: #00ff41 !important;
+        }
+
+        [data-theme="terminal"] .theme-dropdown {
+            background: #000000;
+            border-color: #003300;
+            box-shadow: 0 0 20px rgba(0,255,65,0.1);
+        }
+
+        [data-theme="terminal"] .theme-option {
+            color: #00ff41;
+        }
+
+        [data-theme="terminal"] .theme-option:hover {
+            background: rgba(0,255,65,0.08);
+        }
+
+        [data-theme="terminal"] .mini-card {
+            border: 2px solid #00ff41 !important;
+            background: #000000 !important;
+            box-shadow: 0 0 20px rgba(0,255,65,0.2) !important;
+            color: #00ff41 !important;
+        }
+
+        [data-theme="terminal"] .mini-row {
+            border-bottom-color: #003300;
+        }
+
+        [data-theme="terminal"] #profile-chart-tooltip {
+            background: #000000 !important;
+            color: #00ff41 !important;
+            border-color: #00ff41 !important;
+            box-shadow: 3px 3px 0 #003300 !important;
+        }
+
+        [data-theme="terminal"] .live-dot {
+            background: #00ff41;
+            box-shadow: 0 0 8px rgba(0,255,65,0.6);
+        }
+
+        /* SVG Chart dynamic color themes */
+        #profile-chart-line-path {
+            stroke: var(--blue) !important;
+        }
+        #profileArea stop:first-child {
+            stop-color: var(--blue) !important;
+            stop-opacity: 0.28;
+        }
+        #profileArea stop:last-child {
+            stop-color: var(--blue) !important;
+            stop-opacity: 0;
         }
 
         @media (max-width: 850px) {
@@ -474,10 +894,39 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 18px;">
-                <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
-                    <span id="theme-toggle-icon">☾</span>
-                    <span id="theme-toggle-label">Dark</span>
-                </button>
+                <div class="theme-selector" id="theme-selector">
+                    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Choose color theme">
+                        <span id="theme-toggle-icon">☾</span>
+                        <span id="theme-toggle-label">Dark</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <button class="theme-option" data-theme-value="dark">
+                            <span class="theme-swatch" style="background: #101114;"></span>
+                            <span>☾ Dark</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="light">
+                            <span class="theme-swatch" style="background: #e9e5dc;"></span>
+                            <span>☀ Light</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="cyber">
+                            <span class="theme-swatch" style="background: linear-gradient(135deg, #7b68ee, #00ffab);"></span>
+                            <span>⚡ Cyber</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="glass">
+                            <span class="theme-swatch" style="background: linear-gradient(135deg, rgba(108,140,255,0.4), rgba(94,245,176,0.3)); border-color: rgba(255,255,255,0.3);"></span>
+                            <span>◈ Glass</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="terminal">
+                            <span class="theme-swatch" style="background: #000; border-color: #00ff41; box-shadow: 0 0 4px #00ff41;"></span>
+                            <span>> Terminal</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                    </div>
+                </div>
 
                 <div class="live-status">
                     <span class="live-dot"></span>
@@ -681,21 +1130,39 @@
         });
 
         // Theme
+        const THEMES = {
+            dark:  { icon: '☾', label: 'Dark' },
+            light: { icon: '☀', label: 'Light' },
+            cyber: { icon: '⚡', label: 'Cyber' },
+            glass: { icon: '◈', label: 'Glass' },
+            terminal: { icon: '>', label: 'Terminal' }
+        };
+
         function initTheme() {
             const savedTheme = localStorage.getItem('spicy-theme');
-            const preferredTheme = savedTheme || (
-                window.matchMedia('(prefers-color-scheme: light)').matches
-                    ? 'light'
-                    : 'dark'
-            );
+            const preferredTheme = (savedTheme && THEMES[savedTheme]) ? savedTheme : 'dark';
 
             applyTheme(preferredTheme);
 
             const toggle = document.getElementById('theme-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', () => {
-                    const currentTheme = document.documentElement.dataset.theme || 'dark';
-                    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+            const dropdown = document.getElementById('theme-dropdown');
+            
+            if (toggle && dropdown) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+
+                document.querySelectorAll('.theme-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        applyTheme(btn.dataset.themeValue);
+                        dropdown.classList.remove('open');
+                    });
+                });
+
+                document.addEventListener('click', () => {
+                    dropdown.classList.remove('open');
                 });
             }
         }
@@ -704,11 +1171,16 @@
             document.documentElement.dataset.theme = theme;
             localStorage.setItem('spicy-theme', theme);
 
+            const info = THEMES[theme] || THEMES.dark;
             const icon = document.getElementById('theme-toggle-icon');
             const label = document.getElementById('theme-toggle-label');
 
-            if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
-            if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            if (icon) icon.textContent = info.icon;
+            if (label) label.textContent = info.label;
+
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.themeValue === theme);
+            });
         }
 
         // Animate live dot
