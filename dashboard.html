@@ -900,18 +900,19 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.3);
         }
 
-        [data-theme="cupertino"] .panel-heading {
+        [data-theme="cupertino"] .panel-heading,
+        [data-theme="cupertino"] .database-head {
             position: relative;
-            padding-left: 54px !important;
+            padding-left: 70px !important;
             border-bottom-color: var(--line);
         }
 
-        [data-theme="cupertino"] .panel-heading::before {
+        [data-theme="cupertino"] .panel-heading::before,
+        [data-theme="cupertino"] .database-head::before {
             content: '';
             position: absolute;
             left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 24px;
             width: 8px;
             height: 8px;
             border-radius: 50%;
