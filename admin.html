@@ -872,6 +872,26 @@
             checkAuth();
         }
 
+        // Formatters
+        function formatViews(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            return num.toString();
+        }
+
+        function formatFullNumber(num) {
+            return (num || 0).toLocaleString('en-US');
+        }
+
+        function parseUTCDate(dateStr) {
+            if (!dateStr) return null;
+            let s = dateStr.trim();
+            if (!s.endsWith('Z') && !s.includes('+')) {
+                s = s.replace(' ', 'T') + 'Z';
+            }
+            return new Date(s);
+        }
+
         // Formatters helper
         function timeAgo(dateStr) {
             const date = parseUTCDate(dateStr);
