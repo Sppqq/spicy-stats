@@ -160,12 +160,14 @@ async function handleDashboardAPI(env) {
         s_latest.total_views AS current_views, 
         s_latest.timestamp AS last_updated, 
         s_past.total_views AS past_views,
+        s_first.timestamp AS first_snapshot,
         s_past_7d.id AS past_7d_id,
         COALESCE(sc_latest.cnt, 0) AS total_songs,
         COALESCE(sc_past.cnt, 0) AS total_songs_7d
     FROM users u 
     LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
     LEFT JOIN snapshots s_past ON s_past.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-24 hours') ORDER BY id DESC LIMIT 1)
+    LEFT JOIN snapshots s_first ON s_first.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1)
     LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (SELECT id FROM snapshots WHERE user_id = u.id AND timestamp <= datetime(s_latest.timestamp, '-7 days') ORDER BY id DESC LIMIT 1)
     LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = s_latest.id
     LEFT JOIN song_counts sc_past ON sc_past.snapshot_id = s_past_7d.id
@@ -181,7 +183,8 @@ async function handleDashboardAPI(env) {
         users: users.map(u => ({
             username: u.username,
             views: u.current_views || 0,
-            growth: u.past_views !== null ? (u.current_views || 0) - u.past_views : 0,
+            growth: u.past_views !== null ? (u.current_views || 0) - u.past_views : null,
+            first_snapshot: u.first_snapshot || null,
             total_songs: u.total_songs || 0,
             tracks_growth_7d: u.past_7d_id !== null ? (u.total_songs || 0) - (u.total_songs_7d || 0) : 0,
             last_updated: u.last_updated || null
@@ -195,9 +198,12 @@ async function handleUserDetailAPI(username, env) {
     const user = await env.DB.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
     if (!user) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
 
+    const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
+    const firstSnapshotTimestamp = firstSnapshot ? firstSnapshot.timestamp : null;
+
     const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 100").bind(user.id).all();
 
-    let totalViews = 0, growth24h = 0, totalSongs = 0;
+    let totalViews = 0, growth24h = null, totalSongs = 0;
     let topTracks = [], chartDataRaw = [], finalSongs = [];
 
     if (history && history.length > 0) {
@@ -222,11 +228,16 @@ async function handleUserDetailAPI(username, env) {
         const pastSnapshot = history.find(h => {
             const d = parseDate(h.timestamp);
             return d && d.getTime() <= latestTimeMs - 24 * 60 * 60 * 1000;
-        }) || history[history.length - 1];
+        });
 
-        if (pastSnapshot) growth24h = totalViews - pastSnapshot.total_views;
+        let has24h = pastSnapshot !== undefined;
+        growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
-        const { results: pastRaw } = await env.DB.prepare("SELECT * FROM snapshot_songs WHERE snapshot_id = ?").bind(pastSnapshot.id).all();
+        let pastRaw = [];
+        if (has24h) {
+            const { results } = await env.DB.prepare("SELECT * FROM snapshot_songs WHERE snapshot_id = ?").bind(pastSnapshot.id).all();
+            if (results) pastRaw = results;
+        }
 
         const getTrackKey = (s) => `${(s.title || "Скрыто").trim().toLowerCase()}|||${(s.artist || "SpicyLyrics").trim().toLowerCase()}`;
 
@@ -262,6 +273,7 @@ async function handleUserDetailAPI(username, env) {
         username: user.username,
         total_views: totalViews,
         growth24h,
+        first_snapshot: firstSnapshotTimestamp,
         total_songs: totalSongs,
         highlights: topTracks,
         chart_data: chartDataRaw,

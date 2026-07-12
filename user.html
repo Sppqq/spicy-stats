@@ -508,7 +508,7 @@
                     <div class="profile-stat-value" id="stat-views">...</div>
                 </article>
 
-                <article class="profile-stat">
+                <article class="profile-stat" id="stat-growth-card">
                     <div class="profile-stat-label">24h growth</div>
                     <div class="profile-stat-value" id="stat-growth">...</div>
                 </article>
@@ -701,6 +701,28 @@
             return num.toLocaleString('en-US');
         }
 
+        function getGrowthText(growth, firstSnapshotStr, formatFn) {
+            if (growth !== null && growth !== undefined) {
+                const num = Number(growth);
+                return `${num >= 0 ? '+' : ''}${formatFn(num)}`;
+            }
+            const firstDate = parseUTCDate(firstSnapshotStr);
+            if (!firstDate) return '—';
+            const now = new Date();
+            const elapsedMs = now - firstDate;
+            const targetMs = 24 * 60 * 60 * 1000;
+            if (elapsedMs >= targetMs) {
+                return 'скоро';
+            }
+            const remainingMs = targetMs - elapsedMs;
+            const remainingHours = Math.floor(remainingMs / 3600000);
+            if (remainingHours >= 1) {
+                return `через ${remainingHours} ч`;
+            }
+            const remainingMins = Math.ceil(remainingMs / 60000);
+            return `через ${remainingMins} мин`;
+        }
+
         function parseUTCDate(dateStr) {
             if (!dateStr) return null;
             let s = dateStr.trim();
@@ -800,8 +822,29 @@
             document.getElementById('stat-views').textContent = formatViews(profileData.total_views);
             
             const growth = profileData.growth24h;
-            const growthSign = growth >= 0 ? '+' : '';
-            document.getElementById('stat-growth').textContent = `${growthSign}${formatViews(growth)}`;
+            const growthCard = document.getElementById('stat-growth-card');
+            const growthEl = document.getElementById('stat-growth');
+
+            if (growth !== null && growth !== undefined) {
+                if (growthCard) {
+                    growthCard.style.background = '';
+                    growthCard.style.color = '';
+                    growthCard.style.border = '';
+                }
+                const growthSign = growth >= 0 ? '+' : '';
+                growthEl.textContent = `${growthSign}${formatViews(growth)}`;
+                growthEl.style.fontSize = '';
+                growthEl.style.color = '';
+            } else {
+                if (growthCard) {
+                    growthCard.style.background = 'var(--white)';
+                    growthCard.style.color = 'var(--ink)';
+                    growthCard.style.border = '1px solid var(--line)';
+                }
+                growthEl.textContent = getGrowthText(null, profileData.first_snapshot, formatViews);
+                growthEl.style.fontSize = '24px';
+                growthEl.style.color = 'var(--muted)';
+            }
             document.getElementById('stat-tracks').textContent = profileData.total_songs;
             
             const exportBtn = document.getElementById('export-json-btn');

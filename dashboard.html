@@ -716,6 +716,28 @@
             return '0';
         }
 
+        function getGrowthText(growth, firstSnapshotStr, formatFn) {
+            if (growth !== null && growth !== undefined) {
+                const num = Number(growth);
+                return `${num >= 0 ? '+' : ''}${formatFn(num)}`;
+            }
+            const firstDate = parseUTCDate(firstSnapshotStr);
+            if (!firstDate) return '—';
+            const now = new Date();
+            const elapsedMs = now - firstDate;
+            const targetMs = 24 * 60 * 60 * 1000;
+            if (elapsedMs >= targetMs) {
+                return 'скоро';
+            }
+            const remainingMs = targetMs - elapsedMs;
+            const remainingHours = Math.floor(remainingMs / 3600000);
+            if (remainingHours >= 1) {
+                return `через ${remainingHours} ч`;
+            }
+            const remainingMins = Math.ceil(remainingMs / 60000);
+            return `через ${remainingMins} мин`;
+        }
+
         function parseUTCDate(dateStr) {
             if (!dateStr) return null;
             let s = dateStr.trim();
@@ -857,13 +879,25 @@
             sorted.forEach((u, i) => {
                 const rank = (i + 1).toString().padStart(2, '0');
                 const views = Number(u.views || 0);
-                const growth = Number(u.growth || 0);
-                const growthPercent = views - growth > 0
-                    ? ((growth / (views - growth)) * 100).toFixed(1)
-                    : '0';
-                const growthText = growth >= 0
-                    ? `+${growthPercent}%`
-                    : `${growthPercent}%`;
+                const hasGrowth = u.growth !== null;
+                const growthVal = Number(u.growth || 0);
+
+                let growthText = '';
+                let growthColor = '';
+                let isPositive = false;
+
+                if (hasGrowth) {
+                    const growthPercent = views - growthVal > 0
+                        ? ((growthVal / (views - growthVal)) * 100).toFixed(1)
+                        : '0';
+                    growthText = growthVal >= 0 ? `+${growthPercent}%` : `${growthPercent}%`;
+                    growthColor = growthVal >= 0 ? 'var(--positive-text)' : 'var(--coral)';
+                    isPositive = growthVal >= 0;
+                } else {
+                    growthText = getGrowthText(null, u.first_snapshot, () => '');
+                    growthColor = 'var(--muted)';
+                    isPositive = false;
+                }
                 
                 const row = document.createElement('button');
                 row.className = 'author-row';
@@ -880,7 +914,7 @@
                     </span>
                     <span>
                         <div class="author-views">${formatViews(Number(u.views || 0))}</div>
-                        <div class="author-growth ${growth >= 0 ? 'positive' : ''}" style="color: ${growth >= 0 ? 'var(--positive-text)' : 'var(--coral)'};">${growthText}</div>
+                        <div class="author-growth ${isPositive ? 'positive' : ''}" style="color: ${growthColor};">${growthText}</div>
                     </span>
                 `;
                 listContainer.appendChild(row);
@@ -1087,8 +1121,8 @@
                     valA = a.views;
                     valB = b.views;
                 } else if (sortColumn === 'growth') {
-                    valA = a.growth;
-                    valB = b.growth;
+                    valA = a.growth !== null ? Number(a.growth) : -999999999;
+                    valB = b.growth !== null ? Number(b.growth) : -999999999;
                 } else if (sortColumn === 'tracks_growth_7d') {
                     valA = a.tracks_growth_7d;
                     valB = b.tracks_growth_7d;
@@ -1132,11 +1166,17 @@
             filteredUsers.forEach(u => {
                 const row = document.createElement('tr');
                 row.onclick = () => openProfile(u.username);
+                
+                const hasGrowth = u.growth !== null;
+                const growthText = getGrowthText(u.growth, u.first_snapshot, formatFullNumber);
+                const growthClass = hasGrowth && Number(u.growth) >= 0 ? 'positive' : '';
+                const growthColor = hasGrowth ? (Number(u.growth) >= 0 ? 'var(--positive-text)' : 'var(--coral)') : 'var(--muted)';
+
                 row.innerHTML = `
                     <td class="table-user">@${u.username}</td>
                     <td>${formatFullNumber(Number(u.views || 0))}</td>
-                    <td class="${Number(u.growth || 0) >= 0 ? 'positive' : ''}" style="color: ${Number(u.growth || 0) >= 0 ? 'var(--positive-text)' : 'var(--coral)'}; font-family: 'DM Mono', monospace;">
-                        ${Number(u.growth || 0) >= 0 ? '+' : ''}${formatFullNumber(Number(u.growth || 0))}
+                    <td class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">
+                        ${growthText}
                     </td>
                     <td>
                         ${u.total_songs === null || u.total_songs === undefined
