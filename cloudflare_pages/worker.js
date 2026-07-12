@@ -236,18 +236,27 @@ async function handleDashboardAPI(env) {
   `).first();
 
     const { results: users } = await env.DB.prepare(`
-    WITH target_snapshots AS (
-        SELECT u.id AS user_id, s_latest.id AS latest_id, s_past_7d.id AS past_7d_id
+    WITH latest_snapshots AS (
+        SELECT user_id, id AS latest_id, timestamp AS latest_timestamp, total_views AS latest_views
+        FROM snapshots s1
+        WHERE id = (SELECT id FROM snapshots s2 WHERE s2.user_id = s1.user_id ORDER BY id DESC LIMIT 1)
+    ),
+    target_snapshots AS (
+        SELECT 
+            u.id AS user_id, 
+            ls.latest_id, 
+            ls.latest_timestamp,
+            ls.latest_views,
+            (
+                SELECT id FROM snapshots 
+                WHERE user_id = u.id 
+                  AND timestamp >= datetime(ls.latest_timestamp, '-8.5 days') 
+                  AND timestamp <= datetime(ls.latest_timestamp, '-5.5 days') 
+                ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(ls.latest_timestamp, '-7 days'))) ASC 
+                LIMIT 1
+            ) AS past_7d_id
         FROM users u
-        LEFT JOIN snapshots s_latest ON s_latest.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
-        LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
-            SELECT id FROM snapshots 
-            WHERE user_id = u.id 
-              AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-8.5 days') 
-              AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-5.5 days') 
-            ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC 
-            LIMIT 1
-        )
+        LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     ),
     song_counts AS (
         SELECT 
@@ -259,34 +268,26 @@ async function handleDashboardAPI(env) {
     )
     SELECT 
         u.username, 
-        s_latest.total_views AS current_views, 
-        s_latest.timestamp AS last_updated, 
+        ts.latest_views AS current_views, 
+        ts.latest_timestamp AS last_updated, 
         s_past.total_views AS past_views,
         s_first.timestamp AS first_snapshot,
-        s_past_7d.id AS past_7d_id,
+        ts.past_7d_id,
         COALESCE(sc_latest.cnt, 0) AS total_songs,
         COALESCE(sc_past.cnt, 0) AS total_songs_7d
     FROM users u 
-    LEFT JOIN snapshots s_latest ON s_latest.id = ( SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
+    LEFT JOIN target_snapshots ts ON ts.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
         SELECT id FROM snapshots 
         WHERE user_id = u.id 
-          AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-30 hours') 
-          AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-18 hours') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-24 hours'))) ASC 
+          AND timestamp >= datetime(ts.latest_timestamp, '-30 hours') 
+          AND timestamp <= datetime(ts.latest_timestamp, '-18 hours') 
+        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime(ts.latest_timestamp, '-24 hours'))) ASC 
         LIMIT 1
     )
     LEFT JOIN snapshots s_first ON s_first.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1)
-    LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
-        SELECT id FROM snapshots 
-        WHERE user_id = u.id 
-          AND timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-8.5 days') 
-          AND timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-5.5 days') 
-        ORDER BY ABS(strftime('%s', timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC 
-        LIMIT 1
-    )
-    LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = s_latest.id
-    LEFT JOIN song_counts sc_past ON sc_past.snapshot_id = s_past_7d.id
+    LEFT JOIN song_counts sc_latest ON sc_latest.snapshot_id = ts.latest_id
+    LEFT JOIN song_counts sc_past ON sc_past.snapshot_id = ts.past_7d_id
     ORDER BY current_views DESC
   `).all();
 
