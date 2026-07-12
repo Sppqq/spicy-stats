@@ -209,6 +209,11 @@
             display: block;
         }
 
+        /* Theme Selector Dropdown */
+        .theme-selector {
+            position: relative;
+        }
+
         .theme-toggle {
             display: inline-flex;
             align-items: center;
@@ -230,6 +235,70 @@
             color: var(--white);
         }
 
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 180px;
+            background: var(--white);
+            border: 1px solid var(--ink);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+        }
+
+        .theme-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: left;
+            transition: background 120ms ease;
+        }
+
+        .theme-option:hover {
+            background: var(--line);
+        }
+
+        .theme-option.active {
+            color: var(--green);
+        }
+
+        .theme-option .theme-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid var(--muted);
+            flex-shrink: 0;
+        }
+
+        .theme-option .theme-check {
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0;
+        }
+
+        .theme-option.active .theme-check {
+            opacity: 1;
+        }
+
+        /* ===== THEME: Light ===== */
         [data-theme="light"] {
             --paper: #e9e5dc;
             --paper-dark: #d8d3c8;
@@ -251,6 +320,44 @@
         [data-theme="light"] .dark {
             background: #17181c;
             color: #f1f0ea;
+        }
+
+        /* ===== THEME: Cyber ===== */
+        [data-theme="cyber"] {
+            --paper: #0a0a1a;
+            --paper-dark: #0f0f2a;
+            --ink: #e0e0ff;
+            --muted: #6a6a9e;
+            --line: #1e1e4a;
+            --blue: #7b68ee;
+            --green: #00ffab;
+            --coral: #ff4d6a;
+            --white: #12122e;
+            --positive-text: #00ffab;
+        }
+
+        [data-theme="cyber"] .search,
+        [data-theme="cyber"] #new-username {
+            color: var(--ink);
+        }
+
+        [data-theme="cyber"] .dark {
+            background: #0d0d24;
+            color: #e0e0ff;
+        }
+
+        [data-theme="cyber"] .brand-mark {
+            background: var(--blue);
+        }
+
+        [data-theme="cyber"] .stat.dark {
+            background: linear-gradient(135deg, #7b68ee 0%, #00ffab 100%);
+            color: #0a0a1a;
+            border: none;
+        }
+
+        [data-theme="cyber"] .stat.dark .positive {
+            color: #0a0a1a;
         }
 
         .panel {
@@ -512,10 +619,29 @@
             </div>
 
             <div class="topbar-right">
-                <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
-                    <span id="theme-toggle-icon">☾</span>
-                    <span id="theme-toggle-label">Dark</span>
-                </button>
+                <div class="theme-selector" id="theme-selector">
+                    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Choose color theme">
+                        <span id="theme-toggle-icon">☾</span>
+                        <span id="theme-toggle-label">Dark</span>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown">
+                        <button class="theme-option" data-theme-value="dark">
+                            <span class="theme-swatch" style="background: #101114;"></span>
+                            <span>☾ Dark</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="light">
+                            <span class="theme-swatch" style="background: #e9e5dc;"></span>
+                            <span>☀ Light</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="cyber">
+                            <span class="theme-swatch" style="background: linear-gradient(135deg, #7b68ee, #00ffab);"></span>
+                            <span>⚡ Cyber</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                    </div>
+                </div>
 
                 <div class="live-status">
                     <span class="live-dot"></span>
@@ -710,21 +836,37 @@
         }
 
         // Theme
+        const THEMES = {
+            dark:  { icon: '☾', label: 'Dark' },
+            light: { icon: '☀', label: 'Light' },
+            cyber: { icon: '⚡', label: 'Cyber' }
+        };
+
         function initTheme() {
             const savedTheme = localStorage.getItem('spicy-theme');
-            const preferredTheme = savedTheme || (
-                window.matchMedia('(prefers-color-scheme: light)').matches
-                    ? 'light'
-                    : 'dark'
-            );
+            const preferredTheme = (savedTheme && THEMES[savedTheme]) ? savedTheme : 'dark';
 
             applyTheme(preferredTheme);
 
             const toggle = document.getElementById('theme-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', () => {
-                    const currentTheme = document.documentElement.dataset.theme || 'dark';
-                    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+            const dropdown = document.getElementById('theme-dropdown');
+            
+            if (toggle && dropdown) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+
+                document.querySelectorAll('.theme-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        applyTheme(btn.dataset.themeValue);
+                        dropdown.classList.remove('open');
+                    });
+                });
+
+                document.addEventListener('click', () => {
+                    dropdown.classList.remove('open');
                 });
             }
         }
@@ -733,11 +875,16 @@
             document.documentElement.dataset.theme = theme;
             localStorage.setItem('spicy-theme', theme);
 
+            const info = THEMES[theme] || THEMES.dark;
             const icon = document.getElementById('theme-toggle-icon');
             const label = document.getElementById('theme-toggle-label');
 
-            if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
-            if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            if (icon) icon.textContent = info.icon;
+            if (label) label.textContent = info.label;
+
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.themeValue === theme);
+            });
         }
 
         // Animate live dot
