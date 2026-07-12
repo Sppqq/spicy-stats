@@ -585,28 +585,11 @@ async function handleImport(request, env) {
 }
 
 async function handleExport(username, env) {
-    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
-
-    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp DESC").bind(user.id).all();
-    const songs = await env.DB.prepare(`
-    SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id
-    FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id
-    WHERE s.user_id = ? ORDER BY s.timestamp DESC
-  `).bind(user.id).all();
-
-    const exportData = {
-        username,
-        exported_at: new Date().toISOString(),
-        history: snapshots.results.map(snap => ({
-            timestamp: snap.timestamp,
-            total_views: snap.total_views,
-            songs: songs.results.filter(s => s.snapshot_id === snap.id).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
-        }))
-    };
-
-    return new Response(JSON.stringify(exportData, null, 2), {
-        headers: { "Content-Type": "application/json;charset=UTF-8", "Content-Disposition": `attachment; filename="${username}_spicy_data.json"`, ...corsHeaders }
+    return new Response(JSON.stringify({
+        error: "JSON exports are currently restricted to prevent database scraping and server overload. If you require a full JSON dump of this creator's history, please request it directly via direct messages (DM). Sorry for the inconvenience!"
+    }), {
+        status: 403,
+        headers: { "Content-Type": "application/json;charset=UTF-8", ...corsHeaders }
     });
 }
 

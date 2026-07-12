@@ -956,7 +956,7 @@
             const exportBtn = document.getElementById('export-json-btn');
             if (exportBtn) {
                 exportBtn.onclick = () => {
-                    window.location.href = `${API_BASE}/export/${profileData.username}`;
+                    alert("JSON data exports are currently restricted to prevent database scraping and server overload. If you require a full JSON dump of this creator's history, please request it directly via direct messages (DM). Sorry for the inconvenience!");
                 };
             }
             
