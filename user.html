@@ -1246,7 +1246,17 @@
                     <div class="panel-heading">
                         <div>
                             <h2 class="panel-title">Top tracks</h2>
-                            <div class="panel-meta">Sorted by total views</div>
+                            <div class="panel-meta" id="tracks-sort-meta">Sorted by views (high to low)</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="track-sort-select" style="font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase;">Sort:</label>
+                            <select id="track-sort-select" class="theme-toggle" style="height: 28px; padding: 0 8px; border-radius: 4px; outline: none; background: transparent; cursor: pointer;">
+                                <option value="views-desc" style="background: var(--paper); color: var(--ink);">Views (high to low)</option>
+                                <option value="views-asc" style="background: var(--paper); color: var(--ink);">Views (low to high)</option>
+                                <option value="growth-desc" style="background: var(--paper); color: var(--ink);">24h Growth (high to low)</option>
+                                <option value="growth-asc" style="background: var(--paper); color: var(--ink);">24h Growth (low to high)</option>
+                                <option value="title-asc" style="background: var(--paper); color: var(--ink);">Title (A-Z)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -1353,6 +1363,16 @@
                     if (tooltip) tooltip.style.display = 'none';
                 };
                 closeTrackBtn.addEventListener('click', closeTrackModal);
+                
+                const sortSelect = document.getElementById('track-sort-select');
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', () => {
+                        if (profileData) {
+                            renderTracks();
+                        }
+                    });
+                }
+                
                 trackModal.addEventListener('click', (e) => {
                     if (e.target === trackModal) closeTrackModal();
                 });
@@ -1815,7 +1835,28 @@
                 return;
             }
             
-            const sortedSongs = [...profileData.songs].sort((a, b) => b.views - a.views);
+            const sortSelect = document.getElementById('track-sort-select');
+            const sortVal = sortSelect ? sortSelect.value : 'views-desc';
+            
+            const sortedSongs = [...profileData.songs];
+            const sortLabelMeta = document.getElementById('tracks-sort-meta');
+            
+            if (sortVal === 'views-desc') {
+                sortedSongs.sort((a, b) => b.views - a.views);
+                if (sortLabelMeta) sortLabelMeta.textContent = 'Sorted by views (high to low)';
+            } else if (sortVal === 'views-asc') {
+                sortedSongs.sort((a, b) => a.views - b.views);
+                if (sortLabelMeta) sortLabelMeta.textContent = 'Sorted by views (low to high)';
+            } else if (sortVal === 'growth-desc') {
+                sortedSongs.sort((a, b) => b.growth - a.growth);
+                if (sortLabelMeta) sortLabelMeta.textContent = 'Sorted by 24h growth (high to low)';
+            } else if (sortVal === 'growth-asc') {
+                sortedSongs.sort((a, b) => a.growth - b.growth);
+                if (sortLabelMeta) sortLabelMeta.textContent = 'Sorted by 24h growth (low to high)';
+            } else if (sortVal === 'title-asc') {
+                sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
+                if (sortLabelMeta) sortLabelMeta.textContent = 'Sorted by title (A-Z)';
+            }
             
             sortedSongs.forEach((song, i) => {
                 const rank = (i + 1).toString().padStart(2, '0');
