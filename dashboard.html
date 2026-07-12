@@ -1480,6 +1480,17 @@
         // Base configuration
         const API_BASE = 'https://spicy-api.glyph-labs.site/api';
 
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w['gtag'] = function() { w[l].push(arguments); };
+            w['gtag']('js', new Date());
+            w['gtag']('config', i);
+            var f = d.getElementsByTagName(s)[0], j = d.createElement(s);
+            j.async = true;
+            j.src = 'https://www.googletagmanager.com/gtag/js?id=' + i;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'G-13JC860TTL');
+
         function generateSignature(path, timestamp) {
             const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
             const str = `${timestamp}:${path}:${salt}`;
