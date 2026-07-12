@@ -742,6 +742,9 @@
                     <td style="font-family: 'DM Mono', monospace;">${u.song_count}</td>
                     <td class="table-muted">${timeAgo(u.last_updated)}</td>
                     <td style="text-align: right; white-space: nowrap;">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${u.username}')">
+                            Export
+                        </button>
                         <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${u.username}')">
                             Scrape Now
                         </button>
@@ -832,6 +835,49 @@
                 feedback.textContent = err.message;
             } finally {
                 btn.disabled = false;
+            }
+        }
+
+        // Row Action Export
+        async function triggerRowExport(btn, username) {
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Exporting...';
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/export-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, username })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Trigger browser file download using blob
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${username}_spicy_data.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    btn.textContent = 'Done!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 1000);
+                } else {
+                    const data = await res.json().catch(() => ({ error: 'Error exporting' }));
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                alert(`Error exporting: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         }
 

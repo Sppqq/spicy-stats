@@ -173,6 +173,8 @@ export default {
                 response = await handleAdminScrapeAll(request, env, ctx);
             } else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
                 response = await handleAdminDeleteUser(request, env);
+            } else if (url.pathname === "/api/admin/export-user" && request.method === "POST") {
+                response = await handleAdminExportUser(request, env);
             } else {
                 response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
             }
@@ -477,6 +479,41 @@ async function handleAdminStats(request, env) {
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
 }
 
+async function handleAdminExportUser(request, env) {
+    const { secret, username } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+    if (!username) {
+        return new Response(JSON.stringify({ error: "Username is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const cleanName = username.trim().replace(/^@/, "");
+    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+
+    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp DESC").bind(user.id).all();
+    const songs = await env.DB.prepare(`
+        SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id
+        FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id
+        WHERE s.user_id = ? ORDER BY s.timestamp DESC
+    `).bind(user.id).all();
+
+    const exportData = {
+        username: cleanName,
+        exported_at: new Date().toISOString(),
+        history: (snapshots.results || []).map(snap => ({
+            timestamp: snap.timestamp,
+            total_views: snap.total_views,
+            songs: (songs.results || []).filter(s => s.snapshot_id === snap.id).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
+        }))
+    };
+
+    return new Response(JSON.stringify(exportData, null, 2), {
+        headers: { "Content-Type": "application/json;charset=UTF-8", ...corsHeaders }
+    });
+}
+
 async function handleAdminScrapeUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) {
@@ -586,7 +623,7 @@ async function handleImport(request, env) {
 
 async function handleExport(username, env) {
     return new Response(JSON.stringify({
-        error: "JSON exports are currently restricted to prevent database scraping and server overload. If you require a full JSON dump of this creator's history, please request it directly via direct messages (DM). Sorry for the inconvenience!"
+        error: "JSON exports are currently restricted to prevent database scraping and server overload. If you require a full JSON dump of this creator's history, please request it directly via Discord @sppq or Telegram @lellyn. Sorry for the inconvenience!"
     }), {
         status: 403,
         headers: { "Content-Type": "application/json;charset=UTF-8", ...corsHeaders }
