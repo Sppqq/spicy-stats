@@ -183,14 +183,31 @@
             justify-content: space-between;
         }
 
-        .profile-stat:nth-child(2) {
-            background: var(--coral);
+        .profile-stat.highlight-green {
+            background: var(--green);
+            color: #101114;
+            border: none;
+        }
+        .profile-stat.highlight-green .profile-stat-value {
             color: #101114;
         }
 
-        .profile-stat:nth-child(3) {
-            background: var(--green);
+        .profile-stat.highlight-coral {
+            background: var(--coral);
             color: #101114;
+            border: none;
+        }
+        .profile-stat.highlight-coral .profile-stat-value {
+            color: #101114;
+        }
+
+        .profile-stat.highlight-zero {
+            background: var(--white);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+        .profile-stat.highlight-zero .profile-stat-value {
+            color: var(--muted);
         }
 
         .profile-stat-label {
@@ -518,13 +535,20 @@
             color: #0a0a1a;
         }
 
-        [data-theme="cyber"] .profile-stat:nth-child(2) {
-            background: var(--coral) !important;
+        [data-theme="cyber"] .profile-stat.highlight-green {
+            background: var(--green) !important;
+            color: #0a0a1a !important;
+            border: none !important;
+        }
+        [data-theme="cyber"] .profile-stat.highlight-green .profile-stat-value {
             color: #0a0a1a !important;
         }
-
-        [data-theme="cyber"] .profile-stat:nth-child(3) {
-            background: var(--green) !important;
+        [data-theme="cyber"] .profile-stat.highlight-coral {
+            background: var(--coral) !important;
+            color: #0a0a1a !important;
+            border: none !important;
+        }
+        [data-theme="cyber"] .profile-stat.highlight-coral .profile-stat-value {
             color: #0a0a1a !important;
         }
 
@@ -570,15 +594,20 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
-        [data-theme="glass"] .profile-stat:nth-child(2) {
+        [data-theme="glass"] .profile-stat.highlight-green {
+            background: rgba(94,245,176,0.15) !important;
+            border: 1px solid rgba(94,245,176,0.25) !important;
+            color: #e8e8f0 !important;
+        }
+        [data-theme="glass"] .profile-stat.highlight-green .profile-stat-value {
+            color: #e8e8f0 !important;
+        }
+        [data-theme="glass"] .profile-stat.highlight-coral {
             background: rgba(255,107,138,0.15) !important;
             border: 1px solid rgba(255,107,138,0.25) !important;
             color: #e8e8f0 !important;
         }
-
-        [data-theme="glass"] .profile-stat:nth-child(3) {
-            background: rgba(94,245,176,0.15) !important;
-            border: 1px solid rgba(94,245,176,0.25) !important;
+        [data-theme="glass"] .profile-stat.highlight-coral .profile-stat-value {
             color: #e8e8f0 !important;
         }
 
@@ -731,30 +760,29 @@
             color: #00ff41 !important;
         }
 
-        [data-theme="terminal"] .profile-stat:nth-child(2) {
-            background: transparent !important;
-            border: 2px solid #ff3333 !important;
-            color: #ff3333 !important;
-            box-shadow: 0 0 15px rgba(255,51,51,0.15), inset 0 0 15px rgba(255,51,51,0.05);
-        }
-
-        [data-theme="terminal"] .profile-stat:nth-child(3) {
+        [data-theme="terminal"] .profile-stat.highlight-green {
             background: transparent !important;
             border: 2px solid #00ff41 !important;
             color: #00ff41 !important;
-            box-shadow: 0 0 15px rgba(0,255,65,0.15), inset 0 0 15px rgba(0,255,65,0.05);
+            box-shadow: 0 0 15px rgba(0,255,65,0.15), inset 0 0 15px rgba(0,255,65,0.05) !important;
+        }
+        [data-theme="terminal"] .profile-stat.highlight-green .profile-stat-value {
+            color: #00ff41 !important;
+            text-shadow: 0 0 10px rgba(0,255,65,0.4) !important;
+        }
+        [data-theme="terminal"] .profile-stat.highlight-coral {
+            background: transparent !important;
+            border: 2px solid #ff3333 !important;
+            color: #ff3333 !important;
+            box-shadow: 0 0 15px rgba(255,51,51,0.15), inset 0 0 15px rgba(255,51,51,0.05) !important;
+        }
+        [data-theme="terminal"] .profile-stat.highlight-coral .profile-stat-value {
+            color: #ff3333 !important;
+            text-shadow: 0 0 10px rgba(255,51,51,0.4) !important;
         }
 
         [data-theme="terminal"] .profile-stat-value {
             font-family: 'DM Mono', monospace;
-            text-shadow: 0 0 10px rgba(0,255,65,0.4);
-        }
-
-        [data-theme="terminal"] .profile-stat:nth-child(2) .profile-stat-value {
-            text-shadow: 0 0 10px rgba(255,51,51,0.4);
-        }
-
-        [data-theme="terminal"] .profile-stat:nth-child(3) .profile-stat-value {
             text-shadow: 0 0 10px rgba(0,255,65,0.4);
         }
 
@@ -1371,38 +1399,32 @@
             const growthCard = document.getElementById('stat-growth-card');
             const growthEl = document.getElementById('stat-growth');
 
+            if (growthCard) {
+                growthCard.style.background = '';
+                growthCard.style.color = '';
+                growthCard.style.border = '';
+                growthCard.className = 'profile-stat';
+            }
+            if (growthEl) {
+                growthEl.style.color = '';
+            }
+
             if (growth !== null && growth !== undefined) {
-                if (growthCard) {
-                    if (growth > 0) {
-                        growthCard.style.background = 'var(--green)';
-                        growthCard.style.color = '#101114';
-                        growthCard.style.border = 'none';
-                        growthEl.textContent = `+${formatViews(growth)}`;
-                        growthEl.style.color = '#101114';
-                    } else if (growth < 0) {
-                        growthCard.style.background = 'var(--coral)';
-                        growthCard.style.color = '#101114';
-                        growthCard.style.border = 'none';
-                        growthEl.textContent = `-${formatViews(Math.abs(growth))}`;
-                        growthEl.style.color = '#101114';
-                    } else {
-                        growthCard.style.background = 'var(--white)';
-                        growthCard.style.color = 'var(--ink)';
-                        growthCard.style.border = '1px solid var(--line)';
-                        growthEl.textContent = '0';
-                        growthEl.style.color = 'var(--muted)';
-                    }
+                if (growth > 0) {
+                    if (growthCard) growthCard.classList.add('highlight-green');
+                    growthEl.textContent = `+${formatViews(growth)}`;
+                } else if (growth < 0) {
+                    if (growthCard) growthCard.classList.add('highlight-coral');
+                    growthEl.textContent = `-${formatViews(Math.abs(growth))}`;
+                } else {
+                    if (growthCard) growthCard.classList.add('highlight-zero');
+                    growthEl.textContent = '0';
                 }
                 growthEl.style.fontSize = '';
             } else {
-                if (growthCard) {
-                    growthCard.style.background = 'var(--white)';
-                    growthCard.style.color = 'var(--ink)';
-                    growthCard.style.border = '1px solid var(--line)';
-                }
+                if (growthCard) growthCard.classList.add('highlight-zero');
                 growthEl.textContent = getGrowthText(null, profileData.first_snapshot, formatViews);
                 growthEl.style.fontSize = '24px';
-                growthEl.style.color = 'var(--muted)';
             }
             
             const tracksCard = document.getElementById('stat-tracks-card');
@@ -1410,18 +1432,17 @@
             const totalSongs = profileData.total_songs || 0;
             if (tracksEl) {
                 tracksEl.textContent = totalSongs;
+                tracksEl.style.color = '';
             }
             if (tracksCard) {
+                tracksCard.style.background = '';
+                tracksCard.style.color = '';
+                tracksCard.style.border = '';
+                tracksCard.className = 'profile-stat';
                 if (totalSongs > 0) {
-                    tracksCard.style.background = 'var(--green)';
-                    tracksCard.style.color = '#101114';
-                    tracksCard.style.border = 'none';
-                    if (tracksEl) tracksEl.style.color = '#101114';
+                    tracksCard.classList.add('highlight-green');
                 } else {
-                    tracksCard.style.background = 'var(--white)';
-                    tracksCard.style.color = 'var(--ink)';
-                    tracksCard.style.border = '1px solid var(--line)';
-                    if (tracksEl) tracksEl.style.color = 'var(--muted)';
+                    tracksCard.classList.add('highlight-zero');
                 }
             }
             
