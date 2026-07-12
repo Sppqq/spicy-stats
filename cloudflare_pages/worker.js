@@ -51,6 +51,8 @@ async function checkSchema(env) {
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id)").run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id_id ON snapshots(user_id, id DESC)").run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id_timestamp ON snapshots(user_id, timestamp)").run().catch(() => {});
         schemaChecked = true;
     } catch (e) {
         // Ignore
@@ -640,7 +642,7 @@ async function runScraper(env) {
         SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
     )
     ORDER BY latest_snap_id ASC
-    LIMIT 12
+    LIMIT 100
   `).all();
 
     if (!users || users.length === 0) return;
