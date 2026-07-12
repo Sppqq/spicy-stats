@@ -284,6 +284,56 @@
             color: var(--green);
         }
 
+        /* ===== Language Selector CSS ===== */
+        .lang-selector {
+            position: relative;
+        }
+
+        .lang-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 150px;
+            background: var(--white);
+            border: 1px solid var(--ink);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+        }
+
+        .lang-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .lang-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: left;
+            transition: background 120ms ease;
+        }
+
+        .lang-option:hover {
+            background: var(--line);
+        }
+
+        .lang-option.active {
+            color: var(--green);
+        }
+
         .theme-option .theme-swatch {
             width: 14px;
             height: 14px;
@@ -474,7 +524,8 @@
             color: var(--ink);
         }
 
-        [data-theme="glass"] .theme-dropdown {
+        [data-theme="glass"] .theme-dropdown,
+        [data-theme="glass"] .lang-dropdown {
             border-radius: 14px;
             border-color: rgba(255,255,255,0.1);
             background: rgba(20,20,40,0.85);
@@ -483,7 +534,8 @@
             overflow: hidden;
         }
 
-        [data-theme="glass"] .theme-option:hover {
+        [data-theme="glass"] .theme-option:hover,
+        [data-theme="glass"] .lang-option:hover {
             background: rgba(255,255,255,0.06);
         }
 
@@ -668,17 +720,20 @@
             color: #00ff41;
         }
 
-        [data-theme="terminal"] .theme-dropdown {
+        [data-theme="terminal"] .theme-dropdown,
+        [data-theme="terminal"] .lang-dropdown {
             background: #000000;
             border-color: #003300;
             box-shadow: 0 0 20px rgba(0,255,65,0.1);
         }
 
-        [data-theme="terminal"] .theme-option {
+        [data-theme="terminal"] .theme-option,
+        [data-theme="terminal"] .lang-option {
             color: #00ff41;
         }
 
-        [data-theme="terminal"] .theme-option:hover {
+        [data-theme="terminal"] .theme-option:hover,
+        [data-theme="terminal"] .lang-option:hover {
             background: rgba(0,255,65,0.08);
         }
 
@@ -933,19 +988,22 @@
 
         [data-theme="cupertino"] .theme-toggle,
         [data-theme="cupertino"] .theme-dropdown,
+        [data-theme="cupertino"] .lang-dropdown,
         [data-theme="cupertino"] .search,
         [data-theme="cupertino"] .back-button,
         [data-theme="cupertino"] .add-btn {
             border-radius: 8px;
         }
 
-        [data-theme="cupertino"] .theme-dropdown {
+        [data-theme="cupertino"] .theme-dropdown,
+        [data-theme="cupertino"] .lang-dropdown {
             background: #1c1c1e;
             border-color: var(--line);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        [data-theme="cupertino"] .theme-option:hover {
+        [data-theme="cupertino"] .theme-option:hover,
+        [data-theme="cupertino"] .lang-option:hover {
             background: rgba(255,255,255,0.08) !important;
         }
 
@@ -1260,9 +1318,24 @@
                     </div>
                 </div>
 
+                <div class="lang-selector" id="lang-selector">
+                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language">
+                        <span>🌐</span>
+                        <span id="lang-toggle-label">EN</span>
+                    </button>
+                    <div class="lang-dropdown" id="lang-dropdown">
+                        <button class="lang-option" data-lang-value="en">English</button>
+                        <button class="lang-option" data-lang-value="ru">Русский</button>
+                        <button class="lang-option" data-lang-value="uk">Українська</button>
+                        <button class="lang-option" data-lang-value="de">Deutsch</button>
+                        <button class="lang-option" data-lang-value="it">Italiano</button>
+                        <button class="lang-option" data-lang-value="pl">Polski</button>
+                    </div>
+                </div>
+
                 <div class="live-status">
                     <span class="live-dot"></span>
-                    Live database
+                    <span data-i18n="live_db">Live database</span>
                 </div>
             </div>
         </header>
@@ -1271,10 +1344,10 @@
             <section class="dashboard-heading">
                 <div>
                     <div class="eyebrow" id="dashboard-date-eyebrow">Overview / July 2026</div>
-                    <h1>Know what is moving.</h1>
+                    <h1 data-i18n="headline">Know what is moving.</h1>
                 </div>
 
-                <p class="heading-note">
+                <p class="heading-note" data-i18n="sub">
                     A focused view of your authors, tracks and audience growth. Everything important, without the noise.
                 </p>
             </section>
@@ -1282,7 +1355,7 @@
             <section class="stats-grid">
                 <article class="stat dark">
                     <div class="stat-label">
-                        <span>Total views</span>
+                        <span data-i18n="views">Total views</span>
                         <span>01</span>
                     </div>
 
@@ -1294,7 +1367,7 @@
 
                 <article class="stat">
                     <div class="stat-label">
-                        <span>Authors</span>
+                        <span data-i18n="creators">Authors</span>
                         <span>02</span>
                     </div>
 
@@ -1306,7 +1379,7 @@
 
                 <article class="stat green" id="stat-tracks-card">
                     <div class="stat-label">
-                        <span>Tracks tracked</span>
+                        <span data-i18n="songs">Tracks tracked</span>
                         <span>03</span>
                     </div>
 
@@ -1322,8 +1395,8 @@
                 <article class="panel">
                     <div class="panel-heading">
                         <div>
-                            <h2 class="panel-title">Top authors</h2>
-                            <div class="panel-meta">By total views</div>
+                            <h2 class="panel-title" data-i18n="top_authors">Top authors</h2>
+                            <div class="panel-meta" data-i18n="by_views">By total views</div>
                         </div>
                     </div>
 
@@ -1336,13 +1409,13 @@
             <section class="panel database">
                 <div class="database-head">
                     <div>
-                        <h2 class="panel-title">Author database</h2>
-                        <div class="panel-meta">Click any row to open a profile</div>
+                        <h2 class="panel-title" data-i18n="db_title">Author database</h2>
+                        <div class="panel-meta" data-i18n="by_click">Click any row to open a profile</div>
                     </div>
 
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input class="search" id="search-input" placeholder="Search authors...">
-                        <button class="back-button" id="add-author-btn" style="margin: 0; white-space: nowrap; height: 34px;">+ Add Author</button>
+                        <input class="search" id="search-input" placeholder="Search authors..." data-i18n-placeholder="search_place">
+                        <button class="back-button" id="add-author-btn" style="margin: 0; white-space: nowrap; height: 34px;" data-i18n="add_author">+ Add Author</button>
                     </div>
                 </div>
 
@@ -1350,12 +1423,12 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')">Author <span id="sort-username"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')">Views <span id="sort-views"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')">24h growth <span id="sort-growth"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')">Tracks <span id="sort-tracks"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')">7d tracks <span id="sort-tracks_growth_7d"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')">Updated <span id="sort-last_updated"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')"><span data-i18n="th_author">Author</span> <span id="sort-username"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')"><span data-i18n="th_views">Views</span> <span id="sort-views"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')"><span data-i18n="th_tracks">Tracks</span> <span id="sort-tracks"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')"><span data-i18n="th_7d">7d tracks</span> <span id="sort-tracks_growth_7d"></span></th>
+                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')"><span data-i18n="th_updated">Updated</span> <span id="sort-last_updated"></span></th>
                             </tr>
                         </thead>
 
@@ -1365,8 +1438,9 @@
                     </table>
                 </div>
             </section>
-            <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px;">
-                Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.
+            <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
+                <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
             </footer>
         </main>
     </div>
@@ -1375,19 +1449,19 @@
     <div id="add-author-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
             <button id="close-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
-            <div class="eyebrow" style="margin-bottom: 8px;">Add New Profile</div>
-            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Track new author</h2>
-            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
+            <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="modal_eyebrow">Add New Profile</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="modal_title">Track new author</h2>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;" data-i18n="modal_desc">
                 Enter the Spotify creator username from SpicyLyrics. The system will start fetching their snapshots immediately.
             </p>
             <form id="add-author-form" onsubmit="submitAddAuthor(event)">
                 <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
-                    <label for="new-username" style="font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--muted);">Username</label>
+                    <label for="new-username" style="font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--muted);" data-i18n="modal_label">Username</label>
                     <input type="text" id="new-username" placeholder="e.g. gayan_" required style="padding: 10px 12px; border: 1px solid var(--ink); outline: none; font-size: 13px; background: var(--paper);">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <button type="button" id="cancel-modal-btn" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace;">Cancel</button>
-                    <button type="submit" id="submit-modal-btn" style="border: 1px solid var(--ink); background: var(--ink); color: var(--white); padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace; transition: 140ms ease;">Add Profile</button>
+                    <button type="button" id="cancel-modal-btn" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace;" data-i18n="modal_cancel">Cancel</button>
+                    <button type="submit" id="submit-modal-btn" style="border: 1px solid var(--ink); background: var(--ink); color: var(--white); padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace; transition: 140ms ease;" data-i18n="modal_submit">Add Profile</button>
                 </div>
             </form>
             <div id="modal-feedback" style="display: none; margin-top: 16px; padding: 10px; font-size: 12px; border: 1px solid var(--ink); font-family: 'DM Mono', monospace;"></div>
@@ -1435,6 +1509,7 @@
         // On load
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
+            initLanguage();
             initLiveIndicator();
             loadDashboard();
             setupModal();
@@ -1445,11 +1520,323 @@
 
         // Set dynamic date in header
         function setDashboardDate() {
-            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const months = dict.months;
             const now = new Date();
             const dateText = `Overview / ${months[now.getMonth()]} ${now.getFullYear()}`;
             const dateEl = document.getElementById('dashboard-date-eyebrow');
             if (dateEl) dateEl.textContent = dateText;
+        }
+
+        // Localization
+        const LANGUAGES = {
+            en: { name: 'EN' },
+            ru: { name: 'RU' },
+            uk: { name: 'UK' },
+            de: { name: 'DE' },
+            it: { name: 'IT' },
+            pl: { name: 'PL' }
+        };
+
+        const TRANSLATIONS = {
+            en: {
+                headline: "Know what is moving.",
+                sub: "A focused view of your authors, tracks and audience growth. Everything important, without the noise.",
+                views: "Total views",
+                creators: "Authors",
+                songs: "Tracks tracked",
+                top_authors: "Top authors",
+                by_views: "By total views",
+                views_growth: "Views growth",
+                chart_sub: "Total views over the last 30 days",
+                db_title: "Author database",
+                by_click: "Click any row to open a profile",
+                search_place: "Search authors...",
+                add_author: "+ Add Author",
+                th_author: "Author",
+                th_views: "Views",
+                th_growth: "24h growth",
+                th_tracks: "Tracks",
+                th_7d: "7d tracks",
+                th_updated: "Updated",
+                footer: "Monitored by Spicy Monitor. Built by",
+                new_user_tooltip: "Data collection in progress. Profile will be available 24 hours after creation.",
+                modal_eyebrow: "Add New Profile",
+                modal_title: "Track new author",
+                modal_desc: "Enter the Spotify creator username from SpicyLyrics. The system will start fetching their snapshots immediately.",
+                modal_label: "Username",
+                modal_cancel: "Cancel",
+                modal_submit: "Add Profile",
+                empty_tracks: "Track count unavailable",
+                empty_views: "Views unavailable",
+                live_db: "Live database",
+                soon: "soon",
+                in: "in",
+                h: "h",
+                m: "m",
+                no_results: "No profiles matched your search.",
+                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq"
+            },
+            ru: {
+                headline: "Знай, что популярно.",
+                sub: "Сфокусированный взгляд на ваших авторов, треки и рост аудитории. Всё важное, без лишнего шума.",
+                views: "Всего просмотров",
+                creators: "Авторы",
+                songs: "Отслеживаемые треки",
+                top_authors: "Топ авторов",
+                by_views: "По просмотрам",
+                views_growth: "Рост просмотров",
+                chart_sub: "Общее число просмотров за последние 30 дней",
+                db_title: "База авторов",
+                by_click: "Нажмите на строку, чтобы открыть профиль",
+                search_place: "Поиск авторов...",
+                add_author: "+ Добавить автора",
+                th_author: "Автор",
+                th_views: "Просмотры",
+                th_growth: "Рост 24ч",
+                th_tracks: "Треки",
+                th_7d: "7д треки",
+                th_updated: "Обновлено",
+                footer: "Мониторинг от Spicy Monitor. Создано",
+                new_user_tooltip: "Сбор данных запущен. Профиль будет доступен через 24 часа после добавления.",
+                modal_eyebrow: "Добавить новый профиль",
+                modal_title: "Отслеживать нового автора",
+                modal_desc: "Введите имя пользователя Spotify из SpicyLyrics. Система начнет сбор статистики немедленно.",
+                modal_label: "Имя пользователя",
+                modal_cancel: "Отмена",
+                modal_submit: "Добавить",
+                empty_tracks: "Нет данных о треках",
+                empty_views: "Нет просмотров",
+                live_db: "Живая база",
+                soon: "скоро",
+                in: "через",
+                h: "ч",
+                m: "м",
+                no_results: "Профили не найдены.",
+                months: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+                contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq"
+            },
+            uk: {
+                headline: "Знай, що популярно.",
+                sub: "Фокусований огляд ваших авторів, треків та зростання аудиторії. Все важливе, без зайвого шуму.",
+                views: "Всього переглядів",
+                creators: "Автори",
+                songs: "Відстежувані треки",
+                top_authors: "Топ авторів",
+                by_views: "За переглядами",
+                views_growth: "Зростання переглядів",
+                chart_sub: "Загальна кількість переглядів за останні 30 днів",
+                db_title: "База авторів",
+                by_click: "Натисніть на рядок, щоб відкрити профіль",
+                search_place: "Пошук авторів...",
+                add_author: "+ Додати автора",
+                th_author: "Автор",
+                th_views: "Перегляди",
+                th_growth: "Зростання 24г",
+                th_tracks: "Треки",
+                th_7d: "7д треки",
+                th_updated: "Оновлено",
+                footer: "Моніторинг від Spicy Monitor. Створено",
+                new_user_tooltip: "Збір даних запущено. Профіль буде доступний через 24 години після додавання.",
+                modal_eyebrow: "Додати новий профіль",
+                modal_title: "Відстежувати нового автора",
+                modal_desc: "Введіть ім'я користувача Spotify з SpicyLyrics. Система почне збір статистики негайно.",
+                modal_label: "Ім'я користувача",
+                modal_cancel: "Скасувати",
+                modal_submit: "Додати",
+                empty_tracks: "Немає даних про треки",
+                empty_views: "Немає переглядів",
+                live_db: "Жива база",
+                soon: "скоро",
+                in: "через",
+                h: "г",
+                m: "хв",
+                no_results: "Профілі не знайдено.",
+                months: ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'],
+                contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq"
+            },
+            de: {
+                headline: "Wisse, was sich bewegt.",
+                sub: "Ein fokussierter Blick auf Ihre Autoren, Tracks und das Publikumswachstum. Alles Wichtige, ohne Lärm.",
+                views: "Aufrufe gesamt",
+                creators: "Autoren",
+                songs: "Erfasste Tracks",
+                top_authors: "Top-Autoren",
+                by_views: "Nach Aufrufen",
+                views_growth: "Wachstum",
+                chart_sub: "Gesamte Aufrufe in den letzten 30 Tagen",
+                db_title: "Autoren-Datenbank",
+                by_click: "Klicken Sie auf eine Zeile, um ein Profil zu öffnen",
+                search_place: "Autoren suchen...",
+                add_author: "+ Autor hinzufügen",
+                th_author: "Autor",
+                th_views: "Aufrufe",
+                th_growth: "24h Wachstum",
+                th_tracks: "Tracks",
+                th_7d: "7d Tracks",
+                th_updated: "Aktualisiert",
+                footer: "Überwacht von Spicy Monitor. Erstellt von",
+                new_user_tooltip: "Datenerfassung läuft. Das Profil ist 24 Stunden nach Erstellung verfügbar.",
+                modal_eyebrow: "Neues Profil",
+                modal_title: "Neuen Autor erfassen",
+                modal_desc: "Geben Sie den Spotify-Erstellernamen von SpicyLyrics ein. Die Erfassung beginnt sofort.",
+                modal_label: "Benutzername",
+                modal_cancel: "Abbrechen",
+                modal_submit: "Hinzufügen",
+                empty_tracks: "Keine Tracks verfügbar",
+                empty_views: "Keine Aufrufe",
+                live_db: "Live-Datenbank",
+                soon: "bald",
+                in: "in",
+                h: "Std.",
+                m: "Min.",
+                no_results: "Keine Profile entsprechen Ihrer Suche.",
+                months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+                contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq"
+            },
+            it: {
+                headline: "Sappi cosa si muove.",
+                sub: "Una vista focalizzata sui tuoi autori, brani e crescita del pubblico. Tutto ciò che è importante, senza rumore.",
+                views: "Visualizzazioni totali",
+                creators: "Autori",
+                songs: "Brani tracciati",
+                top_authors: "Top autori",
+                by_views: "Per visualizzazioni",
+                views_growth: "Crescita",
+                chart_sub: "Visualizzazioni totali negli ultimi 30 giorni",
+                db_title: "Database autori",
+                by_click: "Clicca su una riga per aprire un profilo",
+                search_place: "Cerca autori...",
+                add_author: "+ Aggiungi autore",
+                th_author: "Autore",
+                th_views: "Visualizzazioni",
+                th_growth: "Crescita 24h",
+                th_tracks: "Brani",
+                th_7d: "Brani 7g",
+                th_updated: "Aggiornato",
+                footer: "Monitorato da Spicy Monitor. Sviluppato da",
+                new_user_tooltip: "Raccolta dati in corso. Il profilo sarà disponibile 24 ore dopo la creazione.",
+                modal_eyebrow: "Nuovo profilo",
+                modal_title: "Traccia nuovo autore",
+                modal_desc: "Inserisci l'username Spotify da SpicyLyrics. Il sistema inizierà a raccogliere dati immediatamente.",
+                modal_label: "Username",
+                modal_cancel: "Annulla",
+                modal_submit: "Aggiungi",
+                empty_tracks: "Dati brani non disponibili",
+                empty_views: "Visualizzazioni non disponibili",
+                live_db: "Database live",
+                soon: "presto",
+                in: "in",
+                h: "o",
+                m: "m",
+                no_results: "Nessun profilo corrisponde alla ricerca.",
+                months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
+                contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq"
+            },
+            pl: {
+                headline: "Wiedz, co jest na czasie.",
+                sub: "Skupiony widok na Twoich autorów, utwory i wzrost widowni. Wszystko, co ważne, bez szumu.",
+                views: "Wyświetlenia",
+                creators: "Autorzy",
+                songs: "Utwory",
+                top_authors: "Top autorzy",
+                by_views: "Według wyświetleń",
+                views_growth: "Wzrost wyświetleń",
+                chart_sub: "Łączna liczba wyświetleń w ciągu ostatnich 30 dni",
+                db_title: "Baza autorów",
+                by_click: "Kliknij wiersz, aby otworzyć profil",
+                search_place: "Szukaj autorów...",
+                add_author: "+ Dodaj autora",
+                th_author: "Autor",
+                th_views: "Wyświetlenia",
+                th_growth: "Wzrost 24h",
+                th_tracks: "Utwory",
+                th_7d: "Utwory 7d",
+                th_updated: "Zaktualizowano",
+                footer: "Monitorowane przez Spicy Monitor. Stworzone przez",
+                new_user_tooltip: "Zbieranie danych w toku. Profil będzie dostępny 24 godziny po utworzeniu.",
+                modal_eyebrow: "Dodaj nowy profil",
+                modal_title: "Śledź nowego autora",
+                modal_desc: "Wpisz nazwę użytkownika Spotify z SpicyLyrics. System natychmiast rozpocznie zbieranie danych.",
+                modal_label: "Nazwa użytkownika",
+                modal_cancel: "Anuluj",
+                modal_submit: "Dodaj profil",
+                empty_tracks: "Brak danych o utworach",
+                empty_views: "Brak wyświetleń",
+                live_db: "Baza danych live",
+                soon: "wkrótce",
+                in: "za",
+                h: "g",
+                m: "min",
+                no_results: "Brak profilów pasujących do wyszukiwania.",
+                months: ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec', 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'],
+                contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq"
+            }
+        };
+
+        function applyLanguage(lang) {
+            localStorage.setItem('spicy-lang', lang);
+            
+            const info = LANGUAGES[lang] || LANGUAGES.en;
+            const label = document.getElementById('lang-toggle-label');
+            if (label) label.textContent = info.name;
+            
+            document.querySelectorAll('.lang-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.langValue === lang);
+            });
+            
+            const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (dict[key]) {
+                    el.textContent = dict[key];
+                }
+            });
+            
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.dataset.i18nPlaceholder;
+                if (dict[key]) {
+                    el.placeholder = dict[key];
+                }
+            });
+
+            setDashboardDate();
+            
+            if (dashboardData) {
+                renderDashboard();
+            }
+        }
+        
+        function initLanguage() {
+            const savedLang = localStorage.getItem('spicy-lang');
+            const preferredLang = (savedLang && LANGUAGES[savedLang]) ? savedLang : 'en';
+            
+            applyLanguage(preferredLang);
+            
+            const toggle = document.getElementById('lang-toggle');
+            const dropdown = document.getElementById('lang-dropdown');
+            
+            if (toggle && dropdown) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+                
+                document.querySelectorAll('.lang-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        applyLanguage(btn.dataset.langValue);
+                        dropdown.classList.remove('open');
+                    });
+                });
+                
+                document.addEventListener('click', () => {
+                    dropdown.classList.remove('open');
+                });
+            }
         }
 
         // Theme
@@ -1546,6 +1933,8 @@
         }
 
         function getGrowthText(growth, firstSnapshotStr, formatFn) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             if (growth !== null && growth !== undefined) {
                 const num = Number(growth);
                 return `${num >= 0 ? '+' : ''}${formatFn(num)}`;
@@ -1556,15 +1945,15 @@
             const elapsedMs = now - firstDate;
             const targetMs = 24 * 60 * 60 * 1000;
             if (elapsedMs >= targetMs) {
-                return 'soon';
+                return dict.soon || 'soon';
             }
             const remainingMs = targetMs - elapsedMs;
             const remainingHours = Math.floor(remainingMs / 3600000);
             if (remainingHours >= 1) {
-                return `in ${remainingHours}h`;
+                return `${dict.in || 'in'} ${remainingHours}${dict.h || 'h'}`;
             }
             const remainingMins = Math.ceil(remainingMs / 60000);
-            return `in ${remainingMins}m`;
+            return `${dict.in || 'in'} ${remainingMins}${dict.m || 'm'}`;
         }
 
         function parseUTCDate(dateStr) {
@@ -2023,11 +2412,14 @@
             const tbody = document.getElementById('database-tbody');
             tbody.innerHTML = '';
             
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
             if (filteredUsers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                            No profiles matched your search.
+                            ${dict.no_results}
                         </td>
                     </tr>
                 `;
@@ -2039,7 +2431,7 @@
                 const isNew = isNewUser(u.first_snapshot);
                 if (isNew) {
                     row.className = 'disabled';
-                    row.title = "Data collection in progress. Profile will be available 24 hours after creation.";
+                    row.title = dict.new_user_tooltip;
                 } else {
                     row.onclick = () => openProfile(u.username);
                 }
