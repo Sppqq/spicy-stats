@@ -51,8 +51,6 @@ async function checkSchema(env) {
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id)").run().catch(() => {});
-        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id_id ON snapshots(user_id, id DESC)").run().catch(() => {});
-        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id_timestamp ON snapshots(user_id, timestamp)").run().catch(() => {});
         schemaChecked = true;
     } catch (e) {
         // Ignore
