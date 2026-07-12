@@ -1006,8 +1006,17 @@
             const chartWidth = width - paddingLeft - paddingRight;
             
             const pointsCount = aggregatedPoints.length;
+            const times = aggregatedPoints.map(p => {
+                const dateObj = new Date(p.date.includes('T') || p.date.includes(' ') ? p.date : p.date + 'T00:00:00Z');
+                return isNaN(dateObj.getTime()) ? 0 : dateObj.getTime();
+            });
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            const timeRange = maxTime - minTime || 1;
+
             const scaledPoints = aggregatedPoints.map((p, i) => {
-                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const timeVal = times[i];
+                const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
                 return { x, y, date: p.date, views: p.views };
             });
@@ -1024,25 +1033,15 @@
             svgLine.setAttribute('d', linePathStr);
             
             labelsContainer.innerHTML = '';
-            const labelIndices = [
-                0, 
-                Math.floor(pointsCount * 0.2), 
-                Math.floor(pointsCount * 0.4), 
-                Math.floor(pointsCount * 0.6), 
-                Math.floor(pointsCount * 0.8), 
-                pointsCount - 1
-            ].filter(idx => idx >= 0 && idx < pointsCount);
-            
-            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
-            
-            uniqueIndices.forEach(idx => {
-                const p = scaledPoints[idx];
-                const dateObj = new Date(p.date);
+            const steps = 5;
+            for (let i = 0; i <= steps; i++) {
+                const timeVal = minTime + (i / steps) * timeRange;
+                const dateObj = new Date(timeVal);
                 const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
-            });
+            }
             
             setupChartTooltip(scaledPoints);
         }

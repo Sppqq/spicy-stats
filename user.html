@@ -941,8 +941,17 @@
             const chartWidth = width - paddingLeft - paddingRight;
             
             const pointsCount = points.length;
+            const times = points.map(p => {
+                const dateObj = parseUTCDate(p.x);
+                return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
+            });
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            const timeRange = maxTime - minTime || 1;
+
             const scaledPoints = points.map((p, i) => {
-                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const timeVal = times[i];
+                const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.y - minViews) / (maxViews - minViews || 1)) * chartHeight;
                 return { x, y, date: p.x, views: p.y };
             });
@@ -959,25 +968,15 @@
             svgLine.setAttribute('d', linePathStr);
             
             labelsContainer.innerHTML = '';
-            const labelIndices = [
-                0, 
-                Math.floor(pointsCount * 0.2), 
-                Math.floor(pointsCount * 0.4), 
-                Math.floor(pointsCount * 0.6), 
-                Math.floor(pointsCount * 0.8), 
-                pointsCount - 1
-            ].filter(idx => idx >= 0 && idx < pointsCount);
-            
-            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
-            
-            uniqueIndices.forEach(idx => {
-                const p = scaledPoints[idx];
-                const dateObj = parseUTCDate(p.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) : '';
+            const steps = 5;
+            for (let i = 0; i <= steps; i++) {
+                const timeVal = minTime + (i / steps) * timeRange;
+                const dateObj = new Date(timeVal);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
-            });
+            }
             
             setupProfileChartTooltip(scaledPoints);
         }
@@ -1186,8 +1185,17 @@
             const chartWidth = width - paddingLeft - paddingRight;
             
             const pointsCount = points.length;
+            const times = points.map(p => {
+                const dateObj = parseUTCDate(p.timestamp);
+                return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
+            });
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            const timeRange = maxTime - minTime || 1;
+
             const scaledPoints = points.map((p, i) => {
-                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const timeVal = times[i];
+                const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
                 return { x, y, date: p.timestamp, views: p.views };
             });
@@ -1204,25 +1212,15 @@
             svgLine.setAttribute('d', linePathStr);
             
             labelsContainer.innerHTML = '';
-            const labelIndices = [
-                0, 
-                Math.floor(pointsCount * 0.2), 
-                Math.floor(pointsCount * 0.4), 
-                Math.floor(pointsCount * 0.6), 
-                Math.floor(pointsCount * 0.8), 
-                pointsCount - 1
-            ].filter(idx => idx >= 0 && idx < pointsCount);
-            
-            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
-            
-            uniqueIndices.forEach(idx => {
-                const p = scaledPoints[idx];
-                const dateObj = parseUTCDate(p.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) : '';
+            const steps = 5;
+            for (let i = 0; i <= steps; i++) {
+                const timeVal = minTime + (i / steps) * timeRange;
+                const dateObj = new Date(timeVal);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
-            });
+            }
             
             setupTrackChartTooltip(scaledPoints);
         }
