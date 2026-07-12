@@ -384,8 +384,8 @@ async function scrapeAndSave(userId, username, env) {
     try {
         data = await fetchUserDataFromAPI(username);
     } catch (err) {
-        if (err.message === "USER_NOT_FOUND") {
-            console.warn(`User @${username} (id: ${userId}) returned 404. Removing from tracked users.`);
+        if (err.message === "USER_NOT_FOUND" || err.message === "USER_NOT_CREATOR") {
+            console.warn(`User @${username} (id: ${userId}) not valid (${err.message}). Removing from tracked users.`);
             await deleteUserFromDB(userId, env);
             return;
         }
@@ -393,19 +393,13 @@ async function scrapeAndSave(userId, username, env) {
 
     if (!data) {
         const lastSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
-        if (!lastSnap) {
-            // Новый пользователь, но мы не смогли загрузить его данные (ошибочный никнейм/профиль)
-            console.warn(`New user @${username} (id: ${userId}) failed to yield data on first scrape. Removing.`);
-            await deleteUserFromDB(userId, env);
-            return;
-        }
-        const lastViews = lastSnap.total_views;
+        const lastViews = lastSnap ? lastSnap.total_views : 0;
         await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, lastViews).run();
         return;
     }
 
-    if (!data.songs || data.songs.length === 0) {
-        console.warn(`User @${username} (id: ${userId}) has 0 tracks. Removing from tracked users.`);
+    if (data.total_views === 0 && (!data.songs || data.songs.length === 0)) {
+        console.warn(`User @${username} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
         await deleteUserFromDB(userId, env);
         return;
     }
@@ -429,6 +423,10 @@ async function fetchUserDataFromAPI(username) {
     }
     if (!response.ok) return null;
     const html = await response.text();
+
+    if (html.includes('"userId":""') || html.includes('\\"userId\\":\\"\\"') || html.includes('"userId":null') || html.includes('\\"userId\\":null')) {
+        throw new Error("USER_NOT_CREATOR");
+    }
 
     let userId = null;
     const patterns = [
