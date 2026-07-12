@@ -3,9 +3,9 @@ name: Deploy Backend to Cloudflare Worker
 on:
   push:
     branches:
-      - main     # Название вашей основной ветки (измените на master, если основная ветка master)
+      - main     # Name of your main branch (change to master if the main branch is master)
     paths:
-      - 'cloudflare_pages/**' # Запуск деплоя только при изменении файлов в этой папке
+      - 'cloudflare_pages/**' # Trigger deploy only when files in this folder change
 
 jobs:
   deploy:

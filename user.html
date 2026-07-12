@@ -241,6 +241,7 @@
             padding: 15px 8px;
             border-bottom: 1px solid var(--paper-dark);
             transition: 140ms ease;
+            cursor: pointer;
         }
 
         .track:hover {
@@ -513,7 +514,7 @@
                     <div class="profile-stat-value" id="stat-growth">...</div>
                 </article>
 
-                <article class="profile-stat">
+                <article class="profile-stat" id="stat-tracks-card">
                     <div class="profile-stat-label">Tracks</div>
                     <div class="profile-stat-value" id="stat-tracks">...</div>
                 </article>
@@ -623,6 +624,21 @@
                 return;
             }
             loadProfile();
+
+            // Track Stats Modal close triggers
+            const trackModal = document.getElementById('track-modal');
+            const closeTrackBtn = document.getElementById('close-track-modal-btn');
+            if (trackModal && closeTrackBtn) {
+                const closeTrackModal = () => {
+                    trackModal.style.display = 'none';
+                    const tooltip = document.getElementById('track-chart-tooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                };
+                closeTrackBtn.addEventListener('click', closeTrackModal);
+                trackModal.addEventListener('click', (e) => {
+                    if (e.target === trackModal) closeTrackModal();
+                });
+            }
         });
 
         // Theme
@@ -712,15 +728,15 @@
             const elapsedMs = now - firstDate;
             const targetMs = 24 * 60 * 60 * 1000;
             if (elapsedMs >= targetMs) {
-                return 'скоро';
+                return 'soon';
             }
             const remainingMs = targetMs - elapsedMs;
             const remainingHours = Math.floor(remainingMs / 3600000);
             if (remainingHours >= 1) {
-                return `через ${remainingHours} ч`;
+                return `in ${remainingHours}h`;
             }
             const remainingMins = Math.ceil(remainingMs / 60000);
-            return `через ${remainingMins} мин`;
+            return `in ${remainingMins}m`;
         }
 
         function parseUTCDate(dateStr) {
@@ -827,14 +843,27 @@
 
             if (growth !== null && growth !== undefined) {
                 if (growthCard) {
-                    growthCard.style.background = '';
-                    growthCard.style.color = '';
-                    growthCard.style.border = '';
+                    if (growth > 0) {
+                        growthCard.style.background = 'var(--green)';
+                        growthCard.style.color = '#101114';
+                        growthCard.style.border = 'none';
+                        growthEl.textContent = `+${formatViews(growth)}`;
+                        growthEl.style.color = '#101114';
+                    } else if (growth < 0) {
+                        growthCard.style.background = 'var(--coral)';
+                        growthCard.style.color = '#101114';
+                        growthCard.style.border = 'none';
+                        growthEl.textContent = `-${formatViews(Math.abs(growth))}`;
+                        growthEl.style.color = '#101114';
+                    } else {
+                        growthCard.style.background = 'var(--white)';
+                        growthCard.style.color = 'var(--ink)';
+                        growthCard.style.border = '1px solid var(--line)';
+                        growthEl.textContent = '0';
+                        growthEl.style.color = 'var(--muted)';
+                    }
                 }
-                const growthSign = growth >= 0 ? '+' : '';
-                growthEl.textContent = `${growthSign}${formatViews(growth)}`;
                 growthEl.style.fontSize = '';
-                growthEl.style.color = '';
             } else {
                 if (growthCard) {
                     growthCard.style.background = 'var(--white)';
@@ -845,7 +874,26 @@
                 growthEl.style.fontSize = '24px';
                 growthEl.style.color = 'var(--muted)';
             }
-            document.getElementById('stat-tracks').textContent = profileData.total_songs;
+            
+            const tracksCard = document.getElementById('stat-tracks-card');
+            const tracksEl = document.getElementById('stat-tracks');
+            const totalSongs = profileData.total_songs || 0;
+            if (tracksEl) {
+                tracksEl.textContent = totalSongs;
+            }
+            if (tracksCard) {
+                if (totalSongs > 0) {
+                    tracksCard.style.background = 'var(--green)';
+                    tracksCard.style.color = '#101114';
+                    tracksCard.style.border = 'none';
+                    if (tracksEl) tracksEl.style.color = '#101114';
+                } else {
+                    tracksCard.style.background = 'var(--white)';
+                    tracksCard.style.color = 'var(--ink)';
+                    tracksCard.style.border = '1px solid var(--line)';
+                    if (tracksEl) tracksEl.style.color = 'var(--muted)';
+                }
+            }
             
             const exportBtn = document.getElementById('export-json-btn');
             if (exportBtn) {
@@ -1017,11 +1065,21 @@
             
             sortedSongs.forEach((song, i) => {
                 const rank = (i + 1).toString().padStart(2, '0');
-                const growthSign = song.growth >= 0 ? '+' : '';
+                
+                let growthSign = '';
+                let growthColor = 'var(--muted)';
+                if (song.growth > 0) {
+                    growthSign = '+';
+                    growthColor = 'var(--positive-text)';
+                } else if (song.growth < 0) {
+                    growthSign = '';
+                    growthColor = 'var(--coral)';
+                }
                 const growthText = `${growthSign}${formatFullNumber(song.growth)}`;
                 
                 const row = document.createElement('div');
                 row.className = 'track';
+                row.onclick = () => openTrackStats(song.title, song.artist, song.views, song.growth);
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
                     <div>
@@ -1030,10 +1088,211 @@
                     </div>
                     <div>
                         <div class="track-views">${formatViews(song.views)}</div>
-                        <div class="track-growth" style="color: ${song.growth >= 0 ? 'var(--positive-text)' : 'var(--coral)'};">${growthText}</div>
+                        <div class="track-growth" style="color: ${growthColor};">${growthText}</div>
                     </div>
                 `;
                 list.appendChild(row);
+            });
+        }
+
+        async function openTrackStats(title, artist, currentViews, growth) {
+            const modal = document.getElementById('track-modal');
+            const modalTitle = document.getElementById('track-modal-title');
+            const modalArtist = document.getElementById('track-modal-artist');
+            const modalViews = document.getElementById('track-modal-views');
+            const modalGrowth = document.getElementById('track-modal-growth');
+            const modalGrowthCard = document.getElementById('track-modal-growth-card');
+            
+            if (!modal) return;
+            
+            modalTitle.textContent = title;
+            modalArtist.textContent = artist;
+            modalViews.textContent = formatFullNumber(currentViews);
+            
+            if (growth !== null && growth !== undefined) {
+                if (growth > 0) {
+                    modalGrowthCard.style.background = 'var(--green)';
+                    modalGrowthCard.style.color = '#101114';
+                    modalGrowthCard.style.border = 'none';
+                    modalGrowth.textContent = `+${formatFullNumber(growth)}`;
+                    modalGrowth.style.color = '#101114';
+                } else if (growth < 0) {
+                    modalGrowthCard.style.background = 'var(--coral)';
+                    modalGrowthCard.style.color = '#101114';
+                    modalGrowthCard.style.border = 'none';
+                    modalGrowth.textContent = `-${formatFullNumber(Math.abs(growth))}`;
+                    modalGrowth.style.color = '#101114';
+                } else {
+                    modalGrowthCard.style.background = 'var(--white)';
+                    modalGrowthCard.style.color = 'var(--ink)';
+                    modalGrowthCard.style.border = '1px solid var(--line)';
+                    modalGrowth.textContent = '0';
+                    modalGrowth.style.color = 'var(--muted)';
+                }
+            } else {
+                modalGrowthCard.style.background = 'var(--white)';
+                modalGrowthCard.style.color = 'var(--ink)';
+                modalGrowthCard.style.border = '1px solid var(--line)';
+                modalGrowth.textContent = '—';
+                modalGrowth.style.color = 'var(--muted)';
+            }
+            
+            // Clear chart paths while loading
+            document.getElementById('track-chart-area-path').setAttribute('d', '');
+            document.getElementById('track-chart-line-path').setAttribute('d', '');
+            document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">Loading history...</span>';
+            
+            modal.style.display = 'flex';
+            
+            try {
+                const res = await fetch(`${API_BASE}/track-history?username=${username}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    renderTrackChart(data.history);
+                } else {
+                    document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--coral);">Failed to load history</span>';
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--coral);">Error loading history</span>';
+            }
+        }
+
+        function renderTrackChart(points) {
+            const svgArea = document.getElementById('track-chart-area-path');
+            const svgLine = document.getElementById('track-chart-line-path');
+            const labelsContainer = document.getElementById('track-chart-labels');
+            
+            if (!svgArea || !svgLine) return;
+            
+            if (!points || points.length < 2) {
+                svgArea.setAttribute('d', '');
+                svgLine.setAttribute('d', '');
+                labelsContainer.innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">No history data available yet</span>';
+                return;
+            }
+            
+            const minViews = Math.min(...points.map(p => p.views));
+            const maxViews = Math.max(...points.map(p => p.views));
+            
+            const width = 600;
+            const height = 160;
+            const paddingLeft = 0;
+            const paddingRight = 0;
+            const paddingTop = 20;
+            const paddingBottom = 10;
+            
+            const chartHeight = height - paddingTop - paddingBottom;
+            const chartWidth = width - paddingLeft - paddingRight;
+            
+            const pointsCount = points.length;
+            const scaledPoints = points.map((p, i) => {
+                const x = paddingLeft + (i / (pointsCount - 1 || 1)) * chartWidth;
+                const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
+                return { x, y, date: p.timestamp, views: p.views };
+            });
+            
+            let linePathStr = '';
+            scaledPoints.forEach((p, i) => {
+                const cmd = i === 0 ? 'M' : 'L';
+                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+            });
+            
+            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
+            
+            svgArea.setAttribute('d', areaPathStr);
+            svgLine.setAttribute('d', linePathStr);
+            
+            labelsContainer.innerHTML = '';
+            const labelIndices = [
+                0, 
+                Math.floor(pointsCount * 0.2), 
+                Math.floor(pointsCount * 0.4), 
+                Math.floor(pointsCount * 0.6), 
+                Math.floor(pointsCount * 0.8), 
+                pointsCount - 1
+            ].filter(idx => idx >= 0 && idx < pointsCount);
+            
+            const uniqueIndices = [...new Set(labelIndices)].sort((a,b)=>a-b);
+            
+            uniqueIndices.forEach(idx => {
+                const p = scaledPoints[idx];
+                const dateObj = parseUTCDate(p.date);
+                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) : '';
+                const label = document.createElement('span');
+                label.textContent = formattedDate;
+                labelsContainer.appendChild(label);
+            });
+            
+            setupTrackChartTooltip(scaledPoints);
+        }
+
+        function setupTrackChartTooltip(scaledPoints) {
+            const chartWrap = document.querySelector('#track-modal .chart-wrap');
+            const svgElement = document.getElementById('track-chart-svg');
+            let tooltip = document.getElementById('track-chart-tooltip');
+            
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'track-chart-tooltip';
+                tooltip.style.position = 'absolute';
+                tooltip.style.display = 'none';
+                tooltip.style.background = 'var(--ink)';
+                tooltip.style.color = 'var(--white)';
+                tooltip.style.padding = '8px 12px';
+                tooltip.style.fontSize = '11px';
+                tooltip.style.fontFamily = "'DM Mono', monospace";
+                tooltip.style.border = '1px solid var(--line)';
+                tooltip.style.boxShadow = '3px 3px 0 var(--line)';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.zIndex = '1100';
+                chartWrap.appendChild(tooltip);
+            }
+            
+            chartWrap.style.position = 'relative';
+            
+            const newSvg = svgElement.cloneNode(true);
+            svgElement.parentNode.replaceChild(newSvg, svgElement);
+            
+            newSvg.addEventListener('mousemove', (e) => {
+                const rect = newSvg.getBoundingClientRect();
+                const mouseX = ((e.clientX - rect.left) / rect.width) * 600;
+                
+                let closestPt = scaledPoints[0];
+                let minDist = Math.abs(closestPt.x - mouseX);
+                
+                for (let i = 1; i < scaledPoints.length; i++) {
+                    const dist = Math.abs(scaledPoints[i].x - mouseX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPt = scaledPoints[i];
+                    }
+                }
+                
+                const dateObj = parseUTCDate(closestPt.date);
+                const formattedDate = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+                
+                tooltip.style.display = 'block';
+                tooltip.innerHTML = `
+                    <div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
+                    <div>Views: ${formatFullNumber(closestPt.views)}</div>
+                `;
+                
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const posX = ((closestPt.x / 600) * rect.width);
+                const posY = ((closestPt.y / 160) * rect.height) - 10;
+                
+                let left = posX + 20;
+                if (left + tooltipRect.width > rect.width) {
+                    left = posX - tooltipRect.width - 20;
+                }
+                
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${posY}px`;
+            });
+            
+            newSvg.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
             });
         }
 
@@ -1137,5 +1396,40 @@
             window.location.href = '/';
         }
     </script>
+    <!-- Track Stats Modal -->
+    <div id="track-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 640px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button id="close-track-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" id="track-modal-eyebrow">Track Stats</div>
+            <h2 id="track-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 4px; line-height: 1.1;">Track Title</h2>
+            <div id="track-modal-artist" style="color: var(--muted); font-size: 13px; font-family: 'DM Mono', monospace; margin-bottom: 24px;">Artist Name</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                <div style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);">Views</div>
+                    <div id="track-modal-views" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
+                </div>
+                <div id="track-modal-growth-card" style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);">24h Growth</div>
+                    <div id="track-modal-growth" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
+                </div>
+            </div>
+
+            <div class="chart-wrap" style="position: relative; padding: 0; margin-bottom: 16px;">
+                <svg id="track-chart-svg" style="width: 100%; height: 160px; display: block; background: linear-gradient(to bottom, transparent 49.5%, var(--paper-dark) 50%, transparent 50.5%); background-size: 100% 40px;" viewBox="0 0 600 160" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="trackArea" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="var(--blue)" stop-opacity="0.28" />
+                            <stop offset="100%" stop-color="var(--blue)" stop-opacity="0" />
+                        </linearGradient>
+                    </defs>
+                    <path id="track-chart-area-path" d="" fill="url(#trackArea)" />
+                    <path id="track-chart-line-path" d="" fill="none" stroke="var(--blue)" stroke-width="3" vector-effect="non-scaling-stroke" />
+                </svg>
+                <div class="chart-labels" id="track-chart-labels" style="display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px;">
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

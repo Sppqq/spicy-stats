@@ -7,13 +7,13 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Внутрипамятевое ограничение запросов (Rate Limiting)
+// In-memory rate limiting (Rate Limiting)
 const rateLimitMap = new Map();
 
 function isRateLimited(ip, limit, windowMs) {
     const now = Date.now();
     
-    // Самоочистка карты от старых записей при превышении размера
+    // Self-cleaning of the map from old entries when size is exceeded
     if (rateLimitMap.size > 10000) {
         for (const [key, timestamps] of rateLimitMap.entries()) {
             const active = timestamps.filter(ts => now - ts < windowMs);
@@ -47,23 +47,23 @@ export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
 
-        // Обработка CORS preflight
+        // Handle CORS preflight
         if (request.method === "OPTIONS") {
             return new Response(null, { headers: corsHeaders });
         }
 
-        // Защита от спама и парсинга (Rate Limiting)
+        // Protection against spam and scraping (Rate Limiting)
         const ip = request.headers.get("CF-Connecting-IP") || "anonymous";
         if (url.pathname === "/api/add-user" && request.method === "POST") {
-            if (isRateLimited(ip, 5, 60000)) { // 5 запросов в минуту для добавления пользователей
-                return new Response(JSON.stringify({ error: "Слишком много запросов. Пожалуйста, попробуйте позже." }), { 
+            if (isRateLimited(ip, 5, 60000)) { // 5 requests per minute for adding users
+                return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
                     status: 429, 
                     headers: { "Content-Type": "application/json", ...corsHeaders } 
                 });
             }
         } else if (url.pathname.startsWith("/api/")) {
-            if (isRateLimited(ip, 60, 60000)) { // 60 запросов в минуту для остальных эндпоинтов
-                return new Response(JSON.stringify({ error: "Слишком много запросов. Пожалуйста, попробуйте позже." }), { 
+            if (isRateLimited(ip, 60, 60000)) { // 60 requests per minute for other endpoints
+                return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
                     status: 429, 
                     headers: { "Content-Type": "application/json", ...corsHeaders } 
                 });
@@ -88,6 +88,10 @@ export default {
                 return await handleDashboardAPI(env);
             }
 
+            if (url.pathname === "/api/track-history" && request.method === "GET") {
+                return await handleTrackHistoryAPI(request, env);
+            }
+
             if (url.pathname.startsWith("/api/user/") && request.method === "GET") {
                 const username = url.pathname.split("/")[3];
                 return await handleUserDetailAPI(username, env);
@@ -105,18 +109,18 @@ export default {
 };
 
 // ==========================================
-// ОСНОВНЫЕ API МЕТОДЫ (JSON)
+// CORE API METHODS (JSON)
 // ==========================================
 
 async function handleAddUser(request, env, ctx) {
     const { username } = await request.json();
     if (!username || typeof username !== "string") {
-        return new Response(JSON.stringify({ error: "Введите корректный никнейм." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: "Please enter a valid username." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     const cleanName = username.trim().replace(/^@/, "");
     if (cleanName.length === 0 || cleanName.length > 50 || !/^[a-zA-Z0-9_\.\-]+$/.test(cleanName)) {
-        return new Response(JSON.stringify({ error: "Некорректный формат никнейма. Разрешены только латинские буквы, цифры, точки, дефисы и нижние подчеркивания (до 50 символов)." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: "Invalid username format. Only alphanumeric characters, dots, hyphens, and underscores are allowed (up to 50 characters)." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     await env.DB.prepare("INSERT INTO users (username) VALUES (?) ON CONFLICT(username) DO NOTHING")
@@ -150,7 +154,7 @@ async function handleDashboardAPI(env) {
     song_counts AS (
         SELECT 
             snapshot_id, 
-            COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Скрыто')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) AS cnt
+            COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) AS cnt
         FROM snapshot_songs
         WHERE snapshot_id IN (SELECT latest_id FROM target_snapshots UNION SELECT past_7d_id FROM target_snapshots WHERE past_7d_id IS NOT NULL)
         GROUP BY snapshot_id
@@ -196,7 +200,7 @@ async function handleDashboardAPI(env) {
 
 async function handleUserDetailAPI(username, env) {
     const user = await env.DB.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (!user) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
     const firstSnapshotTimestamp = firstSnapshot ? firstSnapshot.timestamp : null;
@@ -239,14 +243,14 @@ async function handleUserDetailAPI(username, env) {
             if (results) pastRaw = results;
         }
 
-        const getTrackKey = (s) => `${(s.title || "Скрыто").trim().toLowerCase()}|||${(s.artist || "SpicyLyrics").trim().toLowerCase()}`;
+        const getTrackKey = (s) => `${(s.title || "Hidden").trim().toLowerCase()}|||${(s.artist || "SpicyLyrics").trim().toLowerCase()}`;
 
         const aggregateSongs = (rawList) => {
             const map = new Map();
             for (const s of rawList || []) {
                 const key = getTrackKey(s);
                 if (map.has(key)) map.get(key).views += s.views;
-                else map.set(key, { title: s.title || "Скрыто", artist: s.artist || "SpicyLyrics", views: s.views || 0 });
+                else map.set(key, { title: s.title || "Hidden", artist: s.artist || "SpicyLyrics", views: s.views || 0 });
             }
             return Array.from(map.values());
         };
@@ -283,8 +287,35 @@ async function handleUserDetailAPI(username, env) {
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
 }
 
+async function handleTrackHistoryAPI(request, env) {
+    const url = new URL(request.url);
+    const username = url.searchParams.get("username");
+    const title = url.searchParams.get("title");
+    const artist = url.searchParams.get("artist");
+
+    if (!username || !title || !artist) {
+        return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
+    if (!user) {
+        return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const { results } = await env.DB.prepare(`
+        SELECT SUM(ss.views) as views, s.timestamp
+        FROM snapshot_songs ss
+        JOIN snapshots s ON ss.snapshot_id = s.id
+        WHERE s.user_id = ? AND LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?)
+        GROUP BY s.id, s.timestamp
+        ORDER BY s.id ASC
+    `).bind(user.id, title.trim(), artist.trim()).all();
+
+    return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+}
+
 // ==========================================
-// СТАРЫЕ ФУНКЦИИ (ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ, ДОБАВЛЕН CORS)
+// UTILITY FUNCTIONS (UNCHANGED, WITH CORS ADDED)
 // ==========================================
 
 function parseDate(rawStr) {
@@ -332,7 +363,7 @@ async function handleImport(request, env) {
 
 async function handleExport(username, env) {
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (!user) return new Response("Пользователь не найден", { status: 404, headers: corsHeaders });
+    if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
 
     const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp DESC").bind(user.id).all();
     const songs = await env.DB.prepare(`
@@ -356,8 +387,8 @@ async function handleExport(username, env) {
     });
 }
 
-// Функции парсинга (runScraper, scrapeSingleUser, scrapeAndSave, fetchUserDataFromAPI) 
-// остаются ИДЕНТИЧНЫМИ твоему оригинальному файлу, просто скопируй их сюда.
+// Scraper & parser functions
+// remain IDENTICAL to your original file.
 async function runScraper(env) {
     const { results: users } = await env.DB.prepare(`
     SELECT u.id, u.username, s_latest.id AS latest_snap_id
@@ -374,7 +405,7 @@ async function runScraper(env) {
     const batchSize = 4;
     for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
-        await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, env).catch(err => console.error(`Ошибка обновления @${user.username}:`, err.message))));
+        await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, env).catch(err => console.error(`Error updating @${user.username}:`, err.message))));
     }
 }
 
@@ -470,7 +501,7 @@ async function fetchUserDataFromAPI(username) {
     for (const track of tracksDetails) {
         if (!track) continue;
         const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-        tracksMap.set(track.id, { title: track.name || "Скрыто", artist: artistNames });
+        tracksMap.set(track.id, { title: track.name || "Hidden", artist: artistNames });
     }
 
     let total_views = 0, songs = [];

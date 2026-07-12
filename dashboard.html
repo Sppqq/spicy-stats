@@ -531,7 +531,7 @@
                     </div>
                 </article>
 
-                <article class="stat green">
+                <article class="stat green" id="stat-tracks-card">
                     <div class="stat-label">
                         <span>Tracks tracked</span>
                         <span>03</span>
@@ -727,15 +727,15 @@
             const elapsedMs = now - firstDate;
             const targetMs = 24 * 60 * 60 * 1000;
             if (elapsedMs >= targetMs) {
-                return 'скоро';
+                return 'soon';
             }
             const remainingMs = targetMs - elapsedMs;
             const remainingHours = Math.floor(remainingMs / 3600000);
             if (remainingHours >= 1) {
-                return `через ${remainingHours} ч`;
+                return `in ${remainingHours}h`;
             }
             const remainingMins = Math.ceil(remainingMs / 60000);
-            return `через ${remainingMins} мин`;
+            return `in ${remainingMins}m`;
         }
 
         function parseUTCDate(dateStr) {
@@ -779,7 +779,7 @@
                 renderTopAuthors();
                 applySortAndRenderTable();
 
-                // Запускаем фоновую дозагрузку количества треков
+                // Start background loading of track counts
                 hydrateTrackCounts();
             } catch (err) {
                 console.error('Error initializing dashboard', err);
@@ -813,21 +813,21 @@
             `;
         }
 
-        // Фоновую дозагрузка треков по каждому пользователю
+        // Background loading of tracks for each user
         async function hydrateTrackCounts() {
-            const batchSize = 5; // Запрашиваем по 5 человек за раз, чтобы не "положить" API
+            const batchSize = 5; // Query 5 users at a time to avoid overloading the API
             for (let i = 0; i < allUsersDetailed.length; i += batchSize) {
                 const batch = allUsersDetailed.slice(i, i + batchSize);
                 
                 await Promise.all(batch.map(async (u) => {
-                    // Если данные уже откуда-то появились, пропускаем
+                    // Skip if data is already available
                     if (u.total_songs !== null && u.total_songs !== undefined) return;
                     
                     try {
                         const res = await fetch(`${API_BASE}/user/${u.username}`);
                         if (res.ok) {
                             const data = await res.json();
-                            // Ищем total_songs или считаем длину массива songs
+                            // Find total_songs or count songs array length
                             u.total_songs = data.total_songs !== undefined 
                                 ? data.total_songs 
                                 : (data.songs ? data.songs.length : 0);
@@ -837,7 +837,7 @@
                     }
                 }));
                 
-                // Перерисовываем интерфейс с новыми данными после каждой пачки
+                // Redraw UI with new data after each batch
                 renderOverview();
                 renderTopAuthors();
                 applySortAndRenderTable();
@@ -855,15 +855,34 @@
                 (sum, u) => sum + (Number(u.growth) > 0 ? Number(u.growth) : 0),
                 0
             );
-            document.getElementById('stat-total-views-growth').innerHTML = `+${formatViews(totalGrowth)} views 24h`;
+            const totalGrowthEl = document.getElementById('stat-total-views-growth');
+            if (totalGrowthEl) {
+                if (totalGrowth > 0) {
+                    totalGrowthEl.classList.add('positive');
+                    totalGrowthEl.innerHTML = `+${formatViews(totalGrowth)} views 24h`;
+                } else {
+                    totalGrowthEl.classList.remove('positive');
+                    totalGrowthEl.innerHTML = `${formatViews(totalGrowth)} views 24h`;
+                }
+            }
             
             // Authors card
             document.getElementById('stat-authors-count').textContent = dashboardData.total_users;
             document.getElementById('stat-authors-subtext').textContent = 'Monitored profiles';
             
             // Tracks tracked card
-            document.getElementById('stat-tracks-count').textContent = formatViews(dashboardData.global_tracks || 0);
+            const globalTracks = dashboardData.global_tracks || 0;
+            document.getElementById('stat-tracks-count').textContent = formatViews(globalTracks);
             document.getElementById('stat-tracks-subtext').textContent = 'Across all profiles';
+
+            const tracksCard = document.getElementById('stat-tracks-card');
+            if (tracksCard) {
+                if (globalTracks > 0) {
+                    tracksCard.classList.add('green');
+                } else {
+                    tracksCard.classList.remove('green');
+                }
+            }
         }
 
         // Render Top Authors Panel (Top 4 by views)
@@ -890,9 +909,19 @@
                     const growthPercent = views - growthVal > 0
                         ? ((growthVal / (views - growthVal)) * 100).toFixed(1)
                         : '0';
-                    growthText = growthVal >= 0 ? `+${growthPercent}%` : `${growthPercent}%`;
-                    growthColor = growthVal >= 0 ? 'var(--positive-text)' : 'var(--coral)';
-                    isPositive = growthVal >= 0;
+                    if (growthVal > 0) {
+                        growthText = `+${growthPercent}%`;
+                        growthColor = 'var(--positive-text)';
+                        isPositive = true;
+                    } else if (growthVal < 0) {
+                        growthText = `${growthPercent}%`;
+                        growthColor = 'var(--coral)';
+                        isPositive = false;
+                    } else {
+                        growthText = `0.0%`;
+                        growthColor = 'var(--muted)';
+                        isPositive = false;
+                    }
                 } else {
                     growthText = getGrowthText(null, u.first_snapshot, () => '');
                     growthColor = 'var(--muted)';
@@ -1168,9 +1197,35 @@
                 row.onclick = () => openProfile(u.username);
                 
                 const hasGrowth = u.growth !== null;
+                const growthVal = hasGrowth ? Number(u.growth) : 0;
                 const growthText = getGrowthText(u.growth, u.first_snapshot, formatFullNumber);
-                const growthClass = hasGrowth && Number(u.growth) >= 0 ? 'positive' : '';
-                const growthColor = hasGrowth ? (Number(u.growth) >= 0 ? 'var(--positive-text)' : 'var(--coral)') : 'var(--muted)';
+                
+                let growthClass = '';
+                let growthColor = 'var(--muted)';
+                if (hasGrowth) {
+                    if (growthVal > 0) {
+                        growthClass = 'positive';
+                        growthColor = 'var(--positive-text)';
+                    } else if (growthVal < 0) {
+                        growthClass = '';
+                        growthColor = 'var(--coral)';
+                    }
+                }
+
+                const tracksGrowthVal = Number(u.tracks_growth_7d || 0);
+                let tracksGrowthClass = '';
+                let tracksGrowthColor = 'var(--muted)';
+                let tracksGrowthSign = '';
+                
+                if (tracksGrowthVal > 0) {
+                    tracksGrowthClass = 'positive';
+                    tracksGrowthColor = 'var(--positive-text)';
+                    tracksGrowthSign = '+';
+                } else if (tracksGrowthVal < 0) {
+                    tracksGrowthClass = '';
+                    tracksGrowthColor = 'var(--coral)';
+                    tracksGrowthSign = '';
+                }
 
                 row.innerHTML = `
                     <td class="table-user">@${u.username}</td>
@@ -1183,8 +1238,8 @@
                             ? '—'
                             : Number(u.total_songs)}
                     </td>
-                    <td class="${Number(u.tracks_growth_7d || 0) >= 0 ? 'positive' : ''}" style="color: ${Number(u.tracks_growth_7d || 0) >= 0 ? 'var(--positive-text)' : 'var(--coral)'}; font-family: 'DM Mono', monospace;">
-                        ${Number(u.tracks_growth_7d || 0) >= 0 ? '+' : ''}${formatFullNumber(Number(u.tracks_growth_7d || 0))}
+                    <td class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
+                        ${tracksGrowthSign}${formatFullNumber(tracksGrowthVal)}
                     </td>
                     <td class="table-muted">${timeAgo(u.last_updated)}</td>
                 `;
