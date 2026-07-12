@@ -317,6 +317,17 @@
         .author-row:hover * {
             color: var(--paper) !important;
         }
+        .author-row.disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+        .author-row.disabled:hover {
+            background: transparent;
+            color: inherit;
+        }
+        .author-row.disabled:hover * {
+            color: inherit !important;
+        }
 
         .rank {
             color: var(--muted);
@@ -404,6 +415,17 @@
         }
         tbody tr:hover td {
             color: var(--paper) !important;
+        }
+        tbody tr.disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+        tbody tr.disabled:hover {
+            background: transparent;
+            color: inherit;
+        }
+        tbody tr.disabled:hover td {
+            color: inherit !important;
         }
 
         .table-user {
@@ -778,6 +800,14 @@
             return new Date(s);
         }
 
+        function isNewUser(firstSnapshotStr) {
+            const firstDate = parseUTCDate(firstSnapshotStr);
+            if (!firstDate) return false;
+            const now = new Date();
+            const diffHours = (now - firstDate) / 3600000;
+            return diffHours < 24;
+        }
+
         function timeAgo(dateStr) {
             const date = parseUTCDate(dateStr);
             if (!date) return 'never';
@@ -960,8 +990,14 @@
                 }
                 
                 const row = document.createElement('button');
-                row.className = 'author-row';
-                row.onclick = () => openProfile(u.username);
+                const isNew = isNewUser(u.first_snapshot);
+                if (isNew) {
+                    row.className = 'author-row disabled';
+                    row.title = "Data collection in progress. Profile will be available 24 hours after creation.";
+                } else {
+                    row.className = 'author-row';
+                    row.onclick = () => openProfile(u.username);
+                }
                 row.innerHTML = `
                     <span class="rank">${rank}</span>
                     <span>
@@ -1224,7 +1260,13 @@
             
             filteredUsers.forEach(u => {
                 const row = document.createElement('tr');
-                row.onclick = () => openProfile(u.username);
+                const isNew = isNewUser(u.first_snapshot);
+                if (isNew) {
+                    row.className = 'disabled';
+                    row.title = "Data collection in progress. Profile will be available 24 hours after creation.";
+                } else {
+                    row.onclick = () => openProfile(u.username);
+                }
                 
                 const hasGrowth = u.growth !== null;
                 const growthVal = hasGrowth ? Number(u.growth) : 0;
