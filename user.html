@@ -607,6 +607,9 @@
                     </div>
                 </aside>
             </section>
+            <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px;">
+                Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.
+            </footer>
         </main>
     </div>
 
@@ -618,6 +621,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
             initLiveIndicator();
+            showEasterEgg();
             username = getUsername();
             if (!username) {
                 showError('No username provided in the URL.');
@@ -825,7 +829,26 @@
             if (!profileData) return;
             
             const initials = username.substring(0, 2).toUpperCase();
-            document.getElementById('profile-avatar').textContent = initials;
+            const avatarEl = document.getElementById('profile-avatar');
+            if (profileData.discord_id) {
+                let avatarUrl = '';
+                if (profileData.discord_avatar) {
+                    const ext = profileData.discord_avatar.startsWith('a_') ? 'gif' : 'png';
+                    avatarUrl = `https://cdn.discordapp.com/avatars/${profileData.discord_id}/${profileData.discord_avatar}.${ext}`;
+                } else {
+                    const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
+                    avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
+                }
+                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${profileData.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
+                avatarEl.style.padding = '0';
+                avatarEl.style.background = 'transparent';
+                avatarEl.style.overflow = 'hidden';
+            } else {
+                avatarEl.textContent = initials;
+                avatarEl.style.padding = '';
+                avatarEl.style.background = '';
+                avatarEl.style.overflow = '';
+            }
             document.getElementById('profile-rank').textContent = `Author profile / ${rankText}`;
             document.getElementById('profile-name').textContent = `@${profileData.username}`;
             
@@ -1392,6 +1415,22 @@
 
         function goBack() {
             window.location.href = '/';
+        }
+
+        function showEasterEgg() {
+            console.log(`
+%c   /\\_/\\
+%c  ( o.o )   %cLooking for our API?
+%c   > ^ <    %cGlyph Labs — https://glyph-labs.site
+%c  🌶️🌶️🌶️🌶️🌶️   %cHands off my spicy stats! 😉
+`, 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #4d65ff; font-weight: bold; font-size: 12px;',
+'color: #b9f227; font-weight: bold; font-size: 14px;',
+'color: #8e9099; font-size: 11px;',
+'color: #ff715b; font-size: 14px;',
+'color: #f1f0ea; font-size: 12px;');
         }
     </script>
     <!-- Track Stats Modal -->

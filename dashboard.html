@@ -592,6 +592,9 @@
                     </table>
                 </div>
             </section>
+            <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px;">
+                Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.
+            </footer>
         </main>
     </div>
 
@@ -637,6 +640,7 @@
             setupModal();
             setupSearch();
             setDashboardDate();
+            showEasterEgg();
         });
 
         // Set dynamic date in header
@@ -1344,6 +1348,22 @@
 
         function openProfile(username) {
             window.location.href = `/user/${username}`;
+        }
+
+        function showEasterEgg() {
+            console.log(`
+%c   /\\_/\\
+%c  ( o.o )   %cLooking for our API?
+%c   > ^ <    %cGlyph Labs — https://glyph-labs.site
+%c  🌶️🌶️🌶️🌶️🌶️   %cHands off my spicy stats! 😉
+`, 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #4d65ff; font-weight: bold; font-size: 12px;',
+'color: #b9f227; font-weight: bold; font-size: 14px;',
+'color: #8e9099; font-size: 11px;',
+'color: #ff715b; font-size: 14px;',
+'color: #f1f0ea; font-size: 12px;');
         }
     </script>
 </body>

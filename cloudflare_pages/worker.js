@@ -43,8 +43,22 @@ function isRateLimited(ip, limit, windowMs) {
     return false;
 }
 
+let schemaChecked = false;
+
+async function checkSchema(env) {
+    if (schemaChecked) return;
+    try {
+        await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
+        await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
+        schemaChecked = true;
+    } catch (e) {
+        // Ignore
+    }
+}
+
 export default {
     async fetch(request, env, ctx) {
+        ctx.waitUntil(checkSchema(env));
         const url = new URL(request.url);
 
         // Handle CORS preflight
@@ -95,6 +109,22 @@ export default {
             if (url.pathname.startsWith("/api/user/") && request.method === "GET") {
                 const username = url.pathname.split("/")[3];
                 return await handleUserDetailAPI(username, env);
+            }
+
+            if (url.pathname === "/api/admin/stats" && request.method === "POST") {
+                return await handleAdminStats(request, env);
+            }
+
+            if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") {
+                return await handleAdminScrapeUser(request, env);
+            }
+
+            if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") {
+                return await handleAdminScrapeAll(request, env, ctx);
+            }
+
+            if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
+                return await handleAdminDeleteUser(request, env);
             }
 
             return new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
@@ -275,6 +305,8 @@ async function handleUserDetailAPI(username, env) {
 
     const data = {
         username: user.username,
+        discord_id: user.discord_id || null,
+        discord_avatar: user.discord_avatar || null,
         total_views: totalViews,
         growth24h,
         first_snapshot: firstSnapshotTimestamp,
@@ -312,6 +344,105 @@ async function handleTrackHistoryAPI(request, env) {
     `).bind(user.id, title.trim(), artist.trim()).all();
 
     return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+}
+
+// ==========================================
+// ADMIN CONTROL METHODS (JSON)
+// ==========================================
+
+async function handleAdminStats(request, env) {
+    const { secret } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
+    const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
+    const songCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshot_songs").first();
+    
+    const { results: usersList } = await env.DB.prepare(`
+        SELECT u.id, u.username, 
+               (SELECT COUNT(*) FROM snapshots WHERE user_id = u.id) as snap_count,
+               (SELECT MAX(timestamp) FROM snapshots WHERE user_id = u.id) as last_updated,
+               (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views
+        FROM users u
+        ORDER BY current_views DESC
+    `).all();
+
+    const data = {
+        total_users: userCount.cnt || 0,
+        total_snapshots: snapshotCount.cnt || 0,
+        total_songs: songCount.cnt || 0,
+        users: usersList.map(u => ({
+            id: u.id,
+            username: u.username,
+            snap_count: u.snap_count || 0,
+            last_updated: u.last_updated || null,
+            views: u.current_views || 0
+        }))
+    };
+
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+}
+
+async function handleAdminScrapeUser(request, env) {
+    const { secret, username } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+    if (!username) {
+        return new Response(JSON.stringify({ error: "Username is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const cleanName = username.trim().replace(/^@/, "");
+    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    if (!user) {
+        return new Response(JSON.stringify({ error: "User not found in database" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        await scrapeAndSave(user.id, cleanName, env);
+        return new Response(JSON.stringify({ success: true, message: `Successfully scraped @${cleanName}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function handleAdminScrapeAll(request, env, ctx) {
+    const { secret } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        ctx.waitUntil(runScraper(env));
+        return new Response(JSON.stringify({ success: true, message: "Scraper run triggered in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function handleAdminDeleteUser(request, env) {
+    const { secret, username } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+    if (!username) {
+        return new Response(JSON.stringify({ error: "Username is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const cleanName = username.trim().replace(/^@/, "");
+    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    if (!user) {
+        return new Response(JSON.stringify({ error: "User not found in database" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        await deleteUserFromDB(user.id, env);
+        return new Response(JSON.stringify({ success: true, message: `Successfully deleted @${cleanName}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
 }
 
 // ==========================================
@@ -455,6 +586,12 @@ async function scrapeAndSave(userId, username, env) {
         const batch = data.songs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
         await env.DB.batch(batch);
     }
+
+    if (data.discord_id) {
+        await env.DB.prepare("UPDATE users SET discord_id = ?, discord_avatar = ? WHERE id = ?")
+            .bind(data.discord_id, data.discord_avatar || null, userId)
+            .run();
+    }
 }
 
 async function fetchUserDataFromAPI(username) {
@@ -491,6 +628,10 @@ async function fetchUserDataFromAPI(username) {
     if (!profileRes.ok) return null;
     const profileJson = await profileRes.json();
 
+    const perUser = profileJson.result?.data?.json?.perUser || {};
+    const discord_id = perUser.id || userId;
+    const discord_avatar = perUser.avatar || null;
+
     const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
     if (!tracksRes.ok) return null;
     const tracksJson = await tracksRes.json();
@@ -514,5 +655,5 @@ async function fetchUserDataFromAPI(username) {
         }
     }
 
-    return { total_views, songs };
+    return { total_views, songs, discord_id, discord_avatar };
 }

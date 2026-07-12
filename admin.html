@@ -1,0 +1,908 @@
+<!-- File: admin.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spicy Monitor — Admin Panel</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --paper: #101114;
+            --paper-dark: #1b1c21;
+            --ink: #f1f0ea;
+            --muted: #8e9099;
+            --line: #2d2f39;
+            --blue: #4d65ff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #16171c;
+            --positive-text: #b9f227;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: 'Manrope', sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+            color: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .brand-mark {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            background: var(--ink);
+            color: var(--green);
+            font-size: 18px;
+            transform: rotate(-8deg);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 1px solid var(--ink);
+        }
+
+        .dashboard-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 72px 0 40px;
+        }
+
+        .eyebrow {
+            color: var(--blue);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 14px;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            max-width: 670px;
+            font-size: clamp(42px, 7vw, 88px);
+            line-height: 0.93;
+            letter-spacing: -0.085em;
+        }
+
+        .heading-note {
+            max-width: 260px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat {
+            min-height: 140px;
+            padding: 20px;
+            border: 1px solid var(--ink);
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stat.dark {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 35px;
+            font-weight: 800;
+            letter-spacing: -0.07em;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px solid var(--ink);
+            background: transparent;
+            color: var(--ink);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 140ms ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        [data-theme="light"] {
+            --paper: #e9e5dc;
+            --paper-dark: #d8d3c8;
+            --ink: #17181c;
+            --muted: #686b72;
+            --line: #b9b5ac;
+            --blue: #304cff;
+            --green: #b9f227;
+            --coral: #ff715b;
+            --white: #f8f6f0;
+            --positive-text: #4f7600;
+        }
+
+        [data-theme="light"] .search,
+        [data-theme="light"] .admin-input {
+            color: var(--ink);
+        }
+
+        [data-theme="light"] .dark {
+            background: #17181c;
+            color: #f1f0ea;
+        }
+
+        .panel {
+            border: 1px solid var(--ink);
+            background: var(--white);
+            margin-bottom: 24px;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--ink);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-meta {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 13px 20px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            font-weight: 400;
+            text-align: left;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--line);
+        }
+
+        td {
+            padding: 15px 20px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--paper-dark);
+        }
+
+        .table-user {
+            font-weight: 800;
+        }
+
+        .table-muted {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        @media (max-width: 850px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        .back-button {
+            border: 1px solid var(--ink);
+            background: transparent;
+            padding: 9px 13px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            transition: 140ms ease;
+            text-decoration: none;
+            display: inline-block;
+            color: inherit;
+        }
+
+        .back-button:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .admin-input {
+            padding: 8px 12px;
+            border: 1px solid var(--ink);
+            background: var(--paper);
+            outline: none;
+            font-size: 12px;
+            width: 100%;
+        }
+
+        .admin-btn {
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: var(--white);
+            padding: 8px 14px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            transition: 140ms ease;
+            white-space: nowrap;
+        }
+
+        .admin-btn:hover {
+            background: transparent;
+            color: var(--ink);
+        }
+
+        .admin-btn.secondary {
+            background: transparent;
+            color: var(--ink);
+        }
+
+        .admin-btn.secondary:hover {
+            background: var(--ink);
+            color: var(--white);
+        }
+
+        .admin-btn.coral {
+            background: var(--coral);
+            color: #101114;
+            border-color: var(--coral);
+        }
+
+        .admin-btn.coral:hover {
+            background: transparent;
+            color: var(--coral);
+            border-color: var(--coral);
+        }
+
+        .admin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Locked auth state */
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--paper);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        #auth-card {
+            background: var(--white);
+            border: 2px solid var(--ink);
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 6px 6px 0 var(--ink);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Auth Overlay -->
+    <div id="auth-overlay">
+        <div id="auth-card">
+            <div class="eyebrow">Authorization</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin-bottom: 12px;">Admin Access</h2>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
+                Enter your administrative secret key to load system logs and manage creator snapshots.
+            </p>
+            <form onsubmit="submitAuth(event)">
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                    <label for="secret-key" style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);">Secret Key</label>
+                    <input type="password" id="secret-key" required placeholder="e.g. MY_SUPER_SECRET_KEY" class="admin-input">
+                </div>
+                <button type="submit" class="admin-btn" style="width: 100%; height: 38px;">Unlock Panel</button>
+            </form>
+            <div id="auth-feedback" style="display: none; margin-top: 16px; padding: 10px; font-size: 12px; border: 1px solid var(--coral); background: rgba(255,113,91,0.05); color: var(--coral); font-family: 'DM Mono', monospace;"></div>
+        </div>
+    </div>
+
+    <!-- Main Admin Page -->
+    <div class="page" id="admin-page" style="display: none;">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">S</div>
+                <span>Spicy Monitor <span style="font-weight: 400; color: var(--blue);">[ADMIN]</span></span>
+            </div>
+
+            <div class="topbar-right">
+                <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
+                    <span id="theme-toggle-icon">☾</span>
+                    <span id="theme-toggle-label">Dark</span>
+                </button>
+                <button class="back-button" onclick="lockPanel()">Lock Panel 🔒</button>
+                <a href="/" class="back-button">Dashboard &rarr;</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="dashboard-heading">
+                <div>
+                    <div class="eyebrow">Control Center</div>
+                    <h1>Manage metrics.</h1>
+                </div>
+                <p class="heading-note">
+                    Secure access to database stats, manually run scraping jobs, or delete profiles from tracking.
+                </p>
+            </section>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <article class="stat dark">
+                    <div class="stat-label">
+                        <span>Profiles Tracked</span>
+                        <span>01</span>
+                    </div>
+                    <div class="stat-value" id="stat-total-users">...</div>
+                </article>
+
+                <article class="stat">
+                    <div class="stat-label">
+                        <span>Snapshots Captured</span>
+                        <span>02</span>
+                    </div>
+                    <div class="stat-value" id="stat-total-snapshots">...</div>
+                </article>
+
+                <article class="stat">
+                    <div class="stat-label">
+                        <span>Songs Tracked</span>
+                        <span>03</span>
+                    </div>
+                    <div class="stat-value" id="stat-total-songs">...</div>
+                </article>
+            </section>
+
+            <!-- Actions Panel -->
+            <section class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2 class="panel-title">System Commands</h2>
+                        <div class="panel-meta">Global database and scraper jobs</div>
+                    </div>
+                </div>
+                <div class="panel-content" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                    <button class="admin-btn secondary" id="scrape-all-btn" onclick="triggerScrapeAll()">
+                        ⚡ Run Scraper Queue
+                    </button>
+                    
+                    <div style="flex-grow: 1; min-width: 250px; border-left: 3px solid var(--blue); padding-left: 14px; font-size: 12px; color: var(--muted); line-height: 1.5;" id="system-status-msg">
+                        Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run here.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Scrape Panel -->
+            <section class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2 class="panel-title">Instant Creator Scrape</h2>
+                        <div class="panel-meta">Trigger immediate snapshot fetch for a single user</div>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <form onsubmit="triggerSingleScrape(event)" style="display: flex; gap: 10px; max-width: 480px;">
+                        <input type="text" id="instant-username" required placeholder="e.g. gayan_" class="admin-input" style="height: 38px;">
+                        <button type="submit" id="instant-btn" class="admin-btn" style="height: 38px;">Fetch Snapshot</button>
+                    </form>
+                    <div id="instant-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
+                </div>
+            </section>
+
+            <!-- User Database Table -->
+            <section class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2 class="panel-title">Monitored Creators Database</h2>
+                        <div class="panel-meta">Real-time status and deletions</div>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Creator</th>
+                                <th>Views</th>
+                                <th>Snapshots</th>
+                                <th>Last Updated</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="database-tbody">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px;">
+                Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.
+            </footer>
+        </main>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="delete-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button onclick="closeDeleteModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" style="color: var(--coral);">Warning</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Delete Profile?</h2>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
+                Are you sure you want to stop tracking <strong id="delete-username-label" style="color: var(--ink);">@creator</strong>? This will permanently delete the creator and all accumulated historical snapshots from the database.
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" onclick="closeDeleteModal()" class="admin-btn secondary">Cancel</button>
+                <button type="button" id="confirm-delete-btn" onclick="submitDeleteUser()" class="admin-btn coral">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+        
+        let adminSecret = '';
+        let systemData = null;
+        let userToDelete = '';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkAuth();
+            showEasterEgg();
+        });
+
+        // Theme Setup
+        function initTheme() {
+            const savedTheme = localStorage.getItem('spicy-theme');
+            const preferredTheme = savedTheme || (
+                window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+            );
+            applyTheme(preferredTheme);
+
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.dataset.theme || 'dark';
+                    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+                });
+            }
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem('spicy-theme', theme);
+
+            const icon = document.getElementById('theme-toggle-icon');
+            const label = document.getElementById('theme-toggle-label');
+
+            if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
+            if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+
+        // Authentication Handlers
+        function checkAuth() {
+            const savedSecret = localStorage.getItem('spicy-admin-secret');
+            if (savedSecret) {
+                adminSecret = savedSecret;
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('admin-page').style.display = 'block';
+                loadAdminData();
+            } else {
+                document.getElementById('auth-overlay').style.display = 'flex';
+                document.getElementById('admin-page').style.display = 'none';
+            }
+        }
+
+        async function submitAuth(event) {
+            event.preventDefault();
+            const input = document.getElementById('secret-key');
+            const feedback = document.getElementById('auth-feedback');
+            const secret = input.value.trim();
+            if (!secret) return;
+
+            feedback.style.display = 'none';
+            
+            try {
+                // Verify secret by querying stats endpoint
+                const res = await fetch(`${API_BASE}/admin/stats`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret })
+                });
+
+                if (res.ok) {
+                    localStorage.setItem('spicy-admin-secret', secret);
+                    adminSecret = secret;
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('admin-page').style.display = 'block';
+                    input.value = '';
+                    loadAdminData();
+                } else {
+                    const errData = await res.json().catch(() => ({ error: 'Unauthorized key' }));
+                    throw new Error(errData.error || 'Unauthorized key');
+                }
+            } catch (err) {
+                feedback.style.display = 'block';
+                feedback.textContent = err.message || 'Error communicating with server.';
+            }
+        }
+
+        // User statistics loader
+        async function loadAdminData() {
+            document.getElementById('database-tbody').innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        Loading admin records...
+                    </td>
+                </tr>
+            `;
+            try {
+                const res = await fetch(`${API_BASE}/admin/stats`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret })
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        lockPanel();
+                        return;
+                    }
+                    throw new Error('Failed to load database stats');
+                }
+
+                systemData = await res.json();
+                renderStats();
+                renderUserList();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('database-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                            Error loading stats: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderStats() {
+            if (!systemData) return;
+            document.getElementById('stat-total-users').textContent = systemData.total_users;
+            document.getElementById('stat-total-snapshots').textContent = formatFullNumber(systemData.total_snapshots);
+            document.getElementById('stat-total-songs').textContent = formatFullNumber(systemData.total_songs);
+        }
+
+        function renderUserList() {
+            const tbody = document.getElementById('database-tbody');
+            tbody.innerHTML = '';
+
+            if (!systemData || !systemData.users || systemData.users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            No profiles in the database.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            systemData.users.forEach(u => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="table-user">@${u.username}</td>
+                    <td>${formatFullNumber(u.views)}</td>
+                    <td style="font-family: 'DM Mono', monospace;">${u.snap_count}</td>
+                    <td class="table-muted">${timeAgo(u.last_updated)}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${u.username}')">
+                            Scrape Now
+                        </button>
+                        <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${u.username}')">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Global Command Action
+        async function triggerScrapeAll() {
+            const btn = document.getElementById('scrape-all-btn');
+            const statusMsg = document.getElementById('system-status-msg');
+            
+            btn.disabled = true;
+            statusMsg.textContent = 'Running global queue scraper in background...';
+            statusMsg.style.color = 'var(--blue)';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/scrape-all`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = 'Scraper job triggered successfully. Running in the background...';
+                    statusMsg.style.color = 'var(--green)';
+                    setTimeout(() => {
+                        loadAdminData();
+                    }, 2000);
+                } else {
+                    const data = await res.json().catch(() => ({ error: 'Scraper queue failed to start' }));
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                statusMsg.textContent = `Scraper run error: ${err.message}`;
+                statusMsg.style.color = 'var(--coral)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Instant Single Scrape Form
+        async function triggerSingleScrape(event) {
+            event.preventDefault();
+            const input = document.getElementById('instant-username');
+            const btn = document.getElementById('instant-btn');
+            const feedback = document.getElementById('instant-feedback');
+            const username = input.value.trim();
+            if (!username) return;
+
+            btn.disabled = true;
+            feedback.style.display = 'block';
+            feedback.style.background = 'var(--paper-dark)';
+            feedback.style.color = 'var(--ink)';
+            feedback.style.borderColor = 'var(--line)';
+            feedback.textContent = `Fetching snapshot for @${username}...`;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/scrape-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, username })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    feedback.style.background = 'rgba(185,242,39,0.05)';
+                    feedback.style.color = 'var(--green)';
+                    feedback.style.borderColor = 'var(--green)';
+                    feedback.textContent = `Success! @${username} has been scraped.`;
+                    input.value = '';
+                    setTimeout(() => {
+                        feedback.style.display = 'none';
+                        loadAdminData();
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to fetch snapshot');
+                }
+            } catch (err) {
+                feedback.style.background = 'rgba(255,113,91,0.05)';
+                feedback.style.color = 'var(--coral)';
+                feedback.style.borderColor = 'var(--coral)';
+                feedback.textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Row Action Scrape
+        async function triggerRowScrape(btn, username) {
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Scraping...';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/scrape-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, username })
+                });
+
+                if (res.ok) {
+                    btn.textContent = 'Success!';
+                    setTimeout(() => {
+                        loadAdminData();
+                    }, 1000);
+                } else {
+                    const data = await res.json().catch(() => ({ error: 'Error scraping' }));
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                alert(`Error scraping: ${err.message}`);
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // Modal Deletions
+        function openDeleteModal(username) {
+            userToDelete = username;
+            document.getElementById('delete-username-label').textContent = `@${username}`;
+            document.getElementById('delete-modal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            userToDelete = '';
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+
+        async function submitDeleteUser() {
+            const btn = document.getElementById('confirm-delete-btn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/delete-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, username: userToDelete })
+                });
+
+                if (res.ok) {
+                    closeDeleteModal();
+                    loadAdminData();
+                } else {
+                    const data = await res.json().catch(() => ({ error: 'Error deleting user' }));
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                alert(`Error deleting user: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Delete Permanently';
+            }
+        }
+
+        function lockPanel() {
+            localStorage.removeItem('spicy-admin-secret');
+            adminSecret = '';
+            checkAuth();
+        }
+
+        // Formatters helper
+        function timeAgo(dateStr) {
+            const date = parseUTCDate(dateStr);
+            if (!date) return 'never';
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+
+        function showEasterEgg() {
+            console.log(`
+%c   /\\_/\\
+%c  ( o.o )   %cLooking for our API?
+%c   > ^ <    %cGlyph Labs — https://glyph-labs.site
+%c  🌶️🌶️🌶️🌶️🌶️   %cHands off my spicy stats! 😉
+`, 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #b9f227; font-weight: bold; font-size: 14px;', 
+'color: #4d65ff; font-weight: bold; font-size: 12px;',
+'color: #b9f227; font-weight: bold; font-size: 14px;',
+'color: #8e9099; font-size: 11px;',
+'color: #ff715b; font-size: 14px;',
+'color: #f1f0ea; font-size: 12px;');
+        }
+    </script>
+</body>
+
+</html>
