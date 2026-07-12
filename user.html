@@ -878,6 +878,199 @@
             stop-opacity: 0;
         }
 
+        /* ===== THEME: Nordic (Full Design Change) ===== */
+        [data-theme="nordic"] {
+            --paper: #f4f1ea;
+            --paper-dark: #e8e3d5;
+            --ink: #2b2c2f;
+            --muted: #7d8085;
+            --line: #d1cbc0;
+            --blue: #4a637d;
+            --green: #3d5e4b;
+            --coral: #b85a4b;
+            --white: #faf8f5;
+            --positive-text: #3d5e4b;
+        }
+
+        [data-theme="nordic"] .profile-avatar {
+            border-radius: 0px;
+            transform: none;
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        [data-theme="nordic"] .profile-stat {
+            border-radius: 0px;
+            border: 1px solid var(--line);
+        }
+
+        [data-theme="nordic"] .profile-stat.highlight-green {
+            background: rgba(61,94,75,0.08) !important;
+            border: 1px solid var(--green) !important;
+            color: var(--ink) !important;
+        }
+        [data-theme="nordic"] .profile-stat.highlight-green .profile-stat-value {
+            color: var(--green) !important;
+        }
+        [data-theme="nordic"] .profile-stat.highlight-coral {
+            background: rgba(184,90,75,0.08) !important;
+            border: 1px solid var(--coral) !important;
+            color: var(--ink) !important;
+        }
+        [data-theme="nordic"] .profile-stat.highlight-coral .profile-stat-value {
+            color: var(--coral) !important;
+        }
+
+        [data-theme="nordic"] .panel {
+            border-radius: 0px;
+            border: 1px solid var(--line);
+        }
+
+        [data-theme="nordic"] .track:hover {
+            background: var(--paper-dark) !important;
+            color: var(--ink) !important;
+        }
+
+        [data-theme="nordic"] .track:hover * {
+            color: var(--ink) !important;
+        }
+
+        [data-theme="nordic"] .theme-toggle,
+        [data-theme="nordic"] .theme-dropdown,
+        [data-theme="nordic"] .back-button,
+        [data-theme="nordic"] .mini-card {
+            border-radius: 0px;
+        }
+
+        [data-theme="nordic"] #profile-chart-tooltip {
+            background: var(--white) !important;
+            color: var(--ink) !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 0px;
+            box-shadow: none !important;
+        }
+
+        /* ===== THEME: Cupertino (Full Design Change) ===== */
+        [data-theme="cupertino"] {
+            --paper: #121212;
+            --paper-dark: #1c1c1e;
+            --ink: #ffffff;
+            --muted: #8e8e93;
+            --line: #2c2c2e;
+            --blue: #0a84ff;
+            --green: #30d158;
+            --coral: #ff453a;
+            --white: #1c1c1e;
+            --positive-text: #30d158;
+        }
+
+        [data-theme="cupertino"] body {
+            background: #121212;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        [data-theme="cupertino"] .profile-avatar {
+            border-radius: 8px;
+            transform: none;
+            background: #0a84ff;
+            color: #ffffff;
+        }
+
+        [data-theme="cupertino"] .profile-stat {
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        [data-theme="cupertino"] .profile-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+        }
+
+        [data-theme="cupertino"] .profile-stat.highlight-green {
+            background: rgba(48,209,88,0.1) !important;
+            border: 1px solid rgba(48,209,88,0.25) !important;
+            color: #30d158 !important;
+        }
+        [data-theme="cupertino"] .profile-stat.highlight-green .profile-stat-value {
+            color: #30d158 !important;
+        }
+        [data-theme="cupertino"] .profile-stat.highlight-coral {
+            background: rgba(255,69,58,0.1) !important;
+            border: 1px solid rgba(255,69,58,0.25) !important;
+            color: #ff453a !important;
+        }
+        [data-theme="cupertino"] .profile-stat.highlight-coral .profile-stat-value {
+            color: #ff453a !important;
+        }
+
+        [data-theme="cupertino"] .panel {
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        [data-theme="cupertino"] .panel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        [data-theme="cupertino"] .panel-heading {
+            position: relative;
+            padding-left: 54px !important;
+            border-bottom-color: var(--line);
+        }
+
+        [data-theme="cupertino"] .panel-heading::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff5f56;
+            box-shadow: 14px 0 0 #ffbd2e, 28px 0 0 #27c93f;
+        }
+
+        [data-theme="cupertino"] .track:hover {
+            background: rgba(255,255,255,0.06) !important;
+            color: var(--ink) !important;
+        }
+
+        [data-theme="cupertino"] .track:hover * {
+            color: var(--ink) !important;
+        }
+
+        [data-theme="cupertino"] .theme-toggle,
+        [data-theme="cupertino"] .theme-dropdown,
+        [data-theme="cupertino"] .back-button,
+        [data-theme="cupertino"] .mini-card {
+            border-radius: 8px;
+        }
+
+        [data-theme="cupertino"] .theme-dropdown {
+            background: #1c1c1e;
+            border-color: var(--line);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        [data-theme="cupertino"] .theme-option:hover {
+            background: rgba(255,255,255,0.08) !important;
+        }
+
+        [data-theme="cupertino"] #profile-chart-tooltip {
+            background: #1c1c1e !important;
+            color: #ffffff !important;
+            border-radius: 8px;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+        }
+
         @media (max-width: 850px) {
 
             .profile-header,
@@ -951,6 +1144,16 @@
                         <button class="theme-option" data-theme-value="terminal">
                             <span class="theme-swatch" style="background: #000; border-color: #00ff41; box-shadow: 0 0 4px #00ff41;"></span>
                             <span>> Terminal</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="nordic">
+                            <span class="theme-swatch" style="background: #faf8f5; border-color: #d1cbc0;"></span>
+                            <span>☁ Nordic</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="cupertino">
+                            <span class="theme-swatch" style="background: #1c1c1e; border-color: #0a84ff; border-radius: 4px;"></span>
+                            <span> Cupertino</span>
                             <span class="theme-check">✓</span>
                         </button>
                     </div>
@@ -1163,7 +1366,9 @@
             light: { icon: '☀', label: 'Light' },
             cyber: { icon: '⚡', label: 'Cyber' },
             glass: { icon: '◈', label: 'Glass' },
-            terminal: { icon: '>', label: 'Terminal' }
+            terminal: { icon: '>', label: 'Terminal' },
+            nordic: { icon: '☁', label: 'Nordic' },
+            cupertino: { icon: '', label: 'Cupertino' }
         };
 
         function initTheme() {
