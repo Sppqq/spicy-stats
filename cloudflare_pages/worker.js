@@ -358,7 +358,7 @@ async function handleAdminStats(request, env) {
 
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
-    const songCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshot_songs").first();
+    const songCount = await env.DB.prepare("SELECT COUNT(DISTINCT spotify_id) as cnt FROM snapshot_songs").first();
     
     const { results: usersList } = await env.DB.prepare(`
         SELECT u.id, u.username, 
