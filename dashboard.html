@@ -625,6 +625,33 @@
         // Base configuration
         const API_BASE = 'https://spicy-api.glyph-labs.site/api';
 
+        function generateSignature(path, timestamp) {
+            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+            const str = `${timestamp}:${path}:${salt}`;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return (hash >>> 0).toString(16);
+        }
+
+        async function spicyFetch(urlStr, options = {}) {
+            let path = '';
+            if (urlStr.startsWith('http')) {
+                path = new URL(urlStr).pathname;
+            } else {
+                path = urlStr.split('?')[0];
+            }
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = generateSignature(path, timestamp);
+            options.headers = {
+                ...(options.headers || {}),
+                "X-Spicy-Timestamp": timestamp,
+                "X-Spicy-Signature": signature
+            };
+            return fetch(urlStr, options);
+        }
+
         // State
         let dashboardData = null;
         let allUsersDetailed = [];
@@ -769,7 +796,7 @@
         async function loadDashboard() {
             showLoadingState();
             try {
-                const res = await fetch(`${API_BASE}/dashboard`);
+                const res = await spicyFetch(`${API_BASE}/dashboard`);
                 if (!res.ok) throw new Error('Failed to fetch dashboard data');
                 dashboardData = await res.json();
 
@@ -828,7 +855,7 @@
                     if (u.total_songs !== null && u.total_songs !== undefined) return;
                     
                     try {
-                        const res = await fetch(`${API_BASE}/user/${u.username}`);
+                        const res = await spicyFetch(`${API_BASE}/user/${u.username}`);
                         if (res.ok) {
                             const data = await res.json();
                             // Find total_songs or count songs array length
@@ -1315,7 +1342,7 @@
             submitBtn.disabled = true;
             
             try {
-                const res = await fetch(`${API_BASE}/add-user`, {
+                const res = await spicyFetch(`${API_BASE}/add-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username })

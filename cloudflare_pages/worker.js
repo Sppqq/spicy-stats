@@ -57,6 +57,52 @@ async function checkSchema(env) {
     }
 }
 
+const allowedOrigins = [
+    "https://spicy-stats.glyph-labs.site",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
+];
+
+function getCorsHeaders(request) {
+    const origin = request.headers.get("Origin") || "";
+    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+    return {
+        "Access-Control-Allow-Origin": isAllowed ? origin : "https://spicy-stats.glyph-labs.site",
+        "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
+        "Access-Control-Max-Age": "86400",
+        "Access-Control-Allow-Headers": "Content-Type, X-Spicy-Signature, X-Spicy-Timestamp",
+    };
+}
+
+function verifySignature(request, path) {
+    const timestampStr = request.headers.get("X-Spicy-Timestamp");
+    const signature = request.headers.get("X-Spicy-Signature");
+    
+    if (!timestampStr || !signature) return false;
+    
+    const timestamp = parseInt(timestampStr, 10);
+    if (isNaN(timestamp)) return false;
+    
+    const now = Math.floor(Date.now() / 1000);
+    // Allow up to 90 seconds clock drift
+    if (Math.abs(now - timestamp) > 90) return false;
+    
+    const expected = generateSignature(path, timestampStr);
+    return signature === expected;
+}
+
+function generateSignature(path, timestamp) {
+    const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+    const str = `${timestamp}:${path}:${salt}`;
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(16);
+}
+
 export default {
     async fetch(request, env, ctx) {
         ctx.waitUntil(checkSchema(env));
@@ -64,7 +110,25 @@ export default {
 
         // Handle CORS preflight
         if (request.method === "OPTIONS") {
-            return new Response(null, { headers: corsHeaders });
+            return new Response(null, { 
+                headers: {
+                    ...getCorsHeaders(request),
+                    "Access-Control-Allow-Headers": request.headers.get("Access-Control-Request-Headers") || "Content-Type, X-Spicy-Signature, X-Spicy-Timestamp"
+                }
+            });
+        }
+
+        // Verify API Request Signatures for public API endpoints
+        // Exclude export, import, options
+        const path = url.pathname;
+        const isPublicAPI = path.startsWith("/api/") && !path.startsWith("/api/export/") && !path.startsWith("/api/import");
+        if (isPublicAPI) {
+            if (!verifySignature(request, path)) {
+                return new Response(JSON.stringify({ error: "Forbidden: API request signature verification failed." }), {
+                    status: 403,
+                    headers: { "Content-Type": "application/json", ...getCorsHeaders(request) }
+                });
+            }
         }
 
         // Protection against spam and scraping (Rate Limiting)
@@ -73,65 +137,61 @@ export default {
             if (isRateLimited(ip, 5, 60000)) { // 5 requests per minute for adding users
                 return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
                     status: 429, 
-                    headers: { "Content-Type": "application/json", ...corsHeaders } 
+                    headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } 
                 });
             }
         } else if (url.pathname.startsWith("/api/")) {
             if (isRateLimited(ip, 60, 60000)) { // 60 requests per minute for other endpoints
                 return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
                     status: 429, 
-                    headers: { "Content-Type": "application/json", ...corsHeaders } 
+                    headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } 
                 });
             }
         }
 
+        let response;
         try {
             if (url.pathname === "/api/import" && request.method === "POST") {
-                return await handleImport(request, env);
-            }
-
-            if (url.pathname.startsWith("/api/export/")) {
+                response = await handleImport(request, env);
+            } else if (url.pathname.startsWith("/api/export/")) {
                 const username = url.pathname.split("/")[3];
-                return await handleExport(username, env);
-            }
-
-            if (url.pathname === "/api/add-user" && request.method === "POST") {
-                return await handleAddUser(request, env, ctx);
-            }
-
-            if (url.pathname === "/api/dashboard" && request.method === "GET") {
-                return await handleDashboardAPI(env);
-            }
-
-            if (url.pathname === "/api/track-history" && request.method === "GET") {
-                return await handleTrackHistoryAPI(request, env);
-            }
-
-            if (url.pathname.startsWith("/api/user/") && request.method === "GET") {
+                response = await handleExport(username, env);
+            } else if (url.pathname === "/api/add-user" && request.method === "POST") {
+                response = await handleAddUser(request, env, ctx);
+            } else if (url.pathname === "/api/dashboard" && request.method === "GET") {
+                response = await handleDashboardAPI(env);
+            } else if (url.pathname === "/api/track-history" && request.method === "GET") {
+                response = await handleTrackHistoryAPI(request, env);
+            } else if (url.pathname.startsWith("/api/user/") && request.method === "GET") {
                 const username = url.pathname.split("/")[3];
-                return await handleUserDetailAPI(username, env);
+                response = await handleUserDetailAPI(username, env);
+            } else if (url.pathname === "/api/admin/stats" && request.method === "POST") {
+                response = await handleAdminStats(request, env);
+            } else if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") {
+                response = await handleAdminScrapeUser(request, env);
+            } else if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") {
+                response = await handleAdminScrapeAll(request, env, ctx);
+            } else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
+                response = await handleAdminDeleteUser(request, env);
+            } else {
+                response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
             }
-
-            if (url.pathname === "/api/admin/stats" && request.method === "POST") {
-                return await handleAdminStats(request, env);
-            }
-
-            if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") {
-                return await handleAdminScrapeUser(request, env);
-            }
-
-            if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") {
-                return await handleAdminScrapeAll(request, env, ctx);
-            }
-
-            if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
-                return await handleAdminDeleteUser(request, env);
-            }
-
-            return new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
         } catch (err) {
-            return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+            response = new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
         }
+
+        // Add dynamic CORS headers to all responses
+        const finalHeaders = new Headers(response.headers);
+        const cors = getCorsHeaders(request);
+        for (const [key, val] of Object.entries(cors)) {
+            finalHeaders.set(key, val);
+        }
+        
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: finalHeaders
+        });
     },
 
     async scheduled(event, env, ctx) {

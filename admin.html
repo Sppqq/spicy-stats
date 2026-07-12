@@ -550,6 +550,33 @@
 
     <script>
         const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+
+        function generateSignature(path, timestamp) {
+            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+            const str = `${timestamp}:${path}:${salt}`;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return (hash >>> 0).toString(16);
+        }
+
+        async function spicyFetch(urlStr, options = {}) {
+            let path = '';
+            if (urlStr.startsWith('http')) {
+                path = new URL(urlStr).pathname;
+            } else {
+                path = urlStr.split('?')[0];
+            }
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = generateSignature(path, timestamp);
+            options.headers = {
+                ...(options.headers || {}),
+                "X-Spicy-Timestamp": timestamp,
+                "X-Spicy-Signature": signature
+            };
+            return fetch(urlStr, options);
+        }
         
         let adminSecret = '';
         let systemData = null;
@@ -614,7 +641,7 @@
             
             try {
                 // Verify secret by querying stats endpoint
-                const res = await fetch(`${API_BASE}/admin/stats`, {
+                const res = await spicyFetch(`${API_BASE}/admin/stats`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret })
@@ -647,7 +674,7 @@
                 </tr>
             `;
             try {
-                const res = await fetch(`${API_BASE}/admin/stats`, {
+                const res = await spicyFetch(`${API_BASE}/admin/stats`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret: adminSecret })
@@ -729,7 +756,7 @@
             statusMsg.style.color = 'var(--blue)';
 
             try {
-                const res = await fetch(`${API_BASE}/admin/scrape-all`, {
+                const res = await spicyFetch(`${API_BASE}/admin/scrape-all`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret: adminSecret })
@@ -770,7 +797,7 @@
             feedback.textContent = `Fetching snapshot for @${username}...`;
 
             try {
-                const res = await fetch(`${API_BASE}/admin/scrape-user`, {
+                const res = await spicyFetch(`${API_BASE}/admin/scrape-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret: adminSecret, username })
@@ -807,7 +834,7 @@
             btn.textContent = 'Scraping...';
 
             try {
-                const res = await fetch(`${API_BASE}/admin/scrape-user`, {
+                const res = await spicyFetch(`${API_BASE}/admin/scrape-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret: adminSecret, username })
@@ -847,7 +874,7 @@
             btn.textContent = 'Deleting...';
 
             try {
-                const res = await fetch(`${API_BASE}/admin/delete-user`, {
+                const res = await spicyFetch(`${API_BASE}/admin/delete-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret: adminSecret, username: userToDelete })

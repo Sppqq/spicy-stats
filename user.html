@@ -615,6 +615,33 @@
 
     <script>
         const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+
+        function generateSignature(path, timestamp) {
+            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+            const str = `${timestamp}:${path}:${salt}`;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return (hash >>> 0).toString(16);
+        }
+
+        async function spicyFetch(urlStr, options = {}) {
+            let path = '';
+            if (urlStr.startsWith('http')) {
+                path = new URL(urlStr).pathname;
+            } else {
+                path = urlStr.split('?')[0];
+            }
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = generateSignature(path, timestamp);
+            options.headers = {
+                ...(options.headers || {}),
+                "X-Spicy-Timestamp": timestamp,
+                "X-Spicy-Signature": signature
+            };
+            return fetch(urlStr, options);
+        }
         let profileData = null;
         let username = null;
 
@@ -772,7 +799,7 @@
                 // First, fetch dashboard to find the rank
                 let rankText = 'Rank #--';
                 try {
-                    const dashRes = await fetch(`${API_BASE}/dashboard`);
+                    const dashRes = await spicyFetch(`${API_BASE}/dashboard`);
                     if (dashRes.ok) {
                         const dashData = await dashRes.json();
                         const userIdx = dashData.users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
@@ -784,7 +811,7 @@
                     console.error('Failed to resolve rank', e);
                 }
                 
-                const res = await fetch(`${API_BASE}/user/${username}`);
+                const res = await spicyFetch(`${API_BASE}/user/${username}`);
                 if (!res.ok) {
                     if (res.status === 404) {
                         throw new Error(`Profile @${username} was not found in the Spicy database.`);
@@ -1167,7 +1194,7 @@
             modal.style.display = 'flex';
             
             try {
-                const res = await fetch(`${API_BASE}/track-history?username=${username}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
+                const res = await spicyFetch(`${API_BASE}/track-history?username=${username}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
                 if (res.ok) {
                     const data = await res.json();
                     renderTrackChart(data.history);
