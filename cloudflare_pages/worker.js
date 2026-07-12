@@ -698,29 +698,42 @@ async function fetchUserDataFromAPI(username) {
         throw new Error("USER_NOT_CREATOR");
     }
 
-    let userId = null;
-    const patterns = [
-        /"userId"\s*:\s*"?(\d{1,21})"?/i,
-        /\\"userId\\":\s*\\"(\d{1,21})\\"/,
-        /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i,
-        /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i,
-        /\/users\/(\d{1,21})\/avatars\//,
-        /avatars\/(\d{1,21})/
-    ];
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) { userId = match[1]; break; }
+    const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
+    let discord_id = null;
+    let discord_avatar = null;
+    if (avatarMatch) {
+        discord_id = avatarMatch[1];
+        discord_avatar = avatarMatch[2];
+    }
+
+    let userId = discord_id;
+    if (!userId) {
+        const patterns = [
+            /"userId"\s*:\s*"?(\d{1,21})"?/i,
+            /\\"userId\\":\s*\\"(\d{1,21})\\"/,
+            /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i,
+            /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i,
+            /\/users\/(\d{1,21})\/avatars\//,
+            /avatars\/(\d{1,21})/
+        ];
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match) { userId = match[1]; break; }
+        }
     }
 
     if (!userId) return null;
+    if (!discord_id) discord_id = userId;
 
     const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: userId, includeTracks: true } }))}`, { headers });
     if (!profileRes.ok) return null;
     const profileJson = await profileRes.json();
 
-    const perUser = profileJson.result?.data?.json?.perUser || {};
-    const discord_id = perUser.id || userId;
-    const discord_avatar = perUser.avatar || null;
+    // Fallback to TRPC if avatar was not found in HTML meta
+    if (!discord_avatar) {
+        const perUser = profileJson.result?.data?.json?.perUser || {};
+        discord_avatar = perUser.avatar || null;
+    }
 
     const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
     if (!tracksRes.ok) return null;
