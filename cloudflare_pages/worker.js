@@ -364,7 +364,8 @@ async function handleAdminStats(request, env) {
         SELECT u.id, u.username, 
                (SELECT COUNT(*) FROM snapshots WHERE user_id = u.id) as snap_count,
                (SELECT MAX(timestamp) FROM snapshots WHERE user_id = u.id) as last_updated,
-               (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views
+               (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views,
+               (SELECT COUNT(DISTINCT spotify_id) FROM snapshot_songs WHERE snapshot_id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)) as song_count
         FROM users u
         ORDER BY current_views DESC
     `).all();
@@ -378,7 +379,8 @@ async function handleAdminStats(request, env) {
             username: u.username,
             snap_count: u.snap_count || 0,
             last_updated: u.last_updated || null,
-            views: u.current_views || 0
+            views: u.current_views || 0,
+            song_count: u.song_count || 0
         }))
     };
 

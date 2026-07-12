@@ -515,6 +515,7 @@
                                 <th>Creator</th>
                                 <th>Views</th>
                                 <th>Snapshots</th>
+                                <th>Songs</th>
                                 <th>Last Updated</th>
                                 <th style="text-align: right;">Actions</th>
                             </tr>
@@ -640,7 +641,7 @@
         async function loadAdminData() {
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
                         Loading admin records...
                     </td>
                 </tr>
@@ -667,7 +668,7 @@
                 console.error(err);
                 document.getElementById('database-tbody').innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                        <td colspan="6" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
                             Error loading stats: ${err.message}
                         </td>
                     </tr>
@@ -689,7 +690,7 @@
             if (!systemData || !systemData.users || systemData.users.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
                             No profiles in the database.
                         </td>
                     </tr>
@@ -703,6 +704,7 @@
                     <td class="table-user">@${u.username}</td>
                     <td>${formatFullNumber(u.views)}</td>
                     <td style="font-family: 'DM Mono', monospace;">${u.snap_count}</td>
+                    <td style="font-family: 'DM Mono', monospace;">${u.song_count}</td>
                     <td class="table-muted">${timeAgo(u.last_updated)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${u.username}')">
