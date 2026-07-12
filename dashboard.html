@@ -1013,7 +1013,7 @@
                         <div class="author-subtitle">
                             ${u.total_songs === null || u.total_songs === undefined
                                 ? 'Track count unavailable'
-                                : `${Number(u.total_songs)} tracks${(Number(u.total_songs) > 0) ? ` (~${formatViews(Number(u.views || 0) / Number(u.total_songs))}/tr)` : ''}`}
+                                : `${Number(u.total_songs)} tracks${(Number(u.total_songs) > 0) ? ` (~${formatViews(Math.round(Number(u.views || 0) / Number(u.total_songs)))}/tr)` : ''}`}
                         </div>
                     </span>
                     <span>
@@ -1318,7 +1318,7 @@
                             ${u.total_songs === null || u.total_songs === undefined ? '—' : Number(u.total_songs)}
                         </div>
                         ${(u.total_songs && Number(u.total_songs) > 0) 
-                            ? `<div style="font-size: 10px; color: var(--muted); margin-top: 2px;">~${formatViews(Number(u.views || 0) / Number(u.total_songs))}/tr</div>` 
+                            ? `<div style="font-size: 10px; color: var(--muted); margin-top: 2px;">~${formatViews(Math.round(Number(u.views || 0) / Number(u.total_songs)))}/tr</div>` 
                             : ''}
                     </td>
                     <td class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
