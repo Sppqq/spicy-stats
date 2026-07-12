@@ -1265,41 +1265,64 @@
                     </div>
                 </article>
 
-                <aside class="mini-card">
-                    <div class="eyebrow">Performance note</div>
-
-                    <h2 id="perf-headline">
-                        ...
-                    </h2>
-
-                    <p id="perf-desc">
-                        ...
-                    </p>
-
-                    <div class="mini-accent-box" id="perf-tip">
-                        <!-- Custom smart tip based on performance -->
+                <aside style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Next Milestone Card -->
+                    <div class="mini-card" id="milestone-card">
+                        <div class="eyebrow" style="color: var(--blue);">Next Milestone</div>
+                        <h2 id="milestone-headline" style="font-size: 18px; font-weight: 800; margin: 0; letter-spacing: -0.03em; line-height: 1.2;">...</h2>
+                        
+                        <!-- Progress bar -->
+                        <div style="width: 100%; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; margin-bottom: 4px;">
+                            <div id="milestone-progress-bar" style="height: 100%; width: 0%; background: var(--blue); transition: width 0.8s ease-out;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 12px;">
+                            <span id="milestone-current-views">0</span>
+                            <span id="milestone-target-views">1.0K</span>
+                        </div>
+                        
+                        <div class="mini-accent-box" id="milestone-estimate" style="border-left-color: var(--blue); font-size: 11px;">
+                            ...
+                        </div>
                     </div>
 
-                    <div class="mini-stats-grid">
-                        <div class="mini-row">
-                            <span>Best track</span>
-                            <strong id="perf-best-track">...</strong>
+                    <!-- Performance Note Card -->
+                    <div class="mini-card">
+                        <div class="eyebrow">Performance note</div>
+
+                        <h2 id="perf-headline">
+                            ...
+                        </h2>
+
+                        <p id="perf-desc">
+                            ...
+                        </p>
+
+                        <div class="mini-accent-box" id="perf-tip">
+                            <!-- Custom smart tip based on performance -->
                         </div>
-                        <div class="mini-row">
-                            <span>Top track share</span>
-                            <strong id="perf-share">...</strong>
-                        </div>
-                        <div class="mini-row">
-                            <span>Avg views / track</span>
-                            <strong id="perf-avg-views">...</strong>
-                        </div>
-                        <div class="mini-row">
-                            <span>Active tracks (24h)</span>
-                            <strong id="perf-active-count">...</strong>
-                        </div>
-                        <div class="mini-row">
-                            <span>Total growth</span>
-                            <strong id="perf-growth-pct">...</strong>
+
+                        <div class="mini-stats-grid">
+                            <div class="mini-row">
+                                <span>Best track</span>
+                                <strong id="perf-best-track">...</strong>
+                            </div>
+                            <div class="mini-row">
+                                <span>Top track share</span>
+                                <strong id="perf-share">...</strong>
+                            </div>
+                            <div class="mini-row">
+                                <span>Avg views / track</span>
+                                <strong id="perf-avg-views">...</strong>
+                            </div>
+                            <div class="mini-row">
+                                <span>Active tracks (24h)</span>
+                                <strong id="perf-active-count">...</strong>
+                            </div>
+                            <div class="mini-row">
+                                <span>Total growth</span>
+                                <strong id="perf-growth-pct">...</strong>
+                            </div>
                         </div>
                     </div>
                 </aside>
@@ -1680,6 +1703,7 @@
             renderChart();
             renderTracks();
             renderPerformanceNote();
+            renderMilestone();
         }
 
         function renderChart() {
@@ -1820,6 +1844,78 @@
             svgElement.addEventListener('mouseleave', () => {
                 tooltip.style.display = 'none';
             });
+        }
+
+        function getNextMilestone(views) {
+            const milestones = [
+                1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 
+                1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 
+                100000000, 250000000, 500000000, 1000000000
+            ];
+            for (let m of milestones) {
+                if (views < m) {
+                    return m;
+                }
+            }
+            return Math.ceil((views + 1) / 500000000) * 500000000;
+        }
+
+        function renderMilestone() {
+            const views = profileData.total_views || 0;
+            const growth = profileData.growth24h || 0;
+            
+            const nextMilestone = getNextMilestone(views);
+            const viewsNeeded = nextMilestone - views;
+            
+            let prevMilestone = 0;
+            const milestones = [
+                1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 
+                1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 
+                100000000, 250000000, 500000000, 1000000000
+            ];
+            for (let i = 0; i < milestones.length; i++) {
+                if (milestones[i] === nextMilestone) {
+                    prevMilestone = i > 0 ? milestones[i - 1] : 0;
+                    break;
+                }
+            }
+            
+            const totalRange = nextMilestone - prevMilestone;
+            const currentOffset = views - prevMilestone;
+            let progressPct = Math.max(0, Math.min(100, (currentOffset / totalRange) * 100));
+            
+            const headlineEl = document.getElementById('milestone-headline');
+            if (headlineEl) {
+                headlineEl.textContent = `${formatViews(viewsNeeded)} to go for ${formatViews(nextMilestone)}`;
+            }
+            
+            const progressBar = document.getElementById('milestone-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progressPct.toFixed(1)}%`;
+            }
+            
+            const curEl = document.getElementById('milestone-current-views');
+            if (curEl) curEl.textContent = formatViews(views);
+            
+            const tarEl = document.getElementById('milestone-target-views');
+            if (tarEl) tarEl.textContent = formatViews(nextMilestone);
+            
+            const estimateEl = document.getElementById('milestone-estimate');
+            if (estimateEl) {
+                if (growth > 0) {
+                    const days = viewsNeeded / growth;
+                    let timeStr = '';
+                    if (days < 1) {
+                        const hours = Math.round(days * 24);
+                        timeStr = `${hours} hour${hours !== 1 ? 's' : ''}`;
+                    } else {
+                        timeStr = `${days.toFixed(1)} day${days.toFixed(1) !== '1.0' ? 's' : ''}`;
+                    }
+                    estimateEl.innerHTML = `⚡ Estimated: <strong>${timeStr} remaining</strong> at current growth rate (+${formatViews(growth)} views/day)`;
+                } else {
+                    estimateEl.innerHTML = `❄ Creator is currently static or no growth recorded (+0 views/day)`;
+                }
+            }
         }
 
         function renderTracks() {
