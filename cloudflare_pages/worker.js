@@ -50,6 +50,7 @@ async function checkSchema(env) {
     try {
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id)").run().catch(() => {});
         schemaChecked = true;
     } catch (e) {
         // Ignore
@@ -364,24 +365,50 @@ async function handleAdminStats(request, env) {
         SELECT u.id, u.username, 
                (SELECT COUNT(*) FROM snapshots WHERE user_id = u.id) as snap_count,
                (SELECT MAX(timestamp) FROM snapshots WHERE user_id = u.id) as last_updated,
-               (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views,
-               (SELECT COUNT(DISTINCT spotify_id) FROM snapshot_songs WHERE snapshot_id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)) as song_count
+               (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views
         FROM users u
         ORDER BY current_views DESC
     `).all();
+
+    // Fetch the song counts for the latest snapshot of each user in ONE query to avoid full table scans
+    const { results: songCounts } = await env.DB.prepare(`
+        SELECT snapshot_id, COUNT(DISTINCT spotify_id) as cnt
+        FROM snapshot_songs
+        WHERE snapshot_id IN (
+            SELECT MAX(id) FROM snapshots GROUP BY user_id
+        )
+        GROUP BY snapshot_id
+    `).all();
+
+    const songCountMap = new Map();
+    (songCounts || []).forEach(row => {
+        songCountMap.set(row.snapshot_id, row.cnt);
+    });
+
+    const { results: latestSnaps } = await env.DB.prepare(`
+        SELECT user_id, MAX(id) as latest_snap_id FROM snapshots GROUP BY user_id
+    `).all();
+    const userLatestSnapMap = new Map();
+    (latestSnaps || []).forEach(row => {
+        userLatestSnapMap.set(row.user_id, row.latest_snap_id);
+    });
 
     const data = {
         total_users: userCount.cnt || 0,
         total_snapshots: snapshotCount.cnt || 0,
         total_songs: songCount.cnt || 0,
-        users: usersList.map(u => ({
-            id: u.id,
-            username: u.username,
-            snap_count: u.snap_count || 0,
-            last_updated: u.last_updated || null,
-            views: u.current_views || 0,
-            song_count: u.song_count || 0
-        }))
+        users: usersList.map(u => {
+            const latestSnapId = userLatestSnapMap.get(u.id);
+            const songCountVal = latestSnapId ? (songCountMap.get(latestSnapId) || 0) : 0;
+            return {
+                id: u.id,
+                username: u.username,
+                snap_count: u.snap_count || 0,
+                last_updated: u.last_updated || null,
+                views: u.current_views || 0,
+                song_count: songCountVal
+            };
+        })
     };
 
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
