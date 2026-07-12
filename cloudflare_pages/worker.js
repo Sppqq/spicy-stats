@@ -678,9 +678,7 @@ async function scrapeAndSave(userId, username, env) {
     }
 
     if (!data) {
-        const lastSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
-        const lastViews = lastSnap ? lastSnap.total_views : 0;
-        await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, lastViews).run();
+        console.error(`Failed to fetch data for @${username}. Skipping this update.`);
         return;
     }
 
