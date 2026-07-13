@@ -371,7 +371,7 @@ async function handleUserDetailAPI(username, env) {
         totalSongs = latestSongs.length;
 
         const findPastViews = (ls, pastSongsList) => {
-            const lsTitle = ls.title.trim().toLowerCase();
+            const lsNormTitle = normalizeTitle(ls.title);
             const lsArtist = ls.artist.trim().toLowerCase();
             const lsIsrc = ls.isrc ? ls.isrc.trim() : null;
             
@@ -380,7 +380,7 @@ async function handleUserDetailAPI(username, env) {
                 if (lsIsrc && psIsrc && lsIsrc === psIsrc) {
                     return ps.views;
                 }
-                if (lsTitle === ps.title.trim().toLowerCase() && lsArtist === ps.artist.trim().toLowerCase()) {
+                if (lsNormTitle === normalizeTitle(ps.title) && lsArtist === ps.artist.trim().toLowerCase()) {
                     return ps.views;
                 }
             }
@@ -428,13 +428,15 @@ async function handleTrackHistoryAPI(request, env) {
         return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    // 1. Find any ISRCs for this track in track_metadata
-    const isrcRows = await env.DB.prepare(`
-        SELECT DISTINCT isrc FROM track_metadata 
-        WHERE (LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?))
-    `).bind(title.trim(), artist.trim()).all();
+    // 1. Find any ISRCs for this track in track_metadata using normalized matching
+    const allMeta = await env.DB.prepare("SELECT isrc, title, artist FROM track_metadata").all();
+    const queryNormTitle = normalizeTitle(title);
+    const queryCleanArtist = artist.toLowerCase();
     
-    const isrcs = (isrcRows.results || []).map(r => r.isrc).filter(Boolean);
+    const isrcs = (allMeta.results || [])
+        .filter(r => normalizeTitle(r.title) === queryNormTitle && r.artist.toLowerCase() === queryCleanArtist)
+        .map(r => r.isrc)
+        .filter(Boolean);
 
     // 2. Query history matching either Title+Artist or ISRC
     let sql = `
@@ -713,12 +715,21 @@ function parseDate(rawStr) {
     return isNaN(d.getTime()) ? null : d;
 }
 
+function normalizeTitle(title) {
+    return title
+        .toLowerCase()
+        // Отрезаем суффиксы после дефиса или в скобках (Remaster, Single Version, Deluxe и т.д.)
+        .replace(/\s*[-\(](?:20\d{2}\s+)?(?:remaster|remastered|single version|deluxe|edit|radio edit|live|acoustic)[\)]?/g, '')
+        // Очищаем от всех неалфавитных символов
+        .replace(/[^a-z0-9а-яё]/g, '');
+}
+
 function aggregateSongs(rawList) {
     const groups = [];
     for (const s of rawList || []) {
         const title = (s.meta_title || s.title || "Hidden").trim();
         const artist = (s.meta_artist || s.artist || "SpicyLyrics").trim();
-        const cleanTitle = title.toLowerCase();
+        const normTitle = normalizeTitle(title);
         const cleanArtist = artist.toLowerCase();
         const isrc = s.isrc ? s.isrc.trim() : null;
         
@@ -730,7 +741,7 @@ function aggregateSongs(rawList) {
                     match = true;
                     break;
                 }
-                if (cleanTitle === member.cleanTitle && cleanArtist === member.cleanArtist) {
+                if (normTitle === member.normTitle && cleanArtist === member.cleanArtist) {
                     match = true;
                     break;
                 }
@@ -745,7 +756,7 @@ function aggregateSongs(rawList) {
             spotify_id: s.spotify_id,
             title,
             artist,
-            cleanTitle,
+            normTitle,
             cleanArtist,
             isrc,
             views: s.views || 0
@@ -754,6 +765,10 @@ function aggregateSongs(rawList) {
         if (foundGroup) {
             foundGroup.songs.push(songInfo);
             foundGroup.views += songInfo.views;
+            // Use the shortest title as representative of the group (e.g. "тело" instead of "тело - Slowed")
+            if (title.length < foundGroup.title.length) {
+                foundGroup.title = title;
+            }
         } else {
             groups.push({
                 songs: [songInfo],
