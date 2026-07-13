@@ -248,6 +248,7 @@
             color: #ffd166;
         }
 
+        /* Checkboxes hidden by default, visible only in compare mode */
         .compare-check {
             appearance: none;
             -webkit-appearance: none;
@@ -259,7 +260,14 @@
             background: transparent;
             position: relative;
             flex-shrink: 0;
-            transition: border-color 150ms ease, background 150ms ease;
+            transition: border-color 150ms ease, background 150ms ease, opacity 150ms ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.compare-mode .compare-check {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .compare-check:hover {
@@ -282,6 +290,12 @@
             border-top: none;
             border-left: none;
             transform: rotate(40deg);
+        }
+
+        /* Compare button active state */
+        #compare-btn-trigger.compare-active {
+            background: var(--ink);
+            color: var(--white);
         }
 
         /* Compare Floating Action Bar */
@@ -1834,17 +1848,27 @@
             setDashboardDate();
             showEasterEgg();
 
-            // Compare actions
+            // Compare actions — toggle selection mode
             const compareBtn = document.getElementById('compare-btn-trigger');
             if (compareBtn) {
                 compareBtn.addEventListener('click', () => {
-                    if (selectedCompareUsers.length >= 2) {
-                        openCompareModal();
-                    } else {
-                        alert('Please select at least 2 authors using checkboxes to compare.');
+                    const isActive = document.body.classList.toggle('compare-mode');
+                    compareBtn.classList.toggle('compare-active', isActive);
+                    if (!isActive) {
+                        // Exiting compare mode — clear selection
+                        clearCompareSelection();
                     }
                 });
             }
+
+            // Auto-open modal when 2+ selected
+            document.addEventListener('change', (e) => {
+                if (e.target.classList.contains('compare-check') && selectedCompareUsers.length >= 2) {
+                    openCompareModal();
+                    document.body.classList.remove('compare-mode');
+                    if (compareBtn) compareBtn.classList.remove('compare-active');
+                }
+            });
             document.getElementById('compare-submit-btn').addEventListener('click', openCompareModal);
             document.getElementById('compare-clear-btn').addEventListener('click', clearCompareSelection);
             
