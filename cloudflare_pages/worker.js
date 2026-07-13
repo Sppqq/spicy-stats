@@ -217,6 +217,8 @@ export default {
                 response = await handleAdminPopulateMetadata(request, env, ctx);
             } else if (url.pathname === "/api/admin/logs" && request.method === "POST") {
                 response = await handleAdminLogs(request, env);
+            } else if (url.pathname === "/api/admin/merge-users" && request.method === "POST") {
+                response = await handleAdminMergeUsers(request, env);
             } else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
                 response = await handleAdminDeleteUser(request, env);
             } else if (url.pathname === "/api/admin/export-user" && request.method === "POST") {
@@ -766,6 +768,48 @@ async function handleAdminDeleteUser(request, env) {
     }
 }
 
+async function handleAdminMergeUsers(request, env) {
+    const { secret, sourceUsername, targetUsername } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    if (!sourceUsername || !targetUsername) {
+        return new Response(JSON.stringify({ error: "Both source and target usernames are required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const sourceClean = sourceUsername.trim().replace(/^@/, "");
+    const targetClean = targetUsername.trim().replace(/^@/, "");
+
+    if (sourceClean.toLowerCase() === targetClean.toLowerCase()) {
+        return new Response(JSON.stringify({ error: "Cannot merge a profile into itself" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    const sourceUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(sourceClean).first();
+    const targetUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(targetClean).first();
+
+    if (!sourceUser) {
+        return new Response(JSON.stringify({ error: `Source user @${sourceClean} not found` }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+    if (!targetUser) {
+        return new Response(JSON.stringify({ error: `Target user @${targetClean} not found` }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        // Move snapshots
+        await env.DB.prepare("UPDATE snapshots SET user_id = ? WHERE user_id = ?").bind(targetUser.id, sourceUser.id).run();
+        
+        // Delete source user
+        await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(sourceUser.id).run();
+
+        await logAction(env, "profile_merge", `Merged profile @${sourceClean} into @${targetClean}`, request);
+
+        return new Response(JSON.stringify({ success: true, message: `Successfully merged @${sourceClean} into @${targetClean}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
 // ==========================================
 // UTILITY FUNCTIONS (UNCHANGED, WITH CORS ADDED)
 // ==========================================
@@ -949,23 +993,49 @@ async function deleteUserFromDB(userId, env) {
 
 async function scrapeAndSave(userId, username, env) {
     let data = null;
+    let currentUsername = username;
     try {
-        data = await fetchUserDataFromAPI(username);
+        data = await fetchUserDataFromAPI(currentUsername);
     } catch (err) {
         if (err.message === "USER_NOT_FOUND" || err.message === "USER_NOT_CREATOR") {
-            console.warn(`User @${username} (id: ${userId}) not valid (${err.message}). Removing from tracked users.`);
-            await deleteUserFromDB(userId, env);
-            return;
+            // Check if user has a discord_id in database to resolve username changes
+            const dbUser = await env.DB.prepare("SELECT discord_id FROM users WHERE id = ?").bind(userId).first();
+            if (dbUser && dbUser.discord_id) {
+                try {
+                    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" };
+                    const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: dbUser.discord_id, includeTracks: false } }))}`, { headers });
+                    if (profileRes.ok) {
+                        const profileJson = await profileRes.json();
+                        const newUsername = profileJson.result?.data?.json?.perUser?.username;
+                        if (newUsername && newUsername.toLowerCase() !== currentUsername.toLowerCase()) {
+                            // Update database username
+                            await env.DB.prepare("UPDATE users SET username = ? WHERE id = ?").bind(newUsername, userId).run();
+                            await logAction(env, "username_change", `Automatically updated username for @${currentUsername} -> @${newUsername} (Discord ID: ${dbUser.discord_id})`, null);
+                            currentUsername = newUsername;
+                            // Retry fetch with the new username
+                            data = await fetchUserDataFromAPI(currentUsername);
+                        }
+                    }
+                } catch (fetchErr) {
+                    console.error(`Failed to auto-detect username change for @${username}:`, fetchErr.message);
+                }
+            }
+            
+            if (!data) {
+                console.warn(`User @${currentUsername} (id: ${userId}) not valid (${err.message}). Removing from tracked users.`);
+                await deleteUserFromDB(userId, env);
+                return;
+            }
         }
     }
 
     if (!data) {
-        console.error(`Failed to fetch data for @${username}. Skipping this update.`);
+        console.error(`Failed to fetch data for @${currentUsername}. Skipping this update.`);
         return;
     }
 
     if (data.total_views === 0 && (!data.songs || data.songs.length === 0)) {
-        console.warn(`User @${username} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
+        console.warn(`User @${currentUsername} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
         await deleteUserFromDB(userId, env);
         return;
     }
@@ -973,7 +1043,7 @@ async function scrapeAndSave(userId, username, env) {
     // Safeguard: if total_views > 0 but songs list is empty, it's an API/fetch glitch.
     // We should skip saving this snapshot to prevent resetting the track list.
     if (!data.songs || data.songs.length === 0) {
-        console.warn(`User @${username} (id: ${userId}) has ${data.total_views} views but returned 0 tracks. Skipping this update to prevent tracks count reset.`);
+        console.warn(`User @${currentUsername} (id: ${userId}) has ${data.total_views} views but returned 0 tracks. Skipping this update to prevent tracks count reset.`);
         return;
     }
 
@@ -993,7 +1063,7 @@ async function scrapeAndSave(userId, username, env) {
             
             // If it is a new track, log it!
             if (!existingIds.has(track.id)) {
-                await logAction(env, "new_track", `New track cached for @${username}: "${track.name}" by "${artistNames}" (ISRC: ${track.isrc || 'None'})`, null);
+                await logAction(env, "new_track", `New track cached for @${currentUsername}: "${track.name}" by "${artistNames}" (ISRC: ${track.isrc || 'None'})`, null);
             }
         }
 
@@ -1028,7 +1098,7 @@ async function scrapeAndSave(userId, username, env) {
         if (milestone >= 1000000) {
             milestoneText = `${milestone / 1000000}M`;
         }
-        await logAction(env, "milestone_reached", `🎉 @${username} reached the milestone of ${milestoneText} total views! (Current: ${newViews.toLocaleString()})`, null);
+        await logAction(env, "milestone_reached", `🎉 @${currentUsername} reached the milestone of ${milestoneText} total views! (Current: ${newViews.toLocaleString()})`, null);
     }
 
     if (data.discord_id) {

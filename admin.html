@@ -519,6 +519,31 @@
                 </div>
             </section>
 
+            <!-- Merge Profiles Panel -->
+            <section class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2 class="panel-title">Merge Profiles</h2>
+                        <div class="panel-meta">Merge historical snapshots of an old profile into a new one</div>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <form onsubmit="showMergeConfirmation(event)" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; max-width: 720px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="merge-source" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Source Profile (Will be deleted)</label>
+                            <input type="text" id="merge-source" required placeholder="e.g. old_sppq" class="admin-input" style="height: 38px; width: 100%;">
+                        </div>
+                        <div style="font-size: 20px; color: var(--muted); padding-bottom: 8px;">&rarr;</div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="merge-target" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Target Profile (Will absorb stats)</label>
+                            <input type="text" id="merge-target" required placeholder="e.g. sppq" class="admin-input" style="height: 38px; width: 100%;">
+                        </div>
+                        <button type="submit" id="merge-btn" class="admin-btn coral" style="height: 38px;">Merge Profiles</button>
+                    </form>
+                    <div id="merge-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
+                </div>
+            </section>
+
             <!-- User Database Table -->
             <section class="panel">
                 <div class="panel-heading">
@@ -597,6 +622,27 @@
             <div style="display: flex; justify-content: flex-end; gap: 12px;">
                 <button type="button" onclick="closeDeleteModal()" class="admin-btn secondary">Cancel</button>
                 <button type="button" id="confirm-delete-btn" onclick="submitDeleteUser()" class="admin-btn coral">Delete Permanently</button>
+            </div>
+        </div>
+    <!-- Confirm Merge Modal -->
+    <div id="merge-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button onclick="closeMergeModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" style="color: var(--coral);">Warning</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Merge Profiles?</h2>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
+                You are about to merge <strong id="merge-source-label" style="color: var(--ink);">@source</strong> into <strong id="merge-target-label" style="color: var(--ink);">@target</strong>.
+            </p>
+            <p style="color: var(--coral); font-size: 12px; line-height: 1.5; margin-bottom: 20px; font-weight: bold;">
+                ⚠️ This will move all historical views and snapshots to the target profile, and then delete the source profile. This action cannot be undone!
+            </p>
+            <div style="margin-bottom: 24px;">
+                <label for="merge-confirm-text" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 8px;">To confirm, type <strong style="color: var(--ink); font-family: monospace;">MERGE</strong> below:</label>
+                <input type="text" id="merge-confirm-text" class="admin-input" style="width: 100%; height: 38px; text-transform: uppercase;" placeholder="type MERGE here" oninput="checkMergeInput(this.value)">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" onclick="closeMergeModal()" class="admin-btn secondary">Cancel</button>
+                <button type="button" id="confirm-merge-btn" onclick="submitMergeProfiles()" class="admin-btn coral" disabled>Confirm Merge</button>
             </div>
         </div>
     </div>
@@ -1150,6 +1196,100 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Delete Permanently';
+            }
+        }
+
+        // Modal Merges
+        let mergeSourceUser = '';
+        let mergeTargetUser = '';
+
+        function showMergeConfirmation(event) {
+            event.preventDefault();
+            const sourceInput = document.getElementById('merge-source');
+            const targetInput = document.getElementById('merge-target');
+            
+            mergeSourceUser = sourceInput.value.trim().replace(/^@/, "");
+            mergeTargetUser = targetInput.value.trim().replace(/^@/, "");
+
+            if (!mergeSourceUser || !mergeTargetUser) return;
+
+            if (mergeSourceUser.toLowerCase() === mergeTargetUser.toLowerCase()) {
+                alert("Cannot merge a profile into itself!");
+                return;
+            }
+
+            document.getElementById('merge-source-label').textContent = `@${mergeSourceUser}`;
+            document.getElementById('merge-target-label').textContent = `@${mergeTargetUser}`;
+            
+            // Reset input confirmation
+            document.getElementById('merge-confirm-text').value = '';
+            document.getElementById('confirm-merge-btn').disabled = true;
+            
+            document.getElementById('merge-modal').style.display = 'flex';
+        }
+
+        function closeMergeModal() {
+            mergeSourceUser = '';
+            mergeTargetUser = '';
+            document.getElementById('merge-modal').style.display = 'none';
+        }
+
+        function checkMergeInput(val) {
+            const btn = document.getElementById('confirm-merge-btn');
+            if (val.trim().toUpperCase() === 'MERGE') {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        async function submitMergeProfiles() {
+            const btn = document.getElementById('confirm-merge-btn');
+            const feedback = document.getElementById('merge-feedback');
+            
+            btn.disabled = true;
+            btn.textContent = 'Merging...';
+            
+            feedback.style.display = 'none';
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/merge-users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        secret: adminSecret,
+                        sourceUsername: mergeSourceUser,
+                        targetUsername: mergeTargetUser
+                    })
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok) {
+                    closeMergeModal();
+                    
+                    // Clear inputs
+                    document.getElementById('merge-source').value = '';
+                    document.getElementById('merge-target').value = '';
+                    
+                    feedback.style.display = 'block';
+                    feedback.style.background = 'rgba(0, 223, 150, 0.1)';
+                    feedback.style.color = 'var(--green)';
+                    feedback.textContent = data.message || 'Profiles merged successfully!';
+                    
+                    loadAdminData();
+                } else {
+                    throw new Error(data.error || 'Error merging profiles');
+                }
+            } catch (err) {
+                closeMergeModal();
+                feedback.style.display = 'block';
+                feedback.style.background = 'rgba(255, 0, 76, 0.1)';
+                feedback.style.color = 'var(--coral)';
+                feedback.textContent = err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Confirm Merge';
             }
         }
 
