@@ -54,6 +54,10 @@
             font-family: 'Manrope', sans-serif;
         }
 
+        body, .profile-stat, .panel, button, input, .track, .theme-toggle, .lang-toggle, th, td, tr, .live-status, .brand-mark, .mini-card, .back-button {
+            transition: background-color 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
         button {
             font: inherit;
             cursor: pointer;
@@ -1452,6 +1456,7 @@
             initLanguage();
             initLiveIndicator();
             showEasterEgg();
+            checkLanguageSuggestion();
             username = getUsername();
             if (!username) {
                 showError('No username provided in the URL.');
@@ -2302,7 +2307,7 @@
             for (let i = 0; i <= steps; i++) {
                 const timeVal = minTime + (i / steps) * timeRange;
                 const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
+                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
@@ -2353,7 +2358,7 @@
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                 const dateObj = parseUTCDate(closestPt.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
                 
                 tooltip.style.display = 'block';
                 tooltip.innerHTML = `
@@ -2651,7 +2656,7 @@
             for (let i = 0; i <= steps; i++) {
                 const timeVal = minTime + (i / steps) * timeRange;
                 const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
+                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
@@ -2705,7 +2710,7 @@
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                 const dateObj = parseUTCDate(closestPt.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
                 
                 tooltip.style.display = 'block';
                 tooltip.innerHTML = `
@@ -2846,6 +2851,53 @@
 'color: #b9f227; font-weight: bold; font-size: 14px;',
 'color: #8e9099; font-size: 11px;');
         }
+
+        function checkLanguageSuggestion() {
+            if (localStorage.getItem('spicy-lang-suggested') || localStorage.getItem('spicy-lang')) {
+                return;
+            }
+            const browserLang = (navigator.language || navigator.userLanguage || '').substring(0, 2).toLowerCase();
+            const supportedLangs = ['ru', 'uk', 'de', 'it', 'pl'];
+            if (supportedLangs.includes(browserLang)) {
+                const toast = document.getElementById('lang-suggest-toast');
+                const textEl = document.getElementById('lang-suggest-text');
+                const yesBtn = document.getElementById('lang-suggest-yes');
+                const noBtn = document.getElementById('lang-suggest-no');
+                if (!toast || !textEl || !yesBtn || !noBtn) return;
+                const prompts = {
+                    ru: { text: 'Переключить интерфейс на русский язык?', yes: 'Да', no: 'Оставить EN' },
+                    uk: { text: 'Переключити інтерфейс на українську мову?', yes: 'Так', no: 'Залишити EN' },
+                    de: { text: 'Sprache auf Deutsch umstellen?', yes: 'Ja', no: 'EN behalten' },
+                    it: { text: 'Cambiare la lingua in Italiano?', yes: 'Sì', no: 'Mantieni EN' },
+                    pl: { text: 'Przełączyć język na polski?', yes: 'Tak', no: 'Zostaw EN' }
+                };
+                const prompt = prompts[browserLang];
+                textEl.textContent = prompt.text;
+                yesBtn.textContent = prompt.yes;
+                noBtn.textContent = prompt.no;
+                toast.style.display = 'flex';
+                toast.offsetHeight; // force reflow
+                toast.style.transform = 'translateY(0)';
+                toast.style.opacity = '1';
+                yesBtn.addEventListener('click', () => {
+                    localStorage.setItem('spicy-lang-suggested', 'true');
+                    applyLanguage(browserLang);
+                    hideToast(toast);
+                });
+                noBtn.addEventListener('click', () => {
+                    localStorage.setItem('spicy-lang-suggested', 'true');
+                    hideToast(toast);
+                });
+            }
+        }
+
+        function hideToast(toast) {
+            toast.style.transform = 'translateY(100px)';
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 300);
+        }
     </script>
     <!-- Track Stats Modal -->
     <div id="track-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
@@ -2880,6 +2932,15 @@
                 <div class="chart-labels" id="track-chart-labels" style="display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px;">
                 </div>
             </div>
+        </div>
+    <!-- Language Suggestion Toast -->
+    <div id="lang-suggest-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; max-width: 320px; background: var(--white); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 18px; z-index: 10000; flex-direction: column; gap: 12px; transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(100px); opacity: 0; color: var(--ink);">
+        <div style="font-size: 13px; font-weight: 700; line-height: 1.4;" id="lang-suggest-text">
+            Switch language?
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="lang-suggest-yes" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: var(--green); color: var(--paper); border: none; cursor: pointer;">Yes</button>
+            <button id="lang-suggest-no" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: transparent; color: var(--ink); border: 1px solid var(--ink); cursor: pointer;">Keep EN</button>
         </div>
     </div>
 </body>

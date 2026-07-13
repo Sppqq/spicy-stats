@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spicy Monitor — Share Card Skeleton</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- html2canvas for actual image generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0b0c0e;
+            --panel-bg: #111216;
+            --border-color: #22242b;
+            --text-main: #f1f0ea;
+            --text-muted: #8e9099;
+            
+            /* Theme brand colors */
+            --spicy-green: #b9f227;
+            --spicy-blue: #4d65ff;
+            --spicy-coral: #ff715b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Manrope', sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 40px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Controls Panel */
+        .controls {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: fit-content;
+        }
+
+        .controls h2 {
+            font-size: 18px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-family: 'DM Mono', monospace;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input, .form-group select {
+            background: #18191e;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--spicy-blue);
+        }
+
+        .theme-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .theme-btn {
+            background: #18191e;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .theme-btn.active {
+            border-color: var(--spicy-green);
+            color: var(--spicy-green);
+            background: rgba(185, 242, 39, 0.05);
+        }
+
+        .action-btn {
+            background: var(--spicy-green);
+            color: #0b0c0e;
+            font-weight: 700;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: transform 0.1s, opacity 0.2s;
+            font-size: 14px;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* CARD CONTAINER & PREVIEW */
+        .preview-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* 1:1 Aspect ratio or Story format (usually 1080x1080 or 1080x1920) 
+           Here we model a standard square share card (good for Telegram/Twitter/Insta) */
+        .card-wrapper {
+            background: #000;
+            padding: 10px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .share-card {
+            width: 480px;
+            height: 480px;
+            background-color: #101114;
+            padding: 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid #2d2f39;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* CARD THEMES SKELETON */
+
+        /* 1. Theme: Spicy Dark (Classic) */
+        .share-card.theme-classic {
+            background: #101114;
+            color: #f1f0ea;
+            border-color: #2d2f39;
+        }
+        .share-card.theme-classic .card-brand-mark {
+            background: #f1f0ea;
+            color: #b9f227;
+        }
+        .share-card.theme-classic .stat-accent {
+            color: #b9f227;
+        }
+
+        /* 2. Theme: Cyberpunk Neon */
+        .share-card.theme-cyber {
+            background: #060713;
+            color: #e0e0ff;
+            border: 2px solid #ff007f;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.15);
+        }
+        .share-card.theme-cyber::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .share-card.theme-cyber .card-brand-mark {
+            background: #ff007f;
+            color: #00f5d4;
+            transform: rotate(0deg);
+            border-radius: 4px;
+        }
+        .share-card.theme-cyber .stat-accent {
+            color: #00f5d4;
+            text-shadow: 0 0 8px rgba(0, 245, 212, 0.6);
+        }
+        .share-card.theme-cyber .avatar-box {
+            background: linear-gradient(135deg, #ff007f, #7b68ee);
+            border-radius: 50%;
+        }
+        .share-card.theme-cyber .metric-title {
+            color: #ff007f;
+        }
+
+        /* 3. Theme: Glassmorphism */
+        .share-card.theme-glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e8e8f0;
+        }
+        .share-card.theme-glass::after {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -20%;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(108, 140, 255, 0.15) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .share-card.theme-glass .card-brand-mark {
+            background: rgba(255, 255, 255, 0.08);
+            color: #6c8cff;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .share-card.theme-glass .stat-accent {
+            color: #5ef5b0;
+        }
+        .share-card.theme-glass .avatar-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* 4. Theme: Terminal (Retro Green) */
+        .share-card.theme-terminal {
+            background: #000000;
+            color: #00ff41;
+            border: 1.5px solid #005500;
+            font-family: 'DM Mono', monospace;
+        }
+        .share-card.theme-terminal .card-brand-mark {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            transform: none;
+        }
+        .share-card.theme-terminal .stat-accent {
+            color: #00ff41;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+        .share-card.theme-terminal .avatar-box {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            border-radius: 0;
+        }
+        .share-card.theme-terminal .card-logo-text {
+            color: #00ff41 !important;
+        }
+        .share-card.theme-terminal .text-muted-card {
+            color: #00aa2a !important;
+        }
+        .share-card.theme-terminal .metric-box {
+            border-bottom: 1px dashed #005500;
+        }
+
+        /* Internal Card Layout */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .card-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-brand-mark {
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            font-size: 16px;
+            transform: rotate(-8deg);
+            transition: all 0.3s;
+        }
+
+        .card-logo-text {
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            font-size: 14px;
+        }
+
+        .card-date {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+
+        /* Profile Block */
+        .card-profile {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+            z-index: 1;
+        }
+
+        .avatar-box {
+            width: 56px;
+            height: 56px;
+            background: var(--spicy-blue);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            font-size: 20px;
+            transform: rotate(4deg);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .profile-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-name {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            line-height: 1.1;
+        }
+
+        .profile-sub {
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        /* Stat Grid Layout */
+        .card-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 8px;
+            z-index: 1;
+        }
+
+        .metric-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-title {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            opacity: 0.55;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .stat-accent {
+            font-size: 28px;
+        }
+
+        .metric-growth {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .growth-up {
+            color: var(--spicy-green);
+        }
+        
+        .theme-terminal .growth-up {
+            color: #00ff41;
+        }
+
+        /* Highlight Ribbon */
+        .card-highlight {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--spicy-green);
+            padding: 12px 16px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: 0 6px 6px 0;
+            z-index: 1;
+        }
+        
+        .theme-terminal .card-highlight {
+            background: transparent;
+            border-left: 0;
+            border: 1px dashed #005500;
+            border-radius: 0;
+        }
+
+        .card-highlight strong {
+            font-weight: 700;
+        }
+
+        /* Card Footer */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding-top: 16px;
+            font-size: 11px;
+            z-index: 1;
+        }
+
+        .theme-terminal .card-footer {
+            border-top: 1px solid #005500;
+        }
+
+        .footer-tagline {
+            opacity: 0.5;
+        }
+
+        .footer-cta {
+            font-family: 'DM Mono', monospace;
+            font-weight: 500;
+            font-size: 10px;
+        }
+
+        .tip-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 12px;
+            max-width: 480px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Spicy Monitor — Share Card Skeleton</h1>
+        <p>Интерактивный макет карточки достижений. Выберите стиль, настройте данные и скачайте PNG для соцсетей. Ваш дизайнер сможет использовать структуру и классы для создания кастомного дизайна.</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- Controls Panel -->
+        <div class="controls">
+            <h2>Настройки Карточки</h2>
+            
+            <div class="form-group">
+                <label>Тема оформления</label>
+                <div class="theme-selector">
+                    <button class="theme-btn active" onclick="setTheme('classic', this)">Classic</button>
+                    <button class="theme-btn" onclick="setTheme('cyber', this)">Cyber</button>
+                    <button class="theme-btn" onclick="setTheme('glass', this)">Glass</button>
+                    <button class="theme-btn" onclick="setTheme('terminal', this)">Terminal</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="input-name">Имя автора (Username)</label>
+                <input type="text" id="input-name" value="lellyn" oninput="updateCard()">
+            </div>
+
+            <div class="form-group">
+                <label for="input-views">Всего просмотров (Views)</label>
+                <input type="text" id="input-views" value="1,845,920" oninput="updateCard()">
+            </div>
+
+            <div class="form-group">
+                <label for="input-growth">Прирост за 24ч (24h Growth)</label>
+                <input type="text" id="input-growth" value="+15,420 (+0.84%)" oninput="updateCard()">
+            </div>
+
+            <div class="form-group">
+                <label for="input-tracks">Треков отслеживается (Tracks)</label>
+                <input type="number" id="input-tracks" value="48" oninput="updateCard()">
+            </div>
+
+            <div class="form-group">
+                <label for="input-best">Лучший трек (Best Song)</label>
+                <input type="text" id="input-best" value="Cyber Symphony" oninput="updateCard()">
+            </div>
+
+            <div class="form-group">
+                <label for="input-status">Статус эффективности</label>
+                <select id="input-status" onchange="updateCard()">
+                    <option value="rapid">Быстрое ускорение (Rapid Growth)</option>
+                    <option value="steady" selected>Стабильный рост (Steady Growth)</option>
+                    <option value="flat">Стабильные показатели (Stable catalog)</option>
+                </select>
+            </div>
+
+            <button class="action-btn" onclick="downloadCard()">Скачать PNG</button>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="preview-area">
+            
+            <div class="card-wrapper">
+                <!-- The actual Share Card DOM that will be captured -->
+                <div class="share-card theme-classic" id="share-card-element">
+                    
+                    <!-- Card Top Header -->
+                    <div class="card-header">
+                        <div class="card-brand">
+                            <div class="card-brand-mark">🌶</div>
+                            <div class="card-logo-text">SPICY MONITOR</div>
+                        </div>
+                        <div class="card-date" id="card-date-el">JULY 2026</div>
+                    </div>
+
+                    <!-- Profile Info -->
+                    <div class="card-profile">
+                        <div class="avatar-box" id="avatar-box-el">L</div>
+                        <div class="profile-details">
+                            <div class="profile-name" id="card-name-el">lellyn</div>
+                            <div class="profile-sub text-muted-card">SPOTIFY CREATOR</div>
+                        </div>
+                    </div>
+
+                    <!-- Grid Stats -->
+                    <div class="card-metrics">
+                        <div class="metric-box">
+                            <span class="metric-title text-muted-card">TOTAL VIEWS</span>
+                            <span class="metric-value stat-accent" id="card-views-el">1,845,920</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title text-muted-card">24H GROWTH</span>
+                            <span class="metric-value growth-up" id="card-growth-el">+15,420 (+0.84%)</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title text-muted-card">TRACKS TRACKED</span>
+                            <span class="metric-value" id="card-tracks-el">48</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-title text-muted-card">BEST TRACK</span>
+                            <span class="metric-value" id="card-best-el" style="font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">Cyber Symphony</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Insight / Performance note -->
+                    <div class="card-highlight" id="card-highlight-el">
+                        Статус: <strong>Стабильный рост</strong>. Просмотры равномерно распределены по всему каталогу автора.
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="card-footer">
+                        <div class="footer-tagline text-muted-card">spicy-stats.vercel.app</div>
+                        <div class="footer-cta">SCAN FOR REAL-TIME STATS</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <p class="tip-desc">
+                Совет: Код карточки использует стандартные селекторы CSS и CSS-переменные. Дизайнеру будет легко переверстать фон, шрифты или добавить иконки, не меняя структуру.
+            </p>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Update Card Date initially
+        document.getElementById('card-date-el').textContent = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).toUpperCase();
+
+        // Theme switching logic
+        function setTheme(themeName, btnElement) {
+            const card = document.getElementById('share-card-element');
+            
+            // Remove previous theme classes
+            card.classList.remove('theme-classic', 'theme-cyber', 'theme-glass', 'theme-terminal');
+            
+            // Add selected theme class
+            card.classList.add('theme-' + themeName);
+
+            // Update active state in controls
+            const buttons = document.querySelectorAll('.theme-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+
+        // Live update card DOM from input fields
+        function updateCard() {
+            const name = document.getElementById('input-name').value;
+            const views = document.getElementById('input-views').value;
+            const growth = document.getElementById('input-growth').value;
+            const tracks = document.getElementById('input-tracks').value;
+            const best = document.getElementById('input-best').value;
+            const status = document.getElementById('input-status').value;
+
+            // Fill card texts
+            document.getElementById('card-name-el').textContent = name;
+            document.getElementById('card-views-el').textContent = views;
+            document.getElementById('card-growth-el').textContent = growth;
+            document.getElementById('card-tracks-el').textContent = tracks;
+            document.getElementById('card-best-el').textContent = best;
+            
+            // Update Avatar letter
+            const avatarBox = document.getElementById('avatar-box-el');
+            avatarBox.textContent = name ? name.charAt(0).toUpperCase() : 'S';
+
+            // Custom dynamic highlight messages based on inputs
+            const highlightBox = document.getElementById('card-highlight-el');
+            if (status === 'rapid') {
+                highlightBox.innerHTML = `Статус: <strong>Быстрое ускорение</strong>. Трек <strong>"${best}"</strong> показывает рекордные темпы популярности.`;
+            } else if (status === 'steady') {
+                highlightBox.innerHTML = `Статус: <strong>Стабильный рост</strong>. Просмотры равномерно распределены по каталогу автора.`;
+            } else if (status === 'flat') {
+                highlightBox.innerHTML = `Статус: <strong>Консервативный каталог</strong>. Показатели стабильны, новые треки закрепляются в топе.`;
+            }
+        }
+
+        // Generate and download the image
+        function downloadCard() {
+            const card = document.getElementById('share-card-element');
+            const authorName = document.getElementById('input-name').value || 'creator';
+            
+            // Temporary scale up for high quality print resolution (2x)
+            // This ensures the downloaded image looks sharp
+            html2canvas(card, {
+                scale: 2,
+                backgroundColor: null,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `spicy-stats-${authorName}-card.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
