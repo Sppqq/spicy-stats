@@ -303,7 +303,7 @@ async function handleDashboardAPI(env) {
             growth: u.past_views !== null ? (u.current_views || 0) - u.past_views : null,
             first_snapshot: u.first_snapshot || null,
             total_songs: u.total_songs || 0,
-            tracks_growth_7d: u.past_7d_id !== null ? (u.total_songs || 0) - (u.total_songs_7d || 0) : 0,
+            tracks_growth_7d: u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0,
             last_updated: u.last_updated || null
         }))
     };
