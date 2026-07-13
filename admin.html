@@ -809,26 +809,41 @@
             const statusMsg = document.getElementById('system-status-msg');
             
             btn.disabled = true;
-            statusMsg.textContent = 'Updating metadata cache in background...';
             statusMsg.style.color = 'var(--blue)';
 
-            try {
-                const res = await spicyFetch(`${API_BASE}/admin/populate-metadata`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret: adminSecret })
-                });
+            if (!systemData || !systemData.users || systemData.users.length === 0) {
+                statusMsg.textContent = 'No creators found to rebuild metadata.';
+                statusMsg.style.color = 'var(--coral)';
+                btn.disabled = false;
+                return;
+            }
 
-                if (res.ok) {
-                    statusMsg.textContent = 'Metadata cache rebuild triggered successfully. Running in the background...';
-                    statusMsg.style.color = 'var(--green)';
-                    setTimeout(() => {
-                        loadAdminData();
-                    }, 5000);
-                } else {
-                    const data = await res.json().catch(() => ({ error: 'Metadata rebuild failed to start' }));
-                    throw new Error(data.error);
+            const users = systemData.users;
+            let successCount = 0;
+
+            try {
+                for (let i = 0; i < users.length; i++) {
+                    const u = users[i];
+                    statusMsg.textContent = `🔄 Rebuilding cache (${i + 1}/${users.length}): @${u.username}...`;
+                    
+                    const res = await spicyFetch(`${API_BASE}/admin/populate-metadata`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ secret: adminSecret, username: u.username })
+                    });
+
+                    if (res.ok) {
+                        successCount++;
+                    } else {
+                        console.error(`Failed to update cache for @${u.username}`);
+                    }
                 }
+
+                statusMsg.textContent = `✅ Cache rebuild completed! Successfully processed ${successCount}/${users.length} creators.`;
+                statusMsg.style.color = 'var(--green)';
+                setTimeout(() => {
+                    loadAdminData();
+                }, 2000);
             } catch (err) {
                 statusMsg.textContent = `Metadata rebuild error: ${err.message}`;
                 statusMsg.style.color = 'var(--coral)';

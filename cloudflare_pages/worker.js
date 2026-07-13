@@ -599,21 +599,34 @@ async function handleAdminScrapeAll(request, env, ctx) {
 }
 
 async function handleAdminPopulateMetadata(request, env, ctx) {
-    const { secret } = await request.json().catch(() => ({}));
+    const { secret, username } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     try {
-        ctx.waitUntil(populateMetadataCache(env));
-        return new Response(JSON.stringify({ success: true, message: "Metadata cache population started in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+        if (username) {
+            // Process single user synchronously for the client-side loop
+            await populateMetadataCache(env, username);
+            return new Response(JSON.stringify({ success: true, message: `Successfully populated metadata for @${username}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+        } else {
+            // Fallback: run in background for all users
+            ctx.waitUntil(populateMetadataCache(env));
+            return new Response(JSON.stringify({ success: true, message: "Metadata cache population started in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 }
 
-async function populateMetadataCache(env) {
-    const { results: users } = await env.DB.prepare("SELECT id, username, discord_id FROM users").all();
+async function populateMetadataCache(env, targetUsername = null) {
+    let query = "SELECT id, username, discord_id FROM users";
+    let bindParams = [];
+    if (targetUsername) {
+        query += " WHERE LOWER(username) = LOWER(?)";
+        bindParams.push(targetUsername);
+    }
+    const { results: users } = await env.DB.prepare(query).bind(...bindParams).all();
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" };
     
     for (const user of users) {
