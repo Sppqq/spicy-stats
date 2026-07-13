@@ -1845,8 +1845,10 @@
             }
         };
 
-        function applyLanguage(lang) {
-            localStorage.setItem('spicy-lang', lang);
+        function applyLanguage(lang, saveToStorage = true) {
+            if (saveToStorage) {
+                localStorage.setItem('spicy-lang', lang);
+            }
             
             const info = LANGUAGES[lang] || LANGUAGES.en;
             const label = document.getElementById('lang-toggle-label');
@@ -1883,7 +1885,7 @@
             const savedLang = localStorage.getItem('spicy-lang');
             const preferredLang = (savedLang && LANGUAGES[savedLang]) ? savedLang : 'en';
             
-            applyLanguage(preferredLang);
+            applyLanguage(preferredLang, savedLang !== null);
             
             const toggle = document.getElementById('lang-toggle');
             const dropdown = document.getElementById('lang-dropdown');
@@ -1897,7 +1899,7 @@
                 document.querySelectorAll('.lang-option').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        applyLanguage(btn.dataset.langValue);
+                        applyLanguage(btn.dataset.langValue, true);
                         dropdown.classList.remove('open');
                     });
                 });
