@@ -51,6 +51,22 @@ async function checkSchema(env) {
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id)").run().catch(() => {});
+        
+        // Track Metadata Cache Table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS track_metadata (
+                spotify_id TEXT PRIMARY KEY,
+                isrc TEXT,
+                title TEXT,
+                artist TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        `).run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_track_metadata_isrc ON track_metadata(isrc)").run().catch(() => {});
+
+        // Add total_songs column to snapshots table
+        await env.DB.prepare("ALTER TABLE snapshots ADD COLUMN total_songs INTEGER").run().catch(() => {});
+
         schemaChecked = true;
     } catch (e) {
         // Ignore
@@ -171,6 +187,8 @@ export default {
                 response = await handleAdminScrapeUser(request, env);
             } else if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") {
                 response = await handleAdminScrapeAll(request, env, ctx);
+            } else if (url.pathname === "/api/admin/populate-metadata" && request.method === "POST") {
+                response = await handleAdminPopulateMetadata(request, env, ctx);
             } else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
                 response = await handleAdminDeleteUser(request, env);
             } else if (url.pathname === "/api/admin/export-user" && request.method === "POST") {
@@ -239,7 +257,7 @@ async function handleDashboardAPI(env) {
 
     const { results: users } = await env.DB.prepare(`
     WITH latest_snapshots AS (
-        SELECT user_id, id AS latest_id, timestamp AS latest_timestamp, total_views AS latest_views
+        SELECT user_id, id AS latest_id, timestamp AS latest_timestamp, total_views AS latest_views, total_songs AS latest_total_songs
         FROM snapshots s1
         WHERE id = (SELECT id FROM snapshots s2 WHERE s2.user_id = s1.user_id ORDER BY id DESC LIMIT 1)
     )
@@ -250,8 +268,8 @@ async function handleDashboardAPI(env) {
         s_past.total_views AS past_views,
         (SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1) AS first_snapshot,
         s_past_7d.id AS past_7d_id,
-        COALESCE((SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id), 0) AS total_songs,
-        COALESCE((SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id), 0) AS total_songs_7d
+        COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id), 0) AS total_songs,
+        COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id), 0) AS total_songs_7d
     FROM users u 
     LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
@@ -310,7 +328,12 @@ async function handleUserDetailAPI(username, env) {
         let latestRaw = [];
 
         for (const snap of history) {
-            const { results: songs } = await env.DB.prepare("SELECT * FROM snapshot_songs WHERE snapshot_id = ?").bind(snap.id).all();
+            const { results: songs } = await env.DB.prepare(`
+                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                FROM snapshot_songs ss
+                LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                WHERE ss.snapshot_id = ?
+            `).bind(snap.id).all();
             if (songs && songs.length > 0) {
                 latestSnapshot = snap;
                 latestRaw = songs;
@@ -334,32 +357,38 @@ async function handleUserDetailAPI(username, env) {
 
         let pastRaw = [];
         if (has24h) {
-            const { results } = await env.DB.prepare("SELECT * FROM snapshot_songs WHERE snapshot_id = ?").bind(pastSnapshot.id).all();
+            const { results } = await env.DB.prepare(`
+                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                FROM snapshot_songs ss
+                LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                WHERE ss.snapshot_id = ?
+            `).bind(pastSnapshot.id).all();
             if (results) pastRaw = results;
         }
-
-        const getTrackKey = (s) => `${(s.title || "Hidden").trim().toLowerCase()}|||${(s.artist || "SpicyLyrics").trim().toLowerCase()}`;
-
-        const aggregateSongs = (rawList) => {
-            const map = new Map();
-            for (const s of rawList || []) {
-                const key = getTrackKey(s);
-                if (map.has(key)) map.get(key).views += s.views;
-                else map.set(key, { title: s.title || "Hidden", artist: s.artist || "SpicyLyrics", views: s.views || 0 });
-            }
-            return Array.from(map.values());
-        };
 
         const latestSongs = aggregateSongs(latestRaw);
         const pastSongs = aggregateSongs(pastRaw);
         totalSongs = latestSongs.length;
 
-        const pastMap = new Map();
-        pastSongs.forEach(s => pastMap.set(getTrackKey(s), s.views));
+        const findPastViews = (ls, pastSongsList) => {
+            const lsTitle = ls.title.trim().toLowerCase();
+            const lsArtist = ls.artist.trim().toLowerCase();
+            const lsIsrc = ls.isrc ? ls.isrc.trim() : null;
+            
+            for (const ps of pastSongsList) {
+                const psIsrc = ps.isrc ? ps.isrc.trim() : null;
+                if (lsIsrc && psIsrc && lsIsrc === psIsrc) {
+                    return ps.views;
+                }
+                if (lsTitle === ps.title.trim().toLowerCase() && lsArtist === ps.artist.trim().toLowerCase()) {
+                    return ps.views;
+                }
+            }
+            return null;
+        };
 
         finalSongs = latestSongs.map(s => {
-            const key = getTrackKey(s);
-            const prev = pastMap.get(key) ?? s.views;
+            const prev = findPastViews(s, pastSongs) ?? s.views;
             const g = s.views - prev;
             return { ...s, growth: g, pct: prev > 0 ? (g / prev) * 100 : 0 };
         }).sort((a, b) => b.growth - a.growth);
@@ -399,14 +428,31 @@ async function handleTrackHistoryAPI(request, env) {
         return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    const { results } = await env.DB.prepare(`
+    // 1. Find any ISRCs for this track in track_metadata
+    const isrcRows = await env.DB.prepare(`
+        SELECT DISTINCT isrc FROM track_metadata 
+        WHERE (LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?))
+    `).bind(title.trim(), artist.trim()).all();
+    
+    const isrcs = (isrcRows.results || []).map(r => r.isrc).filter(Boolean);
+
+    // 2. Query history matching either Title+Artist or ISRC
+    let sql = `
         SELECT SUM(ss.views) as views, s.timestamp
         FROM snapshot_songs ss
         JOIN snapshots s ON ss.snapshot_id = s.id
-        WHERE s.user_id = ? AND LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?)
+        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+        WHERE s.user_id = ? 
+          AND (
+            (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
+            ${isrcs.length > 0 ? `OR (tm.isrc IN (${isrcs.map(() => '?').join(', ')}))` : ''}
+          )
         GROUP BY s.id, s.timestamp
         ORDER BY s.id ASC
-    `).bind(user.id, title.trim(), artist.trim()).all();
+    `;
+
+    const bindParams = [user.id, title.trim(), artist.trim(), ...isrcs];
+    const { results } = await env.DB.prepare(sql).bind(...bindParams).all();
 
     return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
 }
@@ -435,14 +481,13 @@ async function handleAdminStats(request, env) {
     `).all();
 
     // Fetch the song counts for the latest snapshot of each user in ONE query to avoid full table scans
-    // Aggregate by title and artist to exactly match dashboard and profile counts
+    // Aggregate by title and artist to exactly match dashboard and profile counts, falling back to older method if total_songs is null
     const { results: songCounts } = await env.DB.prepare(`
-        SELECT snapshot_id, COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) as cnt
-        FROM snapshot_songs
-        WHERE snapshot_id IN (
+        SELECT id as snapshot_id, COALESCE(total_songs, (SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) FROM snapshot_songs WHERE snapshot_id = s.id)) as cnt
+        FROM snapshots s
+        WHERE id IN (
             SELECT MAX(id) FROM snapshots GROUP BY user_id
         )
-        GROUP BY snapshot_id
     `).all();
 
     const songCountMap = new Map();
@@ -551,6 +596,87 @@ async function handleAdminScrapeAll(request, env, ctx) {
     }
 }
 
+async function handleAdminPopulateMetadata(request, env, ctx) {
+    const { secret } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        ctx.waitUntil(populateMetadataCache(env));
+        return new Response(JSON.stringify({ success: true, message: "Metadata cache population started in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function populateMetadataCache(env) {
+    const { results: users } = await env.DB.prepare("SELECT id, username, discord_id FROM users").all();
+    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" };
+    
+    for (const user of users) {
+        try {
+            let userId = user.discord_id;
+            if (!userId) {
+                const pageUrl = `https://spicylyrics.org/${user.username}`;
+                const response = await fetch(pageUrl, { headers });
+                if (!response.ok) continue;
+                const html = await response.text();
+                const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
+                if (avatarMatch) userId = avatarMatch[1];
+                if (!userId) {
+                    const patterns = [
+                        /"userId"\s*:\s*"?(\d{1,21})"?/i,
+                        /\\"userId\\":\s*\\"(\d{1,21})\\"/,
+                        /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i,
+                        /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i,
+                        /\/users\/(\d{1,21})\/avatars\//,
+                        /avatars\/(\d{1,21})/
+                    ];
+                    for (const pattern of patterns) {
+                        const match = html.match(pattern);
+                        if (match) { userId = match[1]; break; }
+                    }
+                }
+            }
+            
+            if (!userId) continue;
+            
+            const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
+            if (!tracksRes.ok) continue;
+            const tracksJson = await tracksRes.json();
+            const tracksDetails = tracksJson.result?.data?.json?.data || [];
+            
+            if (tracksDetails.length > 0) {
+                const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
+                const batch = tracksDetails.map(track => {
+                    if (!track) return null;
+                    const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
+                    return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
+                }).filter(Boolean);
+                if (batch.length > 0) {
+                    await env.DB.batch(batch);
+                }
+            }
+            
+            const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
+            if (latestSnap) {
+                const { results: snapSongs } = await env.DB.prepare(`
+                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                    FROM snapshot_songs ss
+                    LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                    WHERE ss.snapshot_id = ?
+                `).bind(latestSnap.id).all();
+                
+                const uniqueSongs = aggregateSongs(snapSongs);
+                await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
+            }
+        } catch (err) {
+            console.error(`Error populating metadata for ${user.username}:`, err.message);
+        }
+    }
+}
+
 async function handleAdminDeleteUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) {
@@ -587,6 +713,66 @@ function parseDate(rawStr) {
     return isNaN(d.getTime()) ? null : d;
 }
 
+function aggregateSongs(rawList) {
+    const groups = [];
+    for (const s of rawList || []) {
+        const title = (s.meta_title || s.title || "Hidden").trim();
+        const artist = (s.meta_artist || s.artist || "SpicyLyrics").trim();
+        const cleanTitle = title.toLowerCase();
+        const cleanArtist = artist.toLowerCase();
+        const isrc = s.isrc ? s.isrc.trim() : null;
+        
+        let foundGroup = null;
+        for (const g of groups) {
+            let match = false;
+            for (const member of g.songs) {
+                if (isrc && member.isrc && isrc === member.isrc) {
+                    match = true;
+                    break;
+                }
+                if (cleanTitle === member.cleanTitle && cleanArtist === member.cleanArtist) {
+                    match = true;
+                    break;
+                }
+            }
+            if (match) {
+                foundGroup = g;
+                break;
+            }
+        }
+        
+        const songInfo = {
+            spotify_id: s.spotify_id,
+            title,
+            artist,
+            cleanTitle,
+            cleanArtist,
+            isrc,
+            views: s.views || 0
+        };
+        
+        if (foundGroup) {
+            foundGroup.songs.push(songInfo);
+            foundGroup.views += songInfo.views;
+        } else {
+            groups.push({
+                songs: [songInfo],
+                views: songInfo.views,
+                title: songInfo.title,
+                artist: songInfo.artist
+            });
+        }
+    }
+    
+    return groups.map(g => ({
+        title: g.title,
+        artist: g.artist,
+        views: g.views,
+        spotify_id: g.songs[0].spotify_id,
+        isrc: g.songs.find(x => x.isrc)?.isrc || null
+    }));
+}
+
 async function handleImport(request, env) {
     try {
         const { secret, username, history } = await request.json();
@@ -603,10 +789,23 @@ async function handleImport(request, env) {
         for (const record of history) {
             const timestamp = record.timestamp.replace("T", " ");
             const totalViews = record.data.total_views;
-
-            const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, ?)").bind(user.id, totalViews, timestamp).run();
-            const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
             const songs = record.data.songs;
+
+            let totalSongsCount = 0;
+            if (songs && Object.keys(songs).length > 0) {
+                const rawList = Object.entries(songs).map(([songKey, sData]) => ({
+                    spotify_id: songKey.length < 30 ? songKey : "",
+                    title: sData.title,
+                    artist: sData.artist,
+                    views: sData.views || 0,
+                    isrc: null
+                }));
+                const uniqueSongs = aggregateSongs(rawList);
+                totalSongsCount = uniqueSongs.length;
+            }
+
+            const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?)").bind(user.id, totalViews, totalSongsCount, timestamp).run();
+            const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
             if (songs && Object.keys(songs).length > 0) {
                 const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
@@ -695,7 +894,25 @@ async function scrapeAndSave(userId, username, env) {
         return;
     }
 
-    const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, data.total_views).run();
+    // 1. Cache track metadata
+    if (data.tracksDetails && data.tracksDetails.length > 0) {
+        const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
+        const batch = data.tracksDetails.map(track => {
+            if (!track) return null;
+            const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
+            return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
+        }).filter(Boolean);
+        if (batch.length > 0) {
+            await env.DB.batch(batch);
+        }
+    }
+
+    // 2. Calculate deduplicated total songs count
+    const uniqueSongs = aggregateSongs(data.songs);
+    const totalSongsCount = uniqueSongs.length;
+
+    // 3. Save snapshot with total_songs
+    const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
     if (data.songs && data.songs.length > 0) {
@@ -772,7 +989,7 @@ async function fetchUserDataFromAPI(username) {
     for (const track of tracksDetails) {
         if (!track) continue;
         const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-        tracksMap.set(track.id, { title: track.name || "Hidden", artist: artistNames });
+        tracksMap.set(track.id, { title: track.name || "Hidden", artist: artistNames, isrc: track.isrc || null });
     }
 
     let total_views = 0, songs = [];
@@ -781,9 +998,9 @@ async function fetchUserDataFromAPI(username) {
         total_views += views;
         const detail = tracksMap.get(item.id);
         if (detail) {
-            songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, views: views });
+            songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, isrc: detail.isrc, views: views });
         }
     }
 
-    return { total_views, songs, discord_id, discord_avatar };
+    return { total_views, songs, tracksDetails, discord_id, discord_avatar };
 }

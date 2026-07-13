@@ -492,9 +492,12 @@
                     <button class="admin-btn secondary" id="scrape-all-btn" onclick="triggerScrapeAll()">
                         ⚡ Run Scraper Queue
                     </button>
+                    <button class="admin-btn secondary" id="populate-metadata-btn" onclick="triggerPopulateMetadata()">
+                        🔄 Rebuild Metadata Cache
+                    </button>
                     
                     <div style="flex-grow: 1; min-width: 250px; border-left: 3px solid var(--blue); padding-left: 14px; font-size: 12px; color: var(--muted); line-height: 1.5;" id="system-status-msg">
-                        Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run here.
+                        Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run or rebuild metadata cache here.
                     </div>
                 </div>
             </section>
@@ -794,6 +797,40 @@
                 }
             } catch (err) {
                 statusMsg.textContent = `Scraper run error: ${err.message}`;
+                statusMsg.style.color = 'var(--coral)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Rebuild Metadata Cache
+        async function triggerPopulateMetadata() {
+            const btn = document.getElementById('populate-metadata-btn');
+            const statusMsg = document.getElementById('system-status-msg');
+            
+            btn.disabled = true;
+            statusMsg.textContent = 'Updating metadata cache in background...';
+            statusMsg.style.color = 'var(--blue)';
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/populate-metadata`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = 'Metadata cache rebuild triggered successfully. Running in the background...';
+                    statusMsg.style.color = 'var(--green)';
+                    setTimeout(() => {
+                        loadAdminData();
+                    }, 5000);
+                } else {
+                    const data = await res.json().catch(() => ({ error: 'Metadata rebuild failed to start' }));
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                statusMsg.textContent = `Metadata rebuild error: ${err.message}`;
                 statusMsg.style.color = 'var(--coral)';
             } finally {
                 btn.disabled = false;
