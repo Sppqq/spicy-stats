@@ -201,12 +201,12 @@ export default {
             } else if (url.pathname === "/api/add-user" && request.method === "POST") {
                 response = await handleAddUser(request, env, ctx);
             } else if (url.pathname === "/api/dashboard" && request.method === "GET") {
-                response = await handleDashboardAPI(env);
+                response = await handleDashboardAPI(request, env);
             } else if (url.pathname === "/api/track-history" && request.method === "GET") {
                 response = await handleTrackHistoryAPI(request, env);
             } else if (url.pathname.startsWith("/api/user/") && request.method === "GET") {
                 const username = url.pathname.split("/")[3];
-                response = await handleUserDetailAPI(username, env);
+                response = await handleUserDetailAPI(username, request, env);
             } else if (url.pathname === "/api/admin/stats" && request.method === "POST") {
                 response = await handleAdminStats(request, env);
             } else if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") {
@@ -277,8 +277,10 @@ async function handleAddUser(request, env, ctx) {
     });
 }
 
-async function handleDashboardAPI(env) {
+async function handleDashboardAPI(request, env) {
     const globalQuery = await env.DB.prepare("SELECT COUNT(id) as total_users FROM users").first();
+
+    await logAction(env, "visit_dashboard", "Loaded main dashboard", request);
 
     const totalViewsQuery = await env.DB.prepare(`
     SELECT SUM(total_views) as global_views FROM (
@@ -343,9 +345,11 @@ async function handleDashboardAPI(env) {
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
 }
 
-async function handleUserDetailAPI(username, env) {
+async function handleUserDetailAPI(username, request, env) {
     const user = await env.DB.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+
+    await logAction(env, "visit_profile", `Viewed profile for @${user.username}`, request);
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
     const firstSnapshotTimestamp = firstSnapshot ? firstSnapshot.timestamp : null;
@@ -459,6 +463,8 @@ async function handleTrackHistoryAPI(request, env) {
     if (!user) {
         return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
+
+    await logAction(env, "visit_history", `Viewed track history for @${user.username || username}: "${title}" by "${artist}"`, request);
 
     // 1. Find any ISRCs for this track in track_metadata using normalized matching
     const allMeta = await env.DB.prepare("SELECT isrc, title, artist FROM track_metadata").all();

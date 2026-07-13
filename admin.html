@@ -195,6 +195,24 @@
             letter-spacing: -0.07em;
         }
 
+        .tab-btn {
+            background: transparent;
+            border: 0;
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 8px 16px;
+            transition: color 0.15s ease, background-color 0.15s ease;
+            border-radius: 4px;
+        }
+
+        .tab-btn:hover {
+            color: var(--ink);
+            background-color: var(--paper-dark);
+        }
+
         .theme-toggle {
             display: inline-flex;
             align-items: center;
@@ -480,128 +498,161 @@
                 </article>
             </section>
 
-            <!-- Actions Panel -->
-            <section class="panel">
-                <div class="panel-heading">
-                    <div>
-                        <h2 class="panel-title">System Commands</h2>
-                        <div class="panel-meta">Global database and scraper jobs</div>
+            <!-- Navigation Sub-Tabs -->
+            <nav style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--line); padding-bottom: 12px; margin-top: 16px;">
+                <button class="tab-btn" id="tab-btn-database" onclick="switchTab('database')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--blue); cursor: pointer; padding: 6px 12px; border-bottom: 2px solid var(--blue); margin-bottom: -14px;">👥 Database</button>
+                <button class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
+                <button class="tab-btn" id="tab-btn-logs" onclick="switchTab('logs')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">📋 Audit Logs</button>
+            </nav>
+
+            <!-- Tab 1: Database -->
+            <div id="tab-content-database" class="tab-content" style="display: block;">
+                <!-- User Database Table -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">Monitored Creators Database</h2>
+                            <div class="panel-meta">Real-time status and deletions</div>
+                        </div>
                     </div>
-                </div>
-                <div class="panel-content" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-                    <button class="admin-btn secondary" id="scrape-all-btn" onclick="triggerScrapeAll()">
-                        ⚡ Run Scraper Queue
-                    </button>
-                    <button class="admin-btn secondary" id="populate-metadata-btn" onclick="triggerPopulateMetadata()">
-                        🔄 Rebuild Metadata Cache
-                    </button>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Creator</th>
+                                    <th>Views</th>
+                                    <th>Snapshots</th>
+                                    <th>Songs</th>
+                                    <th>Last Updated</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="database-tbody">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab 2: Commands -->
+            <div id="tab-content-commands" class="tab-content" style="display: none;">
+                <!-- Actions Panel -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">System Commands</h2>
+                            <div class="panel-meta">Global database and scraper jobs</div>
+                        </div>
+                    </div>
+                    <div class="panel-content" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                        <button class="admin-btn secondary" id="scrape-all-btn" onclick="triggerScrapeAll()">
+                            ⚡ Run Scraper Queue
+                        </button>
+                        <button class="admin-btn secondary" id="populate-metadata-btn" onclick="triggerPopulateMetadata()">
+                            🔄 Rebuild Metadata Cache
+                        </button>
+                        
+                        <div style="flex-grow: 1; min-width: 250px; border-left: 3px solid var(--blue); padding-left: 14px; font-size: 12px; color: var(--muted); line-height: 1.5;" id="system-status-msg">
+                            Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run or rebuild metadata cache here.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick Scrape Panel -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">Instant Creator Scrape</h2>
+                            <div class="panel-meta">Trigger immediate snapshot fetch for a single user</div>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <form onsubmit="triggerSingleScrape(event)" style="display: flex; gap: 10px; max-width: 480px;">
+                            <input type="text" id="instant-username" required placeholder="e.g. gayan_" class="admin-input" style="height: 38px;" aria-label="Creator username to scrape">
+                            <button type="submit" id="instant-btn" class="admin-btn" style="height: 38px;">Fetch Snapshot</button>
+                        </form>
+                        <div id="instant-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
+                    </div>
+                </section>
+
+                <!-- Merge Profiles Panel -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title">Merge Profiles</h2>
+                            <div class="panel-meta">Merge historical snapshots of an old profile into a new one</div>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <form onsubmit="showMergeConfirmation(event)" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; max-width: 720px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label for="merge-source" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Source Profile (Will be deleted)</label>
+                                <input type="text" id="merge-source" required placeholder="e.g. old_sppq" class="admin-input" style="height: 38px; width: 100%;">
+                            </div>
+                            <div style="font-size: 20px; color: var(--muted); padding-bottom: 8px;">&rarr;</div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <label for="merge-target" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Target Profile (Will absorb stats)</label>
+                                <input type="text" id="merge-target" required placeholder="e.g. sppq" class="admin-input" style="height: 38px; width: 100%;">
+                            </div>
+                            <button type="submit" id="merge-btn" class="admin-btn coral" style="height: 38px;">Merge Profiles</button>
+                        </form>
+                        <div id="merge-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab 3: Logs -->
+            <div id="tab-content-logs" class="tab-content" style="display: none;">
+                <!-- System Action Logs -->
+                <section class="panel">
+                    <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h2 class="panel-title">System Action Logs</h2>
+                            <div class="panel-meta">Audit trail of actions, visits, and system events</div>
+                        </div>
+                        <button class="admin-btn secondary" style="padding: 6px 12px; font-size: 11px;" onclick="loadLogs()">
+                            🔄 Refresh Logs
+                        </button>
+                    </div>
                     
-                    <div style="flex-grow: 1; min-width: 250px; border-left: 3px solid var(--blue); padding-left: 14px; font-size: 12px; color: var(--muted); line-height: 1.5;" id="system-status-msg">
-                        Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run or rebuild metadata cache here.
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick Scrape Panel -->
-            <section class="panel">
-                <div class="panel-heading">
-                    <div>
-                        <h2 class="panel-title">Instant Creator Scrape</h2>
-                        <div class="panel-meta">Trigger immediate snapshot fetch for a single user</div>
-                    </div>
-                </div>
-                <div class="panel-content">
-                    <form onsubmit="triggerSingleScrape(event)" style="display: flex; gap: 10px; max-width: 480px;">
-                        <input type="text" id="instant-username" required placeholder="e.g. gayan_" class="admin-input" style="height: 38px;" aria-label="Creator username to scrape">
-                        <button type="submit" id="instant-btn" class="admin-btn" style="height: 38px;">Fetch Snapshot</button>
-                    </form>
-                    <div id="instant-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
-                </div>
-            </section>
-
-            <!-- Merge Profiles Panel -->
-            <section class="panel">
-                <div class="panel-heading">
-                    <div>
-                        <h2 class="panel-title">Merge Profiles</h2>
-                        <div class="panel-meta">Merge historical snapshots of an old profile into a new one</div>
-                    </div>
-                </div>
-                <div class="panel-content">
-                    <form onsubmit="showMergeConfirmation(event)" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; max-width: 720px;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <label for="merge-source" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Source Profile (Will be deleted)</label>
-                            <input type="text" id="merge-source" required placeholder="e.g. old_sppq" class="admin-input" style="height: 38px; width: 100%;">
+                    <!-- Filters and Search Bar -->
+                    <div style="margin: 0 24px 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                        <div style="flex-grow: 1; min-width: 200px;">
+                            <input type="text" id="log-search" placeholder="Search logs by keyword, username, or IP..." class="admin-input" style="height: 34px; width: 100%; font-size: 12px;" oninput="filterLogs()">
                         </div>
-                        <div style="font-size: 20px; color: var(--muted); padding-bottom: 8px;">&rarr;</div>
-                        <div style="flex: 1; min-width: 200px;">
-                            <label for="merge-target" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Target Profile (Will absorb stats)</label>
-                            <input type="text" id="merge-target" required placeholder="e.g. sppq" class="admin-input" style="height: 38px; width: 100%;">
+                        <div style="width: 180px;">
+                            <select id="log-type-filter" class="admin-input" style="height: 34px; width: 100%; font-size: 12px; padding: 0 8px; background: var(--white); cursor: pointer;" onchange="filterLogs()">
+                                <option value="all">All Events</option>
+                                <option value="admin">Admin Actions Only</option>
+                                <option value="visits">Visitor Activity Only</option>
+                                <option value="milestone">Milestones Only</option>
+                                <option value="new_track">New Tracks Only</option>
+                            </select>
                         </div>
-                        <button type="submit" id="merge-btn" class="admin-btn coral" style="height: 38px;">Merge Profiles</button>
-                    </form>
-                    <div id="merge-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
-                </div>
-            </section>
-
-            <!-- User Database Table -->
-            <section class="panel">
-                <div class="panel-heading">
-                    <div>
-                        <h2 class="panel-title">Monitored Creators Database</h2>
-                        <div class="panel-meta">Real-time status and deletions</div>
                     </div>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Creator</th>
-                                <th>Views</th>
-                                <th>Snapshots</th>
-                                <th>Songs</th>
-                                <th>Last Updated</th>
-                                <th style="text-align: right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="database-tbody">
-                            <!-- Rendered dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
 
-            <!-- System Action Logs -->
-            <section class="panel">
-                <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div>
-                        <h2 class="panel-title">System Action Logs</h2>
-                        <div class="panel-meta">Audit trail of actions and system events</div>
+                    <div style="overflow-x: auto; max-height: 500px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 140px;">Timestamp</th>
+                                    <th style="width: 120px;">Event</th>
+                                    <th>Details</th>
+                                    <th style="width: 120px;">IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-tbody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                                        Logs will load after unlocking...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <button class="admin-btn secondary" style="padding: 6px 12px; font-size: 11px;" onclick="loadLogs()">
-                        🔄 Refresh Logs
-                    </button>
-                </div>
-                <div style="overflow-x: auto; max-height: 400px;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 140px;">Timestamp</th>
-                                <th style="width: 100px;">Event</th>
-                                <th>Details</th>
-                                <th style="width: 120px;">IP Address</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logs-tbody">
-                            <tr>
-                                <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                                    Logs will load after unlocking...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                </section>
+            </div>
 
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
@@ -791,7 +842,7 @@
                 systemData = await res.json();
                 renderStats();
                 renderUserList();
-                await loadLogs();
+                switchTab(activeTab);
             } catch (err) {
                 console.error(err);
                 document.getElementById('database-tbody').innerHTML = `
@@ -933,7 +984,40 @@
             }
         }
 
+        // Tab Switching Logic
+        let activeTab = 'database';
+        function switchTab(tabId) {
+            activeTab = tabId;
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Reset tab button styling
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.color = 'var(--muted)';
+                btn.style.backgroundColor = 'transparent';
+            });
+            
+            // Show active tab content
+            document.getElementById(`tab-content-${tabId}`).style.display = 'block';
+            
+            // Style active button
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.style.color = 'var(--white)';
+                activeBtn.style.backgroundColor = 'var(--ink)';
+            }
+
+            // Load logs if switching to logs tab
+            if (tabId === 'logs') {
+                loadLogs();
+            }
+        }
+
         // Fetch and render System Audit Logs
+        let allLogsList = [];
         async function loadLogs() {
             const tbody = document.getElementById('logs-tbody');
             if (!tbody) return;
@@ -942,43 +1026,14 @@
                 const res = await spicyFetch(`${API_BASE}/admin/logs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret: adminSecret, limit: 50 })
+                    body: JSON.stringify({ secret: adminSecret, limit: 150 })
                 });
 
                 if (!res.ok) throw new Error('Failed to load logs');
 
                 const data = await res.json();
-                tbody.innerHTML = '';
-
-                if (!data.logs || data.logs.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                                No actions logged yet.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                data.logs.forEach(log => {
-                    const row = document.createElement('tr');
-                    
-                    let rowStyle = '';
-                    if (log.action_type === 'milestone_reached') {
-                        rowStyle = 'background: rgba(255, 0, 127, 0.04); font-weight: 500;';
-                    } else if (log.action_type === 'user_delete') {
-                        rowStyle = 'background: rgba(255, 0, 76, 0.02);';
-                    }
-
-                    row.innerHTML = `
-                        <td style="font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; ${rowStyle}">${timeAgo(log.created_at)}</td>
-                        <td style="${rowStyle}">${getEventBadge(log.action_type)}</td>
-                        <td style="font-size: 12px; line-height: 1.4; ${rowStyle}">${log.details}</td>
-                        <td style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); ${rowStyle}">${log.ip_address || 'System'}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                allLogsList = data.logs || [];
+                filterLogs(); // Render with current filters applied
             } catch (err) {
                 console.error(err);
                 tbody.innerHTML = `
@@ -989,6 +1044,70 @@
                     </tr>
                 `;
             }
+        }
+
+        function filterLogs() {
+            const search = document.getElementById('log-search').value.toLowerCase().trim();
+            const typeFilter = document.getElementById('log-type-filter').value;
+            
+            const filtered = allLogsList.filter(log => {
+                // Search filter (matches details, IP or type)
+                const matchesSearch = !search || 
+                    log.details.toLowerCase().includes(search) || 
+                    (log.ip_address && log.ip_address.toLowerCase().includes(search)) ||
+                    log.action_type.toLowerCase().includes(search);
+
+                // Type filter
+                let matchesType = true;
+                if (typeFilter === 'admin') {
+                    matchesType = ['user_add', 'user_delete', 'cache_rebuild', 'profile_merge', 'global_scrape', 'manual_scrape', 'history_import', 'username_change'].includes(log.action_type);
+                } else if (typeFilter === 'visits') {
+                    matchesType = ['visit_dashboard', 'visit_profile', 'visit_history'].includes(log.action_type);
+                } else if (typeFilter === 'milestone') {
+                    matchesType = log.action_type === 'milestone_reached';
+                } else if (typeFilter === 'new_track') {
+                    matchesType = log.action_type === 'new_track';
+                }
+
+                return matchesSearch && matchesType;
+            });
+
+            renderLogsTable(filtered);
+        }
+
+        function renderLogsTable(logs) {
+            const tbody = document.getElementById('logs-tbody');
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            No matching logs found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                
+                let rowStyle = '';
+                if (log.action_type === 'milestone_reached') {
+                    rowStyle = 'background: rgba(255, 0, 127, 0.04); font-weight: 500;';
+                } else if (log.action_type === 'user_delete') {
+                    rowStyle = 'background: rgba(255, 0, 76, 0.02);';
+                }
+
+                row.innerHTML = `
+                    <td style="font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; ${rowStyle}">${timeAgo(log.created_at)}</td>
+                    <td style="${rowStyle}">${getEventBadge(log.action_type)}</td>
+                    <td style="font-size: 12px; line-height: 1.4; ${rowStyle}">${log.details}</td>
+                    <td style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); ${rowStyle}">${log.ip_address || 'System'}</td>
+                `;
+                tbody.appendChild(row);
+            });
         }
 
         function getEventBadge(type) {
@@ -1036,6 +1155,31 @@
                     color = '#7f8c8d';
                     background = 'rgba(127, 140, 141, 0.1)';
                     text = 'New Track';
+                    break;
+                case 'username_change':
+                    color = '#f8e71c';
+                    background = 'rgba(248, 231, 28, 0.1)';
+                    text = 'User Rename';
+                    break;
+                case 'profile_merge':
+                    color = '#e056fd';
+                    background = 'rgba(224, 86, 253, 0.1)';
+                    text = 'Merge Prof';
+                    break;
+                case 'visit_dashboard':
+                    color = '#2ecc71';
+                    background = 'rgba(46, 204, 113, 0.1)';
+                    text = 'Vis Home';
+                    break;
+                case 'visit_profile':
+                    color = '#3498db';
+                    background = 'rgba(52, 152, 219, 0.1)';
+                    text = 'Vis Profile';
+                    break;
+                case 'visit_history':
+                    color = '#e67e22';
+                    background = 'rgba(230, 126, 34, 0.1)';
+                    text = 'Vis History';
                     break;
             }
 
