@@ -688,6 +688,13 @@ async function scrapeAndSave(userId, username, env) {
         return;
     }
 
+    // Safeguard: if total_views > 0 but songs list is empty, it's an API/fetch glitch.
+    // We should skip saving this snapshot to prevent resetting the track list.
+    if (!data.songs || data.songs.length === 0) {
+        console.warn(`User @${username} (id: ${userId}) has ${data.total_views} views but returned 0 tracks. Skipping this update to prevent tracks count reset.`);
+        return;
+    }
+
     const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, timestamp) VALUES (?, ?, datetime('now'))").bind(userId, data.total_views).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
