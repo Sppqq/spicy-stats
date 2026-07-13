@@ -218,8 +218,155 @@
         }
 
         .main-grid {
-            display: block;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
+
+        /* Favorites and Checkboxes styling */
+        .cell-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 60px;
+        }
+
+        .star-btn {
+            font-size: 16px;
+            cursor: pointer;
+            color: var(--muted);
+            transition: color 140ms ease, transform 140ms ease;
+            user-select: none;
+        }
+
+        .star-btn.active {
+            color: #ffb703;
+            transform: scale(1.1);
+        }
+
+        .star-btn:hover {
+            color: #ffd166;
+        }
+
+        .compare-check {
+            cursor: pointer;
+            accent-color: var(--green);
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Compare Floating Action Bar */
+        .compare-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--white);
+            border: 2px solid var(--ink);
+            box-shadow: 6px 6px 0 var(--ink);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 999;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .compare-bar.open {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Modals and Overlays */
+        .compare-modal-content {
+            background: var(--white);
+            border: 2px solid var(--ink);
+            padding: 32px;
+            width: 100%;
+            max-width: 820px;
+            box-shadow: 6px 6px 0 var(--ink);
+            position: relative;
+            margin: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .compare-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Milestones panel styles */
+        .milestone-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 28px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 13px 8px;
+            border: 0;
+            border-bottom: 1px solid var(--paper-dark);
+            background: transparent;
+            text-align: left;
+            transition: 140ms ease;
+            cursor: pointer;
+        }
+
+        .milestone-row:hover {
+            background: var(--green);
+            color: var(--paper);
+        }
+        .milestone-row:hover * {
+            color: var(--paper) !important;
+        }
+
+        .milestone-progress-container {
+            width: 100%;
+            height: 6px;
+            background: var(--line);
+            margin-top: 5px;
+            position: relative;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .milestone-progress-bar {
+            height: 100%;
+            background: var(--green);
+            transition: width 0.3s ease;
+        }
+
+        .milestone-pct {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-align: right;
+            margin-top: 3px;
+        }
+        
+        .milestone-to-go-sub {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
 
         /* Theme Selector Dropdown */
         .theme-selector {
@@ -1412,6 +1559,19 @@
                         <!-- Rendered dynamically -->
                     </div>
                 </article>
+
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2 class="panel-title" data-i18n="milestone_tracker">Milestone Tracker</h2>
+                            <div class="panel-meta" data-i18n="milestone_sub">Closest to next milestone</div>
+                        </div>
+                    </div>
+
+                    <div class="author-list" id="milestones-list">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </article>
             </section>
 
             <section class="panel database">
@@ -1423,6 +1583,7 @@
 
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input class="search" id="search-input" placeholder="Search authors..." data-i18n-placeholder="search_place" aria-label="Search authors">
+                        <button class="back-button" id="compare-btn-trigger" style="margin: 0; white-space: nowrap; height: 34px;" data-i18n="compare_btn">⚖ Compare</button>
                         <button class="back-button" id="add-author-btn" style="margin: 0; white-space: nowrap; height: 34px;" data-i18n="add_author">+ Add Author</button>
                     </div>
                 </div>
@@ -1431,6 +1592,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 75px; text-align: center;">⚙</th>
                                 <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')"><span data-i18n="th_author">Author</span> <span id="sort-username"></span></th>
                                 <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')"><span data-i18n="th_views">Views</span> <span id="sort-views"></span></th>
                                 <th style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
@@ -1476,6 +1638,41 @@
         </div>
     </div>
 
+    <!-- Compare Floating Action Bar -->
+    <div id="compare-bar" class="compare-bar">
+        <div style="font-family: 'DM Mono', monospace; font-size: 11px;" id="compare-bar-text">Select authors to compare</div>
+        <button id="compare-submit-btn" style="border: 1px solid var(--ink); background: var(--green); color: #101114; padding: 6px 12px; font-size: 11px; font-family: 'DM Mono', monospace;" data-i18n="compare_btn">⚖ Compare</button>
+        <button id="compare-clear-btn" style="border: 1px solid var(--ink); background: transparent; padding: 6px 12px; font-size: 11px; font-family: 'DM Mono', monospace;" data-i18n="modal_cancel">Cancel</button>
+    </div>
+
+    <!-- Compare Modal -->
+    <div id="compare-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
+        <div class="compare-modal-content">
+            <button id="close-compare-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="compare_title">Compare Authors</div>
+            <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 8px;" data-i18n="compare_desc">
+                Comparing daily view counts over the last 30 days.
+            </p>
+            
+            <div id="compare-legend" class="compare-legend">
+                <!-- Legend dynamically rendered -->
+            </div>
+
+            <div class="chart-wrap" style="border: 1px solid var(--line); background: var(--white); margin: 0;">
+                <svg id="compare-chart-svg" class="chart" viewBox="0 0 800 225">
+                    <g id="compare-chart-paths"></g>
+                </svg>
+                <div class="chart-labels" id="compare-chart-labels">
+                    <!-- Labels dynamically rendered -->
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="button" id="close-compare-modal-btn-bottom" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace;" data-i18n="compare_close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Base configuration
         const API_BASE = 'https://spicy-api.glyph-labs.site/api';
@@ -1514,6 +1711,89 @@
         let sortColumn = 'views';
         let sortDirection = 'desc'; // 'asc' or 'desc'
 
+        let selectedCompareUsers = [];
+        const COMPARE_COLORS = ['#b9f227', '#4d65ff', '#ff715b', '#9b5de5', '#f15bb5', '#00f5d4'];
+        const MILESTONES = [
+            100, 250, 500, 750, 1000,
+            1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000,
+            15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000,
+            150000, 200000, 250000, 300000, 400000, 500000, 750000, 1000000,
+            1250000, 1500000, 1750000, 2000000, 2250000, 2500000, 3000000,
+            4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
+            12500000, 15000000, 17500000, 20000000, 25000000, 30000000,
+            40000000, 50000000, 75000000, 100000000, 150000000, 200000000,
+            250000000, 300000000, 400000000, 500000000, 750000000, 1000000000
+        ];
+
+        // Favorites helpers
+        function getFavorites() {
+            try {
+                return JSON.parse(localStorage.getItem('spicy-favorites')) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function isFavorite(username) {
+            return getFavorites().includes(username);
+        }
+
+        function toggleFavorite(username) {
+            let favs = getFavorites();
+            if (favs.includes(username)) {
+                favs = favs.filter(f => f !== username);
+            } else {
+                favs.push(username);
+            }
+            localStorage.setItem('spicy-favorites', JSON.stringify(favs));
+            applySortAndRenderTable();
+        }
+
+        // Compare Helpers
+        function toggleCompareSelection(username, checked) {
+            if (checked) {
+                if (selectedCompareUsers.length >= 5) {
+                    alert('You can compare a maximum of 5 authors.');
+                    applySortAndRenderTable();
+                    return;
+                }
+                if (!selectedCompareUsers.includes(username)) {
+                    selectedCompareUsers.push(username);
+                }
+            } else {
+                selectedCompareUsers = selectedCompareUsers.filter(u => u !== username);
+            }
+            updateCompareBar();
+        }
+
+        function updateCompareBar() {
+            const bar = document.getElementById('compare-bar');
+            const barText = document.getElementById('compare-bar-text');
+            if (bar && barText) {
+                if (selectedCompareUsers.length > 0) {
+                    bar.classList.add('open');
+                    barText.textContent = `Compare selected (${selectedCompareUsers.length}/5)`;
+                } else {
+                    bar.classList.remove('open');
+                }
+            }
+        }
+
+        function clearCompareSelection() {
+            selectedCompareUsers = [];
+            updateCompareBar();
+            applySortAndRenderTable();
+        }
+
+        function openCompareModal() {
+            document.getElementById('compare-modal').style.display = 'flex';
+            renderCompareChart();
+        }
+
+        function closeCompareModal() {
+            document.getElementById('compare-modal').style.display = 'none';
+        }
+
         // On load
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -1524,6 +1804,25 @@
             setupSearch();
             setDashboardDate();
             showEasterEgg();
+
+            // Compare actions
+            const compareBtn = document.getElementById('compare-btn-trigger');
+            if (compareBtn) {
+                compareBtn.addEventListener('click', () => {
+                    if (selectedCompareUsers.length >= 2) {
+                        openCompareModal();
+                    } else {
+                        alert('Please select at least 2 authors using checkboxes to compare.');
+                    }
+                });
+            }
+            document.getElementById('compare-submit-btn').addEventListener('click', openCompareModal);
+            document.getElementById('compare-clear-btn').addEventListener('click', clearCompareSelection);
+            
+            const closeCompareBtn = document.getElementById('close-compare-modal-btn');
+            if (closeCompareBtn) closeCompareBtn.addEventListener('click', closeCompareModal);
+            const closeCompareBtnBottom = document.getElementById('close-compare-modal-btn-bottom');
+            if (closeCompareBtnBottom) closeCompareBtnBottom.addEventListener('click', closeCompareModal);
         });
 
         // Set dynamic date in header
@@ -1591,7 +1890,13 @@
                 hour: "hour",
                 hours: "hours",
                 day: "day",
-                days: "days"
+                days: "days",
+                milestone_tracker: "Milestone Tracker",
+                milestone_sub: "Closest to next milestone",
+                compare_btn: "⚖ Compare",
+                compare_title: "Compare Authors",
+                compare_desc: "Comparing daily view counts over the last 30 days.",
+                compare_close: "Close"
             },
             ru: {
                 headline: "Знай, что популярно.",
@@ -1636,7 +1941,13 @@
                 hour: "час",
                 hours: "часа(ов)",
                 day: "день",
-                days: "дня(ей)"
+                days: "дня(ей)",
+                milestone_tracker: "Достижения",
+                milestone_sub: "Ближайшие к новой отметке",
+                compare_btn: "⚖ Сравнить",
+                compare_title: "Сравнение авторов",
+                compare_desc: "Сравнение количества просмотров за последние 30 дней.",
+                compare_close: "Закрыть"
             },
             uk: {
                 headline: "Знай, що популярно.",
@@ -1681,7 +1992,13 @@
                 hour: "годину",
                 hours: "години(ин)",
                 day: "день",
-                days: "діб"
+                days: "діб",
+                milestone_tracker: "Досягнення",
+                milestone_sub: "Найближчі до нової позначки",
+                compare_btn: "⚖ Порівняти",
+                compare_title: "Порівняння авторів",
+                compare_desc: "Порівняння кількості переглядів за останні 30 днів.",
+                compare_close: "Закрити"
             },
             de: {
                 headline: "Wisse, was sich bewegt.",
@@ -1726,7 +2043,13 @@
                 hour: "Stunde",
                 hours: "Stunden",
                 day: "Tag",
-                days: "Tagen"
+                days: "Tagen",
+                milestone_tracker: "Meilensteine",
+                milestone_sub: "Nächste Meilensteine",
+                compare_btn: "⚖ Vergleichen",
+                compare_title: "Autoren vergleichen",
+                compare_desc: "Vergleich der Aufrufe in den letzten 30 Tagen.",
+                compare_close: "Schließen"
             },
             it: {
                 headline: "Sappi cosa si muove.",
@@ -1771,7 +2094,13 @@
                 hour: "ora",
                 hours: "ore",
                 day: "giorno",
-                days: "giorni"
+                days: "giorni",
+                milestone_tracker: "Traguardi",
+                milestone_sub: "Più vicini al prossimo traguardo",
+                compare_btn: "⚖ Confronta",
+                compare_title: "Confronta Autori",
+                compare_desc: "Confronto delle visualizzazioni negli ultimi 30 giorni.",
+                compare_close: "Chiudi"
             },
             pl: {
                 headline: "Wiedz, co jest na czasie.",
@@ -1816,8 +2145,13 @@
                 hour: "godzinę",
                 hours: "godziny",
                 day: "dzień",
-                days: "dni"
-            }
+                days: "dni",
+                milestone_tracker: "Kamienie milowe",
+                milestone_sub: "Najbliżej kolejnego kamienia",
+                compare_btn: "⚖ Porównaj",
+                compare_title: "Porównaj autorów",
+                compare_desc: "Porównanie wyświetleń z ostatnich 30 dni.",
+                compare_close: "Zamknij"
         };
 
         function applyLanguage(lang) {
@@ -2070,6 +2404,7 @@
                 
                 renderOverview();
                 renderTopAuthors();
+                renderMilestones();
                 applySortAndRenderTable();
 
                 // Start background loading of track counts
@@ -2084,7 +2419,7 @@
         function showLoadingState() {
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
                         Loading live metrics...
                     </td>
                 </tr>
@@ -2094,12 +2429,17 @@
                     Analyzing growth...
                 </div>
             `;
+            document.getElementById('milestones-list').innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    Calculating milestones...
+                </div>
+            `;
         }
 
         function showErrorState() {
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
                         Error loading data. Please reload the page.
                     </td>
                 </tr>
@@ -2114,7 +2454,7 @@
                 
                 await Promise.all(batch.map(async (u) => {
                     // Skip if data is already available
-                    if (u.total_songs !== null && u.total_songs !== undefined) return;
+                    if (u.total_songs !== null && u.total_songs !== undefined && u.songs) return;
                     
                     try {
                         const res = await spicyFetch(`${API_BASE}/user/${u.username}`);
@@ -2124,6 +2464,7 @@
                             u.total_songs = data.total_songs !== undefined 
                                 ? data.total_songs 
                                 : (data.songs ? data.songs.length : 0);
+                            u.songs = data.songs || [];
                         }
                     } catch (e) {
                         console.error('Failed to fetch tracks for', u.username);
@@ -2133,6 +2474,7 @@
                 // Redraw UI with new data after each batch
                 renderOverview();
                 renderTopAuthors();
+                renderMilestones();
                 applySortAndRenderTable();
             }
         }
@@ -2176,6 +2518,212 @@
                     tracksCard.classList.remove('green');
                 }
             }
+        }
+
+        // Render compare chart for selected users in modal
+        function renderCompareChart() {
+            const container = document.getElementById('compare-chart-paths');
+            const legend = document.getElementById('compare-legend');
+            const labelsContainer = document.getElementById('compare-chart-labels');
+            if (!container || !legend || !labelsContainer) return;
+            
+            container.innerHTML = '';
+            legend.innerHTML = '';
+            
+            const selectedUsersData = allUsersDetailed.filter(u => selectedCompareUsers.includes(u.username));
+            if (selectedUsersData.length === 0) return;
+            
+            // Gather all dates
+            const dailyViews = {};
+            selectedUsersData.forEach(u => {
+                u.chart_data.forEach(pt => {
+                    const dateStr = pt.x.split(' ')[0];
+                    if (!dailyViews[dateStr]) {
+                        dailyViews[dateStr] = {};
+                    }
+                    dailyViews[dateStr][u.username] = pt.y;
+                });
+            });
+            
+            const sortedDates = Object.keys(dailyViews).sort();
+            if (sortedDates.length < 2) return;
+            
+            // Build points for each user
+            const usersPoints = {};
+            selectedUsersData.forEach(u => {
+                usersPoints[u.username] = [];
+            });
+            
+            const lastKnownViews = {};
+            selectedUsersData.forEach(u => {
+                lastKnownViews[u.username] = 0;
+            });
+            
+            sortedDates.forEach(dateStr => {
+                const entry = dailyViews[dateStr];
+                selectedUsersData.forEach(u => {
+                    if (entry[u.username] !== undefined) {
+                        lastKnownViews[u.username] = entry[u.username];
+                    }
+                    usersPoints[u.username].push({ date: dateStr, views: lastKnownViews[u.username] });
+                });
+            });
+            
+            // Find global min and max views across selected users
+            let minViews = Infinity;
+            let maxViews = -Infinity;
+            selectedUsersData.forEach(u => {
+                usersPoints[u.username].forEach(p => {
+                    if (p.views < minViews) minViews = p.views;
+                    if (p.views > maxViews) maxViews = p.views;
+                });
+            });
+            
+            if (minViews === Infinity) minViews = 0;
+            if (maxViews === -Infinity) maxViews = 100;
+            
+            const width = 800;
+            const height = 225;
+            const paddingLeft = 10;
+            const paddingRight = 10;
+            const paddingTop = 30;
+            const paddingBottom = 10;
+            
+            const chartHeight = height - paddingTop - paddingBottom;
+            const chartWidth = width - paddingLeft - paddingRight;
+            
+            const times = sortedDates.map(dateStr => {
+                const dateObj = new Date(dateStr.includes('T') || dateStr.includes(' ') ? dateStr : dateStr + 'T00:00:00Z');
+                return isNaN(dateObj.getTime()) ? 0 : dateObj.getTime();
+            });
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+            const timeRange = maxTime - minTime || 1;
+            
+            // Render lines
+            selectedUsersData.forEach((u, index) => {
+                const color = COMPARE_COLORS[index % COMPARE_COLORS.length];
+                const pts = usersPoints[u.username];
+                
+                const scaledPoints = pts.map((p, i) => {
+                    const timeVal = times[i];
+                    const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
+                    const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
+                    return { x, y };
+                });
+                
+                let linePathStr = '';
+                scaledPoints.forEach((p, i) => {
+                    const cmd = i === 0 ? 'M' : 'L';
+                    linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+                });
+                
+                const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                pathEl.setAttribute("d", linePathStr);
+                pathEl.setAttribute("fill", "none");
+                pathEl.setAttribute("stroke", color);
+                pathEl.setAttribute("stroke-width", "3");
+                pathEl.setAttribute("stroke-linecap", "round");
+                pathEl.setAttribute("stroke-linejoin", "round");
+                container.appendChild(pathEl);
+                
+                // Render legend item
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <span class="legend-color" style="background: ${color}"></span>
+                    <span style="font-weight: bold; color: var(--ink);">@${u.username}</span>
+                    <span style="color: var(--muted);">(${formatViews(u.views)})</span>
+                `;
+                legend.appendChild(legendItem);
+            });
+            
+            // Render dates labels
+            labelsContainer.innerHTML = '';
+            const steps = 5;
+            for (let i = 0; i <= steps; i++) {
+                const timeVal = minTime + (i / steps) * timeRange;
+                const dateObj = new Date(timeVal);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                const label = document.createElement('span');
+                label.textContent = formattedDate;
+                labelsContainer.appendChild(label);
+            }
+        }
+
+        // Render Milestones Panel
+        function renderMilestones() {
+            const listContainer = document.getElementById('milestones-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+            
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            
+            const list = allUsersDetailed
+                .filter(u => !isNewUser(u.first_snapshot) && Number(u.views) > 0)
+                .map(u => {
+                    const views = Number(u.views);
+                    let nextM = MILESTONES[MILESTONES.length - 1];
+                    for (let m of MILESTONES) {
+                        if (views < m) {
+                            nextM = m;
+                            break;
+                        }
+                    }
+                    if (views >= nextM) {
+                        nextM = Math.ceil((views + 1) / 50000000) * 50000000;
+                    }
+                    
+                    let prevM = 0;
+                    for (let i = 0; i < MILESTONES.length; i++) {
+                        if (MILESTONES[i] === nextM) {
+                            prevM = i > 0 ? MILESTONES[i - 1] : 0;
+                            break;
+                        }
+                    }
+                    
+                    const totalRange = nextM - prevM || 1;
+                    const currentOffset = views - prevM;
+                    const pct = Math.max(0, Math.min(100, (currentOffset / totalRange) * 100));
+                    const toGo = nextM - views;
+                    
+                    return {
+                        user: u,
+                        nextM,
+                        pct,
+                        toGo
+                    };
+                })
+                .sort((a, b) => b.pct - a.pct)
+                .slice(0, 4);
+                
+            if (list.length === 0) {
+                listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">No milestone data</div>`;
+                return;
+            }
+            
+            list.forEach(item => {
+                const u = item.user;
+                const row = document.createElement('div');
+                row.className = 'milestone-row';
+                row.onclick = () => openProfile(u.username);
+                
+                row.innerHTML = `
+                    <span class="rank" style="font-size: 14px; font-weight: 800; color: var(--green);">🏆</span>
+                    <span>
+                        <div class="author-name">@${u.username}</div>
+                        <div class="milestone-progress-container">
+                            <div class="milestone-progress-bar" style="width: ${item.pct.toFixed(1)}%"></div>
+                        </div>
+                        <div class="milestone-to-go-sub">${formatFullNumber(item.toGo)} ${(dict.milestone_to_go || 'to go to')} ${formatViews(item.nextM)}</div>
+                    </span>
+                    <span>
+                        <div class="milestone-pct">${item.pct.toFixed(1)}%</div>
+                    </span>
+                `;
+                listContainer.appendChild(row);
+            });
         }
 
         // Render Top Authors Panel (Top 4 by views)
@@ -2418,9 +2966,19 @@
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const query = e.target.value.toLowerCase().trim();
-                    filteredUsers = allUsersDetailed.filter(u =>
-                String(u.username || '').toLowerCase().includes(query)
-            );
+                    filteredUsers = allUsersDetailed.filter(u => {
+                        const nameMatches = String(u.username || '').toLowerCase().includes(query);
+                        let trackMatches = false;
+                        u._matchedTrack = null;
+                        if (u.songs && Array.isArray(u.songs)) {
+                            const matched = u.songs.find(s => String(s.title || '').toLowerCase().includes(query));
+                            if (matched) {
+                                trackMatches = true;
+                                u._matchedTrack = matched.title;
+                            }
+                        }
+                        return nameMatches || trackMatches;
+                    });
                     applySortAndRenderTable();
                 });
             }
@@ -2440,6 +2998,11 @@
 
         function applySortAndRenderTable() {
             filteredUsers.sort((a, b) => {
+                // Pin favorites at the top
+                const favA = isFavorite(a.username) ? 1 : 0;
+                const favB = isFavorite(b.username) ? 1 : 0;
+                if (favA !== favB) return favB - favA;
+
                 let valA, valB;
                 if (sortColumn === 'username') {
                     valA = a.username.toLowerCase();
@@ -2485,7 +3048,7 @@
             if (filteredUsers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        <td colspan="7" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
                             ${dict.no_results}
                         </td>
                     </tr>
@@ -2535,7 +3098,14 @@
                 }
 
                 row.innerHTML = `
-                    <td class="table-user">@${u.username}</td>
+                    <td class="cell-actions" onclick="event.stopPropagation();">
+                        <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')">★</span>
+                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)">
+                    </td>
+                    <td class="table-user">
+                        <div>@${u.username}</div>
+                        ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${u._matchedTrack}</div>` : ''}
+                    </td>
                     <td>${formatFullNumber(Number(u.views || 0))}</td>
                     <td class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">
                         ${growthText}
