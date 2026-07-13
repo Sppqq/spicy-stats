@@ -67,6 +67,18 @@ async function checkSchema(env) {
         // Add total_songs column to snapshots table
         await env.DB.prepare("ALTER TABLE snapshots ADD COLUMN total_songs INTEGER").run().catch(() => {});
 
+        // Audit Logs Table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action_type TEXT NOT NULL,
+                details TEXT NOT NULL,
+                ip_address TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        `).run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)").run().catch(() => {});
+
         schemaChecked = true;
     } catch (e) {
         // Ignore
@@ -90,6 +102,20 @@ function getCorsHeaders(request) {
         "Access-Control-Max-Age": "86400",
         "Access-Control-Allow-Headers": "Content-Type, X-Spicy-Signature, X-Spicy-Timestamp",
     };
+}
+
+async function logAction(env, actionType, details, request) {
+    let ipAddress = null;
+    if (request) {
+        ipAddress = request.headers.get("CF-Connecting-IP") || request.headers.get("x-real-ip") || "Unknown IP";
+    }
+    try {
+        await env.DB.prepare("INSERT INTO audit_logs (action_type, details, ip_address) VALUES (?, ?, ?)")
+            .bind(actionType, details, ipAddress)
+            .run();
+    } catch (err) {
+        console.error("Failed to write audit log:", err);
+    }
 }
 
 function verifySignature(request, path) {
@@ -189,6 +215,8 @@ export default {
                 response = await handleAdminScrapeAll(request, env, ctx);
             } else if (url.pathname === "/api/admin/populate-metadata" && request.method === "POST") {
                 response = await handleAdminPopulateMetadata(request, env, ctx);
+            } else if (url.pathname === "/api/admin/logs" && request.method === "POST") {
+                response = await handleAdminLogs(request, env);
             } else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") {
                 response = await handleAdminDeleteUser(request, env);
             } else if (url.pathname === "/api/admin/export-user" && request.method === "POST") {
@@ -237,6 +265,8 @@ async function handleAddUser(request, env, ctx) {
     await env.DB.prepare("INSERT INTO users (username) VALUES (?) ON CONFLICT(username) DO NOTHING")
         .bind(cleanName)
         .run();
+
+    await logAction(env, "user_add", `Added new creator: @${cleanName}`, request);
 
     ctx.waitUntil(scrapeSingleUser(cleanName, env));
 
@@ -578,6 +608,7 @@ async function handleAdminScrapeUser(request, env) {
 
     try {
         await scrapeAndSave(user.id, cleanName, env);
+        await logAction(env, "manual_scrape", `Manual scrape triggered for: @${cleanName}`, request);
         return new Response(JSON.stringify({ success: true, message: `Successfully scraped @${cleanName}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
@@ -592,7 +623,24 @@ async function handleAdminScrapeAll(request, env, ctx) {
 
     try {
         ctx.waitUntil(runScraper(env));
+        await logAction(env, "global_scrape", "Global scraper queue run triggered", request);
         return new Response(JSON.stringify({ success: true, message: "Scraper run triggered in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function handleAdminLogs(request, env) {
+    const { secret, limit = 50, offset = 0 } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    try {
+        const { results } = await env.DB.prepare("SELECT id, action_type, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT ? OFFSET ?")
+            .bind(limit, offset)
+            .all();
+        return new Response(JSON.stringify({ logs: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
@@ -608,10 +656,12 @@ async function handleAdminPopulateMetadata(request, env, ctx) {
         if (username) {
             // Process single user synchronously for the client-side loop
             await populateMetadataCache(env, username);
+            await logAction(env, "cache_rebuild", `Rebuilt metadata cache for: @${username}`, request);
             return new Response(JSON.stringify({ success: true, message: `Successfully populated metadata for @${username}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
         } else {
             // Fallback: run in background for all users
             ctx.waitUntil(populateMetadataCache(env));
+            await logAction(env, "cache_rebuild", "Rebuilt metadata cache for all creators", request);
             return new Response(JSON.stringify({ success: true, message: "Metadata cache population started in background" }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
         }
     } catch (err) {
@@ -709,6 +759,7 @@ async function handleAdminDeleteUser(request, env) {
 
     try {
         await deleteUserFromDB(user.id, env);
+        await logAction(env, "user_delete", `Deleted creator: @${cleanName}`, request);
         return new Response(JSON.stringify({ success: true, message: `Successfully deleted @${cleanName}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
@@ -845,6 +896,7 @@ async function handleImport(request, env) {
             }
             snapshotCount++;
         }
+        await logAction(env, "history_import", `Imported ${snapshotCount} history snapshots for @${cleanName}`, request);
         return new Response(JSON.stringify({ success: true, imported: snapshotCount }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
@@ -927,12 +979,24 @@ async function scrapeAndSave(userId, username, env) {
 
     // 1. Cache track metadata
     if (data.tracksDetails && data.tracksDetails.length > 0) {
+        // Query existing track IDs to find if there are any new ones
+        const { results: existing } = await env.DB.prepare("SELECT spotify_id FROM track_metadata").all();
+        const existingIds = new Set((existing || []).map(r => r.spotify_id));
+
         const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
-        const batch = data.tracksDetails.map(track => {
-            if (!track) return null;
+        const batch = [];
+        
+        for (const track of data.tracksDetails) {
+            if (!track) continue;
             const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-            return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
-        }).filter(Boolean);
+            batch.push(stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames));
+            
+            // If it is a new track, log it!
+            if (!existingIds.has(track.id)) {
+                await logAction(env, "new_track", `New track cached for @${username}: "${track.name}" by "${artistNames}" (ISRC: ${track.isrc || 'None'})`, null);
+            }
+        }
+
         if (batch.length > 0) {
             await env.DB.batch(batch);
         }
@@ -943,13 +1007,28 @@ async function scrapeAndSave(userId, username, env) {
     const totalSongsCount = uniqueSongs.length;
 
     // 3. Save snapshot with total_songs
-    const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
+    const prevSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
+    const oldViews = prevSnap ? prevSnap.total_views : 0;
+    const newViews = data.total_views;
+
+    const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, newViews, totalSongsCount).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
     if (data.songs && data.songs.length > 0) {
         const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
         const batch = data.songs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
         await env.DB.batch(batch);
+    }
+
+    // Check milestones (every 50K views)
+    const step = 50000;
+    if (oldViews > 0 && Math.floor(newViews / step) > Math.floor(oldViews / step)) {
+        const milestone = Math.floor(newViews / step) * step;
+        let milestoneText = `${milestone / 1000}K`;
+        if (milestone >= 1000000) {
+            milestoneText = `${milestone / 1000000}M`;
+        }
+        await logAction(env, "milestone_reached", `🎉 @${username} reached the milestone of ${milestoneText} total views! (Current: ${newViews.toLocaleString()})`, null);
     }
 
     if (data.discord_id) {

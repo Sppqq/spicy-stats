@@ -545,6 +545,39 @@
                     </table>
                 </div>
             </section>
+
+            <!-- System Action Logs -->
+            <section class="panel">
+                <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div>
+                        <h2 class="panel-title">System Action Logs</h2>
+                        <div class="panel-meta">Audit trail of actions and system events</div>
+                    </div>
+                    <button class="admin-btn secondary" style="padding: 6px 12px; font-size: 11px;" onclick="loadLogs()">
+                        🔄 Refresh Logs
+                    </button>
+                </div>
+                <div style="overflow-x: auto; max-height: 400px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">Timestamp</th>
+                                <th style="width: 100px;">Event</th>
+                                <th>Details</th>
+                                <th style="width: 120px;">IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                                    Logs will load after unlocking...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
                 <div style="margin-top: 6px;">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</div>
@@ -711,6 +744,7 @@
                 systemData = await res.json();
                 renderStats();
                 renderUserList();
+                await loadLogs();
             } catch (err) {
                 console.error(err);
                 document.getElementById('database-tbody').innerHTML = `
@@ -850,6 +884,115 @@
             } finally {
                 btn.disabled = false;
             }
+        }
+
+        // Fetch and render System Audit Logs
+        async function loadLogs() {
+            const tbody = document.getElementById('logs-tbody');
+            if (!tbody) return;
+            
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/logs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, limit: 50 })
+                });
+
+                if (!res.ok) throw new Error('Failed to load logs');
+
+                const data = await res.json();
+                tbody.innerHTML = '';
+
+                if (!data.logs || data.logs.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                                No actions logged yet.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                data.logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    
+                    let rowStyle = '';
+                    if (log.action_type === 'milestone_reached') {
+                        rowStyle = 'background: rgba(255, 0, 127, 0.04); font-weight: 500;';
+                    } else if (log.action_type === 'user_delete') {
+                        rowStyle = 'background: rgba(255, 0, 76, 0.02);';
+                    }
+
+                    row.innerHTML = `
+                        <td style="font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; ${rowStyle}">${timeAgo(log.created_at)}</td>
+                        <td style="${rowStyle}">${getEventBadge(log.action_type)}</td>
+                        <td style="font-size: 12px; line-height: 1.4; ${rowStyle}">${log.details}</td>
+                        <td style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); ${rowStyle}">${log.ip_address || 'System'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 20px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                            Error loading logs: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function getEventBadge(type) {
+            let color = 'var(--muted)';
+            let background = 'rgba(128, 128, 128, 0.1)';
+            let text = type;
+
+            switch (type) {
+                case 'user_add':
+                    color = 'var(--blue)';
+                    background = 'rgba(0, 112, 243, 0.1)';
+                    text = 'User Add';
+                    break;
+                case 'user_delete':
+                    color = 'var(--coral)';
+                    background = 'rgba(255, 0, 76, 0.1)';
+                    text = 'User Del';
+                    break;
+                case 'manual_scrape':
+                    color = '#f5a623';
+                    background = 'rgba(245, 166, 35, 0.1)';
+                    text = 'Scrape User';
+                    break;
+                case 'global_scrape':
+                    color = '#7928ca';
+                    background = 'rgba(121, 40, 202, 0.1)';
+                    text = 'Scrape All';
+                    break;
+                case 'cache_rebuild':
+                    color = '#00dfd8';
+                    background = 'rgba(0, 223, 216, 0.1)';
+                    text = 'Rebuild Cache';
+                    break;
+                case 'history_import':
+                    color = 'var(--green)';
+                    background = 'rgba(0, 223, 150, 0.1)';
+                    text = 'Import';
+                    break;
+                case 'milestone_reached':
+                    color = '#ff007f';
+                    background = 'rgba(255, 0, 127, 0.1)';
+                    text = 'Milestone';
+                    break;
+                case 'new_track':
+                    color = '#7f8c8d';
+                    background = 'rgba(127, 140, 141, 0.1)';
+                    text = 'New Track';
+                    break;
+            }
+
+            return `<span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; color: ${color}; background: ${background}; border: 1px solid ${color}44; font-family: 'DM Mono', monospace; text-transform: uppercase; white-space: nowrap;">${text}</span>`;
         }
 
         // Instant Single Scrape Form
