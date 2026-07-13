@@ -2008,25 +2008,28 @@
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
+            const firstDate = parseUTCDate(firstSnapshotStr);
+            if (firstDate) {
+                const now = new Date();
+                const elapsedMs = now - firstDate;
+                const targetMs = 24 * 60 * 60 * 1000;
+                if (elapsedMs < targetMs) {
+                    const remainingMs = targetMs - elapsedMs;
+                    const remainingHours = Math.floor(remainingMs / 3600000);
+                    if (remainingHours >= 1) {
+                        return `${dict.in} ${remainingHours}${dict.h}`;
+                    }
+                    const remainingMins = Math.ceil(remainingMs / 60000);
+                    return `${dict.in} ${remainingMins}${dict.m}`;
+                }
+            }
+
             if (growth !== null && growth !== undefined) {
                 const num = Number(growth);
                 return `${num >= 0 ? '+' : ''}${formatFn(num)}`;
             }
-            const firstDate = parseUTCDate(firstSnapshotStr);
             if (!firstDate) return '—';
-            const now = new Date();
-            const elapsedMs = now - firstDate;
-            const targetMs = 24 * 60 * 60 * 1000;
-            if (elapsedMs >= targetMs) {
-                return dict.soon;
-            }
-            const remainingMs = targetMs - elapsedMs;
-            const remainingHours = Math.floor(remainingMs / 3600000);
-            if (remainingHours >= 1) {
-                return `${dict.in} ${remainingHours}${dict.h}`;
-            }
-            const remainingMins = Math.ceil(remainingMs / 60000);
-            return `${dict.in} ${remainingMins}${dict.m}`;
+            return dict.soon;
         }
 
         function parseUTCDate(dateStr) {
