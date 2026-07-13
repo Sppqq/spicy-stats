@@ -3317,7 +3317,11 @@
         }
 
         function checkLanguageSuggestion() {
-            if (localStorage.getItem('spicy-lang-suggested') || localStorage.getItem('spicy-lang')) {
+            if (localStorage.getItem('spicy-lang-suggested')) {
+                return;
+            }
+            const savedLang = localStorage.getItem('spicy-lang');
+            if (savedLang && savedLang !== 'en') {
                 return;
             }
             const browserLang = (navigator.language || navigator.userLanguage || '').substring(0, 2).toLowerCase();
