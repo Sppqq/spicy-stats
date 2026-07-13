@@ -737,6 +737,15 @@
             initTheme();
             checkAuth();
             showEasterEgg();
+
+            // Register Service Worker for offline support / speed caching
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    console.log('ServiceWorker registered:', reg.scope);
+                }).catch((err) => {
+                    console.warn('ServiceWorker registration failed:', err);
+                });
+            }
         });
 
         // Theme Setup
