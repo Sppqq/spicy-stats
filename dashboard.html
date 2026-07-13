@@ -2507,8 +2507,8 @@
                 const batch = allUsersDetailed.slice(i, i + batchSize);
                 
                 await Promise.all(batch.map(async (u) => {
-                    // Skip if data is already available
-                    if (u.total_songs !== null && u.total_songs !== undefined && u.songs) return;
+                    // Skip if total_songs already came from the dashboard response
+                    if (typeof u.total_songs === 'number') return;
                     
                     try {
                         const res = await spicyFetch(`${API_BASE}/user/${u.username}`);
