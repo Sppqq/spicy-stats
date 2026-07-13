@@ -729,11 +729,12 @@ function parseDate(rawStr) {
 }
 
 function normalizeTitle(title) {
+    if (!title) return "";
     return title
+        // Ignored case (/gi) and cut out remasters, deluxes, edits and lives
+        // Leave "single version" untouched (singles are not merged)
+        .replace(/\s*[-\(](?:20\d{2}\s+)?(?:remaster|remastered|deluxe|edit|radio edit|live|acoustic)[\)]?/gi, '')
         .toLowerCase()
-        // Отрезаем суффиксы после дефиса или в скобках (Remaster, Single Version, Deluxe и т.д.)
-        .replace(/\s*[-\(](?:20\d{2}\s+)?(?:remaster|remastered|single version|deluxe|edit|radio edit|live|acoustic)[\)]?/g, '')
-        // Очищаем от всех неалфавитных символов
         .replace(/[^a-z0-9а-яё]/g, '');
 }
 
