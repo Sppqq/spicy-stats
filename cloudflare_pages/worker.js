@@ -733,7 +733,9 @@ function normalizeTitle(title) {
     return title
         // Ignored case (/gi) and cut out remasters, deluxes, edits and lives
         // Leave "single version" untouched (singles are not merged)
-        .replace(/\s*[-\(](?:20\d{2}\s+)?(?:remaster|remastered|deluxe|edit|radio edit|live|acoustic)[\)]?/gi, '')
+        // Added \s* after the separator to match spaces after dashes/parentheses
+        // Put longer words (remastered) before shorter ones (remaster) to avoid partial matching
+        .replace(/\s*[-\(]\s*(?:20\d{2}\s+)?(?:remastered|remaster|deluxe|edit|radio edit|live|acoustic)[\)]?/gi, '')
         .toLowerCase()
         .replace(/[^a-z0-9а-яё]/g, '');
 }
