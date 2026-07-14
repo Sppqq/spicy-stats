@@ -1135,10 +1135,6 @@ async function fetchUserDataFromAPI(username) {
     if (!response.ok) return null;
     const html = await response.text();
 
-    if (html.includes('"userId":""') || html.includes('\\"userId\\":\\"\\"') || html.includes('"userId":null') || html.includes('\\"userId\\":null')) {
-        throw new Error("USER_NOT_CREATOR");
-    }
-
     const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
     let discord_id = null;
     let discord_avatar = null;
@@ -1163,7 +1159,9 @@ async function fetchUserDataFromAPI(username) {
         }
     }
 
-    if (!userId) return null;
+    if (!userId) {
+        throw new Error("USER_NOT_CREATOR");
+    }
     if (!discord_id) discord_id = userId;
 
     const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: userId, includeTracks: true } }))}`, { headers });
@@ -1180,40 +1178,8 @@ async function fetchUserDataFromAPI(username) {
     if (!tracksRes.ok) return null;
     const tracksJson = await tracksRes.json();
 
-    let makesList = [];
-    const rawMakes = profileJson.result?.data?.json?.perUser?.makes;
-    if (rawMakes) {
-        if (Array.isArray(rawMakes)) {
-            makesList = rawMakes;
-        } else if (typeof rawMakes === "object") {
-            for (const key of Object.keys(rawMakes)) {
-                const val = rawMakes[key];
-                if (Array.isArray(val)) {
-                    makesList.push(...val);
-                } else if (val && typeof val === "object") {
-                    makesList.push(...Object.values(val));
-                }
-            }
-        }
-    }
-
-    let tracksDetails = [];
-    const rawTracksData = tracksJson.result?.data?.json?.data;
-    if (rawTracksData) {
-        if (Array.isArray(rawTracksData)) {
-            tracksDetails = rawTracksData;
-        } else if (typeof rawTracksData === "object") {
-            for (const key of Object.keys(rawTracksData)) {
-                const val = rawTracksData[key];
-                if (Array.isArray(val)) {
-                    tracksDetails.push(...val);
-                } else if (val && typeof val === "object") {
-                    tracksDetails.push(...Object.values(val));
-                }
-            }
-        }
-    }
-
+    const makesList = profileJson.result?.data?.json?.perUser?.makes || [];
+    const tracksDetails = tracksJson.result?.data?.json?.data || [];
     const tracksMap = new Map();
     for (const track of tracksDetails) {
         if (!track) continue;
