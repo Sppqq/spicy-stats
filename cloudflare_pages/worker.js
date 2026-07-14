@@ -1028,6 +1028,11 @@ async function scrapeAndSave(userId, username, env) {
             }
             
             if (!data) {
+                const hasSnapshots = await env.DB.prepare("SELECT 1 FROM snapshots WHERE user_id = ? LIMIT 1").bind(userId).first();
+                if (hasSnapshots) {
+                    console.warn(`User @${currentUsername} (id: ${userId}) not valid (${err.message}) but has history. Skipping this update.`);
+                    return;
+                }
                 console.warn(`User @${currentUsername} (id: ${userId}) not valid (${err.message}). Removing from tracked users.`);
                 await deleteUserFromDB(userId, env);
                 return;
@@ -1041,9 +1046,15 @@ async function scrapeAndSave(userId, username, env) {
     }
 
     if (data.total_views === 0 && (!data.songs || data.songs.length === 0)) {
-        console.warn(`User @${currentUsername} (id: ${userId}) has 0 views and 0 tracks. Removing from tracked users.`);
-        await deleteUserFromDB(userId, env);
-        return;
+        const hasSnapshots = await env.DB.prepare("SELECT 1 FROM snapshots WHERE user_id = ? LIMIT 1").bind(userId).first();
+        if (hasSnapshots) {
+            console.warn(`User @${currentUsername} (id: ${userId}) returned 0 views and 0 tracks. Skipping this update to prevent data loss.`);
+            return;
+        } else {
+            console.warn(`New User @${currentUsername} (id: ${userId}) has 0 views and 0 tracks on initial scrape. Removing from tracked users.`);
+            await deleteUserFromDB(userId, env);
+            return;
+        }
     }
 
     // Safeguard: if total_views > 0 but songs list is empty, it's an API/fetch glitch.
