@@ -624,13 +624,13 @@ async function handleAdminScrapeUser(request, env) {
     }
 
     const cleanName = username.trim().replace(/^@/, "");
-    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    const user = await env.DB.prepare("SELECT id, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
     if (!user) {
         return new Response(JSON.stringify({ error: "User not found in database" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     try {
-        await scrapeAndSave(user.id, cleanName, env);
+        await scrapeAndSave(user.id, cleanName, user.discord_id, env);
         await logAction(env, "manual_scrape", `Manual scrape triggered for: @${cleanName}`, request);
         return new Response(JSON.stringify({ success: true, message: `Successfully scraped @${cleanName}` }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (err) {
@@ -996,27 +996,27 @@ async function handleExport(username, env) {
 // remain IDENTICAL to your original file.
 async function runScraper(env) {
     const { results: users } = await env.DB.prepare(`
-    SELECT u.id, u.username, s_latest.id AS latest_snap_id
+    SELECT u.id, u.username, u.discord_id, s_latest.id AS latest_snap_id
     FROM users u
     LEFT JOIN snapshots s_latest ON s_latest.id = (
         SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
     )
     ORDER BY latest_snap_id ASC
-    LIMIT 12
+    LIMIT 4
   `).all();
 
     if (!users || users.length === 0) return;
 
-    const batchSize = 4;
+    const batchSize = 2;
     for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
-        await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, env).catch(err => console.error(`Error updating @${user.username}:`, err.message))));
+        await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, user.discord_id, env).catch(err => console.error(`Error updating @${user.username}:`, err.message))));
     }
 }
 
 async function scrapeSingleUser(username, env) {
-    const user = await env.DB.prepare("SELECT id, username FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (user) await scrapeAndSave(user.id, user.username, env);
+    const user = await env.DB.prepare("SELECT id, username, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
+    if (user) await scrapeAndSave(user.id, user.username, user.discord_id, env);
 }
 
 async function deleteUserFromDB(userId, env) {
@@ -1027,11 +1027,12 @@ async function deleteUserFromDB(userId, env) {
     ]);
 }
 
-async function scrapeAndSave(userId, username, env) {
+async function scrapeAndSave(userId, username, discordId, env) {
     let data = null;
     let currentUsername = username;
+    let currentDiscordId = discordId;
     try {
-        data = await fetchUserDataFromAPI(currentUsername);
+        data = await fetchUserDataFromAPI(currentUsername, currentDiscordId);
     } catch (err) {
         if (err.message === "USER_NOT_FOUND" || err.message === "USER_NOT_CREATOR") {
             // Check if user has a discord_id in database to resolve username changes
@@ -1048,8 +1049,9 @@ async function scrapeAndSave(userId, username, env) {
                             await env.DB.prepare("UPDATE users SET username = ? WHERE id = ?").bind(newUsername, userId).run();
                             await logAction(env, "username_change", `Automatically updated username for @${currentUsername} -> @${newUsername} (Discord ID: ${dbUser.discord_id})`, null);
                             currentUsername = newUsername;
+                            currentDiscordId = dbUser.discord_id;
                             // Retry fetch with the new username
-                            data = await fetchUserDataFromAPI(currentUsername);
+                            data = await fetchUserDataFromAPI(currentUsername, currentDiscordId);
                         }
                     }
                 } catch (fetchErr) {
@@ -1155,52 +1157,57 @@ async function scrapeAndSave(userId, username, env) {
     }
 }
 
-async function fetchUserDataFromAPI(username) {
-    const pageUrl = `https://spicylyrics.org/${username}`;
+async function fetchUserDataFromAPI(username, discordId = null) {
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" };
-    const response = await fetch(pageUrl, { headers });
-    if (response.status === 404) {
-        throw new Error("USER_NOT_FOUND");
-    }
-    if (!response.ok) return null;
-    const html = await response.text();
-
-    const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
-    let discord_id = null;
+    let userId = discordId;
     let discord_avatar = null;
-    if (avatarMatch) {
-        discord_id = avatarMatch[1];
-        discord_avatar = avatarMatch[2];
-    }
 
-    let userId = discord_id;
     if (!userId) {
-        const patterns = [
-            /"?userId"?\s*:\s*"?(\d{1,21})"?/i,
-            /\\"userId\\":\s*\\"(\d{1,21})\\"/,
-            /"?perUser"?\s*:\s*\{\s*"?id"?\s*:\s*"?(\d{1,21})"?/i,
-            /"?(?:authorId|creatorId|ownerId)"?\s*:\s*"?(\d{1,21})"?/i,
-            /\/users\/(\d{1,21})\/avatars\//,
-            /avatars\/(\d{1,21})/
-        ];
-        for (const pattern of patterns) {
-            const match = html.match(pattern);
-            if (match) { userId = match[1]; break; }
+        const pageUrl = `https://spicylyrics.org/${username}`;
+        const response = await fetch(pageUrl, { headers });
+        if (response.status === 404) {
+            throw new Error("USER_NOT_FOUND");
+        }
+        if (!response.ok) return null;
+        const html = await response.text();
+
+        const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
+        if (avatarMatch) {
+            userId = avatarMatch[1];
+            discord_avatar = avatarMatch[2];
+        }
+
+        if (!userId) {
+            const patterns = [
+                /"?userId"?\s*:\s*"?(\d{1,21})"?/i,
+                /\\"userId\\":\s*\\"(\d{1,21})\\"/,
+                /"?perUser"?\s*:\s*\{\s*"?id"?\s*:\s*"?(\d{1,21})"?/i,
+                /"?(?:authorId|creatorId|ownerId)"?\s*:\s*"?(\d{1,21})"?/i,
+                /\/users\/(\d{1,21})\/avatars\//,
+                /avatars\/(\d{1,21})/
+            ];
+            for (const pattern of patterns) {
+                const match = html.match(pattern);
+                if (match) { userId = match[1]; break; }
+            }
+        }
+
+        if (!userId) {
+            throw new Error("USER_NOT_CREATOR");
         }
     }
-
-    if (!userId) {
-        throw new Error("USER_NOT_CREATOR");
-    }
-    if (!discord_id) discord_id = userId;
 
     const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: userId, includeTracks: true } }))}`, { headers });
     if (!profileRes.ok) return null;
     const profileJson = await profileRes.json();
 
+    const perUser = profileJson.result?.data?.json?.perUser;
+    if (!perUser) {
+        throw new Error("USER_NOT_FOUND");
+    }
+
     // Fallback to TRPC if avatar was not found in HTML meta
     if (!discord_avatar) {
-        const perUser = profileJson.result?.data?.json?.perUser || {};
         discord_avatar = perUser.avatar || null;
     }
 
@@ -1208,7 +1215,7 @@ async function fetchUserDataFromAPI(username) {
     if (!tracksRes.ok) return null;
     const tracksJson = await tracksRes.json();
 
-    const makesList = profileJson.result?.data?.json?.perUser?.makes || [];
+    const makesList = perUser.makes || [];
     const tracksDetails = tracksJson.result?.data?.json?.data || [];
     const tracksMap = new Map();
     for (const track of tracksDetails) {
@@ -1227,5 +1234,5 @@ async function fetchUserDataFromAPI(username) {
         }
     }
 
-    return { total_views, songs, tracksDetails, discord_id, discord_avatar };
+    return { total_views, songs, tracksDetails, discord_id: userId, discord_avatar };
 }
