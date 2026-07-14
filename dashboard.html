@@ -465,6 +465,17 @@
             transition: 140ms ease;
         }
 
+        .theme-toggle-arrow {
+            font-size: 8px;
+            color: var(--muted);
+            margin-left: 1px;
+            transition: transform 0.20s ease;
+        }
+
+        .theme-selector:has(.theme-dropdown.open) .theme-toggle-arrow {
+            transform: rotate(180deg);
+        }
+
         .theme-toggle:hover {
             background: var(--ink);
             color: var(--white);
@@ -1565,6 +1576,7 @@
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Choose color theme">
                         <span id="theme-toggle-icon">☾</span>
                         <span id="theme-toggle-label">Dark</span>
+                        <span class="theme-toggle-arrow">▾</span>
                     </button>
                     <div class="theme-dropdown" id="theme-dropdown">
                         <button class="theme-option" data-theme-value="dark">
