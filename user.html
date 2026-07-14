@@ -1131,6 +1131,86 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
         }
 
+        /* ===== THEME: Steel ===== */
+        [data-theme="steel"] {
+            --paper: #0e1012;
+            --paper-dark: #15181b;
+            --ink: #f5f6f8;
+            --muted: #8a949f;
+            --line: #22272e;
+            --blue: #2f80ed;
+            --green: #2cc970;
+            --coral: #eb5757;
+            --white: #1c2024;
+            --positive-text: #2cc970;
+        }
+
+        [data-theme="steel"] body {
+            background: #090a0c;
+        }
+
+        [data-theme="steel"] .profile-avatar {
+            background: var(--paper-dark);
+            border: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        [data-theme="steel"] .profile-stat {
+            border: 1px solid var(--line);
+        }
+
+        [data-theme="steel"] .profile-stat.highlight-green {
+            background: rgba(44, 201, 112, 0.05) !important;
+            border: 1px solid rgba(44, 201, 112, 0.15) !important;
+            color: var(--green) !important;
+        }
+
+        [data-theme="steel"] .profile-stat.highlight-green .profile-stat-value {
+            color: var(--green) !important;
+        }
+
+        [data-theme="steel"] .profile-stat.highlight-coral {
+            background: rgba(235, 87, 87, 0.05) !important;
+            border: 1px solid rgba(235, 87, 87, 0.15) !important;
+            color: var(--coral) !important;
+        }
+
+        [data-theme="steel"] .profile-stat.highlight-coral .profile-stat-value {
+            color: var(--coral) !important;
+        }
+
+        [data-theme="steel"] .track:hover {
+            background: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        [data-theme="steel"] .theme-toggle,
+        [data-theme="steel"] .theme-dropdown,
+        [data-theme="steel"] .lang-dropdown,
+        [data-theme="steel"] .back-button,
+        [data-theme="steel"] .mini-card {
+            border-color: var(--line);
+            color: var(--ink);
+        }
+
+        [data-theme="steel"] .theme-dropdown,
+        [data-theme="steel"] .lang-dropdown {
+            background: var(--paper-dark);
+            border-color: var(--line);
+        }
+
+        [data-theme="steel"] .theme-option:hover,
+        [data-theme="steel"] .lang-option:hover {
+            background: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        [data-theme="steel"] #profile-chart-tooltip {
+            background: var(--paper-dark) !important;
+            border: 1px solid var(--line) !important;
+            color: var(--ink) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+        }
+
+
         @media (max-width: 850px) {
 
             .profile-header,
@@ -1214,6 +1294,11 @@
                         <button class="theme-option" data-theme-value="cupertino">
                             <span class="theme-swatch" style="background: #1c1c1e; border-color: #0a84ff; border-radius: 4px;"></span>
                             <span>⌘ Cupertino</span>
+                            <span class="theme-check">✓</span>
+                        </button>
+                        <button class="theme-option" data-theme-value="steel">
+                            <span class="theme-swatch" style="background: #15181b; border-color: #22272e; border-radius: 4px;"></span>
+                            <span>⚙ Steel</span>
                             <span class="theme-check">✓</span>
                         </button>
                     </div>
@@ -1919,7 +2004,8 @@
             glass: { icon: '◈', label: 'Glass' },
             terminal: { icon: '>', label: 'Terminal' },
             nordic: { icon: '☁', label: 'Nordic' },
-            cupertino: { icon: '⌘', label: 'Cupertino' }
+            cupertino: { icon: '⌘', label: 'Cupertino' },
+            steel: { icon: '⚙', label: 'Steel' }
         };
 
         function initTheme() {
