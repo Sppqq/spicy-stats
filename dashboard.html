@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Spicy Monitor — Real-time performance tracking and audience growth analytics for your favorite creators, tracks, and audio catalogs.">
+    <link rel="icon" type="image/png" href="icon.png">
     <title>Spicy Monitor — Dashboard</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,12 +94,11 @@
         .brand-mark {
             width: 35px;
             height: 35px;
-            display: grid;
-            place-items: center;
-            background: var(--ink);
-            color: var(--green);
-            font-size: 18px;
-            transform: rotate(-8deg);
+            object-fit: contain;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            transform: none !important;
         }
         [data-theme="dark"] .brand-mark {
             background: #17181c;
@@ -1556,7 +1556,7 @@
     <div class="page">
         <header class="topbar">
             <div class="brand">
-                <div class="brand-mark">S</div>
+                <img src="icon.png" class="brand-mark" alt="Logo">
                 <span>Spicy Monitor</span>
             </div>
 
