@@ -3079,6 +3079,47 @@
         }
 
         function applySortAndRenderTable() {
+            // First, calculate absolute ranks based on sorting criteria without favorite pinning
+            const sortedAll = [...allUsersDetailed].sort((a, b) => {
+                let valA, valB;
+                if (sortColumn === 'username') {
+                    valA = a.username.toLowerCase();
+                    valB = b.username.toLowerCase();
+                } else if (sortColumn === 'views') {
+                    valA = a.views;
+                    valB = b.views;
+                } else if (sortColumn === 'growth') {
+                    valA = a.growth !== null ? Number(a.growth) : -999999999;
+                    valB = b.growth !== null ? Number(b.growth) : -999999999;
+                } else if (sortColumn === 'tracks_growth_7d') {
+                    valA = a.tracks_growth_7d;
+                    valB = b.tracks_growth_7d;
+                } else if (sortColumn === 'tracks') {
+                    valA = (a.total_songs !== null && a.total_songs !== undefined)
+                        ? Number(a.total_songs)
+                        : -1;
+                    valB = (b.total_songs !== null && b.total_songs !== undefined)
+                        ? Number(b.total_songs)
+                        : -1;
+                } else if (sortColumn === 'last_updated') {
+                    valA = a.last_updated ? new Date(a.last_updated.replace(' ', 'T')).getTime() : 0;
+                    valB = b.last_updated ? new Date(b.last_updated.replace(' ', 'T')).getTime() : 0;
+                }
+                
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            const ranks = {};
+            sortedAll.forEach((u, index) => {
+                ranks[u.username] = index + 1;
+            });
+
+            allUsersDetailed.forEach(u => {
+                u.rank = ranks[u.username];
+            });
+
             filteredUsers.sort((a, b) => {
                 // Pin favorites at the top
                 const favA = isFavorite(a.username) ? 1 : 0;
@@ -3180,7 +3221,7 @@
                 }
 
                 row.innerHTML = `
-                    <td class="cell-number">${idx + 1}</td>
+                    <td class="cell-number">${u.rank || (idx + 1)}</td>
                     <td class="cell-actions" onclick="event.stopPropagation();">
                         <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')">★</span>
                         <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)">
