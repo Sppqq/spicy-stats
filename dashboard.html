@@ -235,8 +235,26 @@
             vertical-align: middle;
         }
 
-        /* First column header — center the ⚙ icon */
+        .cell-number {
+            text-align: center;
+            width: 45px;
+            padding: 15px 0 !important;
+            vertical-align: middle;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* First column header — center the # label */
         thead tr th:first-child {
+            text-align: center;
+            width: 45px;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        /* Second column header — center the ⚙ icon */
+        thead tr th:nth-child(2) {
             text-align: center;
             width: 75px;
             padding-left: 0;
@@ -1632,6 +1650,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 45px; text-align: center;">#</th>
                                 <th style="width: 75px; text-align: center;">⚙</th>
                                 <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')"><span data-i18n="th_author">Author</span> <span id="sort-username"></span></th>
                                 <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')"><span data-i18n="th_views">Views</span> <span id="sort-views"></span></th>
@@ -2482,7 +2501,7 @@
         function showLoadingState() {
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
                         Loading live metrics...
                     </td>
                 </tr>
@@ -2502,7 +2521,7 @@
         function showErrorState() {
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
                         Error loading data. Please reload the page.
                     </td>
                 </tr>
@@ -3111,7 +3130,7 @@
             if (filteredUsers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        <td colspan="8" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
                             ${dict.no_results}
                         </td>
                     </tr>
@@ -3119,7 +3138,7 @@
                 return;
             }
             
-            filteredUsers.forEach(u => {
+            filteredUsers.forEach((u, idx) => {
                 const row = document.createElement('tr');
                 const isNew = isNewUser(u.first_snapshot);
                 if (isNew) {
@@ -3161,6 +3180,7 @@
                 }
 
                 row.innerHTML = `
+                    <td class="cell-number">${idx + 1}</td>
                     <td class="cell-actions" onclick="event.stopPropagation();">
                         <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')">★</span>
                         <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)">
