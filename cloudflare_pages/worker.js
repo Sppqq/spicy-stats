@@ -245,7 +245,22 @@ export default {
     },
 
     async scheduled(event, env, ctx) {
-        ctx.waitUntil(runScraper(env));
+        const run = async () => {
+            try {
+                await checkSchema(env);
+                await runScraper(env);
+            } catch (err) {
+                console.error("Cron scraper error:", err.message, err.stack);
+            }
+        };
+
+        if (ctx && typeof ctx.waitUntil === "function") {
+            ctx.waitUntil(run());
+        } else if (event && typeof event.waitUntil === "function") {
+            event.waitUntil(run());
+        } else {
+            await run();
+        }
     }
 };
 
