@@ -5,6 +5,8 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Backend-Cloudflare_Workers-orange?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
 [![Database](https://img.shields.io/badge/Database-Cloudflare_D1-blue?logo=sqlite&logoColor=white)](https://developers.cloudflare.com/d1/)
 
+[Русская версия README доступна здесь](./README.ru.md).
+
 **Spicy Monitor** is an enterprise-grade, real-time catalog tracker, stats dashboard, and audience growth analytics system designed specifically for Spotify creators, audio catalogs, and track statistics. Built with a decoupled architecture, it offers serverless execution with instant load times and zero cold starts.
 
 ---
