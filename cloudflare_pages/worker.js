@@ -1146,10 +1146,10 @@ async function fetchUserDataFromAPI(username) {
     let userId = discord_id;
     if (!userId) {
         const patterns = [
-            /"userId"\s*:\s*"?(\d{1,21})"?/i,
+            /"?userId"?\s*:\s*"?(\d{1,21})"?/i,
             /\\"userId\\":\s*\\"(\d{1,21})\\"/,
-            /"perUser"\s*:\s*\{\s*"id"\s*:\s*"?(\d{1,21})"?/i,
-            /"(?:authorId|creatorId|ownerId)"\s*:\s*"?(\d{1,21})"?/i,
+            /"?perUser"?\s*:\s*\{\s*"?id"?\s*:\s*"?(\d{1,21})"?/i,
+            /"?(?:authorId|creatorId|ownerId)"?\s*:\s*"?(\d{1,21})"?/i,
             /\/users\/(\d{1,21})\/avatars\//,
             /avatars\/(\d{1,21})/
         ];
