@@ -5,88 +5,134 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Backend-Cloudflare_Workers-orange?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
 [![Database](https://img.shields.io/badge/Database-Cloudflare_D1-blue?logo=sqlite&logoColor=white)](https://developers.cloudflare.com/d1/)
 
-**Spicy Monitor** is a modern, real-time performance tracking and audience growth analytics platform tailored for Spotify creators, audio catalogs, and music track statistics. Built with an ultra-lightweight, high-performance architecture, it delivers lightning-fast insights using native Web technologies.
+**Spicy Monitor** is an enterprise-grade, real-time catalog tracker, stats dashboard, and audience growth analytics system designed specifically for Spotify creators, audio catalogs, and track statistics. Built with a decoupled architecture, it offers serverless execution with instant load times and zero cold starts.
 
 ---
 
-## ✨ Features
+## 🏛️ Architecture & System Design
 
-- **📊 Comprehensive Dashboards**: Track listeners, daily streams, follower count, and catalog performance over custom time intervals.
-- **🔄 Smart Track Variant Grouping**: Deduplicates and groups identical tracks featuring different artist configurations (e.g., solos, collaborations, or re-releases) into clean variants.
-- **🛡️ Secure APIs**: Features robust IP-based rate limiting and request signature verification to prevent spam and unauthorized scraping.
-- **🎨 Interactive UI Themes**: Dynamic and responsive user interfaces featuring sleek dark, neo-brutalism, and code-terminal themes with smooth transitions.
-- **📲 Progressive Web App (PWA)**: Built-in service worker (`sw.js`) supporting persistent local caching and offline capabilities.
-- **📤 Data Portability**: Full JSON-based catalog export and import functionalities for easy backups and database migrations.
-
----
-
-## 🏛️ Architecture & Tech Stack
-
-Spicy Monitor uses a clean, decoupled frontend-backend architecture designed for maximum performance, minimal bundle sizes, and zero cold starts.
+Spicy Monitor is divided into two primary systems:
+1. **Frontend SPA**: A multi-themed static single-page application hosted on **Vercel** with full client caching.
+2. **Backend API Worker**: A **Cloudflare Worker** paired with a **Cloudflare D1 SQLite Database** that scrapes Spotify catalogs, runs analytics, and handles authentication.
 
 ```mermaid
 graph TD
-    User([User Browser]) -->|Loads Frontend| Vercel[Vercel CDN]
-    User -->|API Requests with Signature| CF[Cloudflare Workers API]
-    CF -->|Queries & Updates| D1[(Cloudflare D1 SQLite)]
-    CF -->|Scrapes Metrics| Spotify[Spotify Catalog APIs]
+    Client[User Web Browser]
+    Vercel[Vercel CDN / Frontend Pages]
+    CFWorker[Cloudflare Workers API]
+    D1[(Cloudflare D1 SQLite DB)]
+    Spotify[Spotify API Scraper]
+    Cron[Cloudflare Scheduled Trigger]
+
+    Client -->|1. Requests HTML/JS| Vercel
+    Client -->|2. Queries API with Signature| CFWorker
+    Cron -->|3. Triggers Scraping| CFWorker
+    CFWorker -->|4. Pulls Latest Metrics| Spotify
+    CFWorker -->|5. Reads/Writes Snapshots| D1
 ```
-
-### Frontend (SPA)
-- **Core**: Vanilla HTML5, ES6+ JavaScript.
-- **Styling**: Modern, premium CSS (HSL theme variables, glassmorphism, responsive grid layouts).
-- **Hosting**: Hosted on **Vercel** with clean route rewriting (`vercel.json`).
-- **Analytics**: Integrated with Vercel Web Analytics and Speed Insights.
-
-### Backend (API & Worker)
-- **Serverless**: **Cloudflare Workers** handles request processing, API routing, and cron-scheduled catalog scrapers.
-- **Database**: **Cloudflare D1** (serverless SQL database built on SQLite) stores users, track metadata, snapshots, and security audit logs.
-- **Security**: HMACS-like signature checks (`X-Spicy-Signature` + `X-Spicy-Timestamp`) validate client-side authenticity.
 
 ---
 
-## 📁 Repository Structure
+## ✨ Core Features
 
-```
-├── .github/workflows/          # CI/CD Workflows
-│   └── deploy-cloudflare.yml   # Auto-deploys worker on commits to main
-├── cloudflare_pages/           # Cloudflare Worker Directory
-│   ├── worker.js               # Cloudflare Worker entrypoint (Router, Scraping, DB prepared statements)
-│   ├── wrangler.toml           # Wrangler configuration (database bindings, logs observability)
-│   └── package.json            # Dev dependencies & scripts
-├── admin.html                  # Admin Control Center (add creators, import/export catalogs, check audits)
-├── dashboard.html              # Main Analytics Dashboard (catalog metrics, charts, tables)
-├── user.html                   # Individual Creator Performance Views
-├── sw.js                       # Service Worker for local caching
-├── vercel.json                 # Vercel SPA routing/rewriting rules
-└── .gitignore                  # Git exclusions
-```
+- **📊 Comprehensive Dashboards**: Visualizes daily plays, growth differentials, milestones, and catalog sizes.
+- **🔄 Intelligent Track Grouping**: Automatically identifies identical music tracks featuring different artist lists (e.g. single releases vs. collaborative albums) and aggregates them as variants under a single track entity.
+- **🛡️ Signed API Handshake**: Crucial write actions and analytical profiles are secured using timestamped client-side hashing (`X-Spicy-Signature`) to block unauthorized web scraping.
+- **🎨 Dynamic Themes**: Toggle dynamically between three custom themes:
+  - **Neon Dark**: Default high-contrast dark palette with deep violets and greens.
+  - **Neo-Brutalism**: Vibrant borders, stark typography, and flat color design.
+  - **Terminal / Retro**: Monospaced hacker green aesthetic.
+- **📈 Progressive Web App (PWA)**: Built-in offline-ready Service Worker (`sw.js`) that caches frontend pages, static resources, and external typography fonts.
+- **🔄 Catalog Migration Tools**: Comprehensive JSON-based catalog backup/restore triggers.
+
+---
+
+## 🗄️ Database Schema (Cloudflare D1 SQLite)
+
+Spicy Monitor uses a structured SQLite relational schema in Cloudflare D1.
+
+| Table Name | Primary Key | Description |
+| :--- | :--- | :--- |
+| **`users`** | `id` (INTEGER) | Stores tracked Spotify creators. Includes Discord integrations (`discord_id`, `discord_avatar`). |
+| **`snapshots`** | `id` (INTEGER) | Stores daily/hourly statistics checkpoints containing `total_views` (total streams) and `total_songs`. |
+| **`snapshot_songs`** | `(snapshot_id, spotify_id)` | Maps track plays inside a specific snapshot. Contains `views` (play count), `title`, and `artist`. |
+| **`track_metadata`** | `spotify_id` (TEXT) | Global cache mapping Spotify IDs to ISRCs, clean titles, and normalized artists to assist deduplication. |
+| **`audit_logs`** | `id` (INTEGER) | Secure logging of administrative and analytical operations, logging IP addresses and action types. |
+
+---
+
+## 🔌 API Route Directory
+
+All backend routes are prefixed with `/api`. Public endpoints require a valid signature header to prevent unauthorized access.
+
+### Public Routes (Requires Signature Validation)
+
+> [!NOTE]
+> All public API endpoints require `X-Spicy-Signature` and `X-Spicy-Timestamp` headers generated with a shared salt to block unauthorized scrapers.
+
+- **`GET /api/dashboard`**: Fetch aggregate stats (total users, global plays, full creator leaderboard).
+- **`GET /api/user/:username`**: Fetch creator-specific analytics including historical growth charts, milestone forecasts, top tracks, and grouped variants.
+- **`GET /api/track-history`**: Fetch historical play count logs for a specific track.
+- **`POST /api/add-user`**: Add a new Spotify username to the monitoring system. *(Strictly rate-limited to 5 requests/min per IP)*.
+
+### Administrative Routes (Requires Admin Credentials)
+
+- **`POST /api/admin/stats`**: Aggregated system database health checks.
+- **`POST /api/admin/scrape-user`**: Instantly force-scrape a creator's catalog.
+- **`POST /api/admin/scrape-all`**: Trigger a complete catalog scrape across all users.
+- **`POST /api/admin/populate-metadata`**: Backfill missing track metadata and ISRCs.
+- **`POST /api/admin/merge-users`**: Merge duplicate user entities and consolidate history.
+- **`POST /api/admin/delete-user`**: Permanently remove a creator and all associated statistical snapshots.
+- **`POST /api/admin/logs`**: Review administrative audit trails.
+
+### Migration Routes
+
+- **`POST /api/import`**: Bulk-restore snapshots and user data.
+- **`GET /api/export/:username`**: Download a clean JSON database dump of a creator's tracking history.
+
+---
+
+## 🛠️ Track Variant Grouping Algorithm
+
+To prevent Spotify duplicates (e.g. tracks on both a Deluxe Album and a Collaboration Single) from cluttering the graphs, Spicy Monitor utilizes a custom grouping system:
+
+1. **Title Normalization**: Standardizes title suffixes (removes brackets like `(Remastered)`, `- Single Version`, `(feat. ...)`).
+2. **Collaboration Matching**: Matches primary artists and analyzes track ISRCs.
+3. **Variants Aggregation**: Groups duplicates as variants under a master track, combining total plays while allowing users to inspect individual track codes.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Backend Setup (Cloudflare Workers + D1)
-
-To run or deploy the Cloudflare Workers backend, navigate to the `cloudflare_pages` directory:
+### 1. Backend Setup
 
 ```bash
 cd cloudflare_pages
 npm install
 ```
 
-#### Run Database Migrations
-Initialize your D1 database locally or on Cloudflare:
+#### Database Setup
+Create and configure your Cloudflare D1 database:
 ```bash
-# Local development DB initialization
+# Create database
+npx wrangler d1 create spicy-stats-db
+
+# Run migrations locally
 npx wrangler d1 execute spicy-stats-db --local --file=./migrations/schema.sql
 
-# Production DB initialization
+# Run migrations in production
 npx wrangler d1 execute spicy-stats-db --remote --file=./migrations/schema.sql
 ```
-*(Ensure database schema exists or let the worker auto-initialize it using the fallback schema creation scripts embedded within `worker.js`).*
 
-#### Local Backend Development
+Add your database ID and name to `wrangler.toml`:
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "spicy-stats-db"
+database_id = "your-d1-database-id-here"
+```
+
+#### Run Locally
 ```bash
 npm run dev
 ```
@@ -96,36 +142,20 @@ npm run dev
 npx wrangler deploy
 ```
 
-### 2. Frontend Setup (Vercel / Local Server)
-
-Since the frontend is built entirely using standard HTML/CSS/JS, you can serve it with any local web server or deploy it to Vercel instantly.
-
-#### Local Frontend Development
-Run using Python:
-```bash
-py -m http.server 3000
-```
-Or Node.js:
-```bash
-npx serve -l 3000
-```
-
-Access the application at:
-- Dashboard: `http://localhost:3000/dashboard.html`
-- User page: `http://localhost:3000/user.html?username=creator_name`
-- Admin page: `http://localhost:3000/admin.html`
-
 ---
 
-## 🔒 Security
+### 2. Frontend Setup
 
-All API endpoints (except public reads and data imports) are signed with a timestamped hashing scheme to prevent malicious payloads:
-- Requests require `X-Spicy-Signature` and `X-Spicy-Timestamp`.
-- A 90-second drift window is strictly enforced.
-- Critical actions write records directly to the `audit_logs` database table.
+The frontend runs on plain HTML/CSS/JS. Set your API URL mapping in the client configuration, then serve or deploy:
+
+```bash
+# Start a simple web server locally
+py -m http.server 3000
+```
+Open `http://localhost:3000` to access the application.
 
 ---
 
 ## 📄 License
 
-This project is proprietary and maintained by the Spicy Stats development team.
+This repository is proprietary. Unauthorized redistribution or scraping is strictly prohibited.
