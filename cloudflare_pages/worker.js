@@ -1180,8 +1180,40 @@ async function fetchUserDataFromAPI(username) {
     if (!tracksRes.ok) return null;
     const tracksJson = await tracksRes.json();
 
-    const makesList = profileJson.result?.data?.json?.perUser?.makes || [];
-    const tracksDetails = tracksJson.result?.data?.json?.data || [];
+    let makesList = [];
+    const rawMakes = profileJson.result?.data?.json?.perUser?.makes;
+    if (rawMakes) {
+        if (Array.isArray(rawMakes)) {
+            makesList = rawMakes;
+        } else if (typeof rawMakes === "object") {
+            for (const key of Object.keys(rawMakes)) {
+                const val = rawMakes[key];
+                if (Array.isArray(val)) {
+                    makesList.push(...val);
+                } else if (val && typeof val === "object") {
+                    makesList.push(...Object.values(val));
+                }
+            }
+        }
+    }
+
+    let tracksDetails = [];
+    const rawTracksData = tracksJson.result?.data?.json?.data;
+    if (rawTracksData) {
+        if (Array.isArray(rawTracksData)) {
+            tracksDetails = rawTracksData;
+        } else if (typeof rawTracksData === "object") {
+            for (const key of Object.keys(rawTracksData)) {
+                const val = rawTracksData[key];
+                if (Array.isArray(val)) {
+                    tracksDetails.push(...val);
+                } else if (val && typeof val === "object") {
+                    tracksDetails.push(...Object.values(val));
+                }
+            }
+        }
+    }
+
     const tracksMap = new Map();
     for (const track of tracksDetails) {
         if (!track) continue;
