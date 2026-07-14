@@ -841,6 +841,17 @@ function normalizeTitle(title) {
         .replace(/[^a-z0-9а-яё]/g, '');
 }
 
+function getPrimaryArtist(artistStr) {
+    if (!artistStr) return "";
+    const primary = artistStr
+        .replace(/\s+(?:feat\.?|ft\.?|&|and)\s+/gi, ', ')
+        .replace(/;/g, ',')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    return primary.replace(/[^a-z0-9а-яё]/g, '');
+}
+
 function aggregateSongs(rawList) {
     const groups = [];
     for (const s of rawList || []) {
@@ -858,7 +869,7 @@ function aggregateSongs(rawList) {
                     match = true;
                     break;
                 }
-                if (normTitle === member.normTitle && cleanArtist === member.cleanArtist) {
+                if (normTitle === member.normTitle && getPrimaryArtist(artist) === getPrimaryArtist(member.artist)) {
                     match = true;
                     break;
                 }
@@ -885,6 +896,10 @@ function aggregateSongs(rawList) {
             // Use the shortest title as representative of the group (e.g. "тело" instead of "тело - Slowed")
             if (title.length < foundGroup.title.length) {
                 foundGroup.title = title;
+            }
+            // Use the shortest artist list as representative of the group (e.g. "tuborosho" instead of "tuborosho, DJ EMBER")
+            if (artist.length < foundGroup.artist.length) {
+                foundGroup.artist = artist;
             }
         } else {
             groups.push({
