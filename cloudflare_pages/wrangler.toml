@@ -8,3 +8,7 @@ compatibility_date = "2024-03-01"
 binding = "DB"                               # Обязательно "DB", так как это используется в worker.js
 database_name = "spicy-stats-db"             # Замените на имя вашей D1 базы данных в Cloudflare
 database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"   # Реальный ID вашей D1 базы данных
+
+[observability.logs]
+enabled = true
+invocation_logs = true
