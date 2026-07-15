@@ -1152,12 +1152,12 @@ async function runScraper(env) {
         SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
     )
     ORDER BY latest_snap_id ASC
-    LIMIT 4
+    LIMIT 8
   `).all();
 
     if (!users || users.length === 0) return;
 
-    const batchSize = 2;
+    const batchSize = 4;
     for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
         await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, user.discord_id, env).catch(err => console.error(`Error updating @${user.username}:`, err.message))));
@@ -1248,9 +1248,22 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     // 1. Cache track metadata
     if (data.tracksDetails && data.tracksDetails.length > 0) {
-        // Query existing track IDs to find if there are any new ones
-        const { results: existing } = await env.DB.prepare("SELECT spotify_id FROM track_metadata").all();
-        const existingIds = new Set((existing || []).map(r => r.spotify_id));
+        // Query only the track IDs present in the current scrape to find if there are any new ones
+        const trackIds = data.tracksDetails.map(track => track ? track.id : null).filter(Boolean);
+        const existingIds = new Set();
+        
+        if (trackIds.length > 0) {
+            // Batch the query to avoid SQL binding limits
+            const queryBatchSize = 50;
+            for (let i = 0; i < trackIds.length; i += queryBatchSize) {
+                const chunk = trackIds.slice(i, i + queryBatchSize);
+                const placeholders = chunk.map(() => "?").join(",");
+                const { results: existing } = await env.DB.prepare(`SELECT spotify_id FROM track_metadata WHERE spotify_id IN (${placeholders})`).bind(...chunk).all();
+                if (existing) {
+                    existing.forEach(r => existingIds.add(r.spotify_id));
+                }
+            }
+        }
 
         const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
         const batch = [];
