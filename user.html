@@ -1281,7 +1281,7 @@
     <div class="page">
         <header class="topbar">
             <div class="brand">
-                <img src="icon.png" class="brand-mark" alt="Logo">
+                <img src="/icon.png" class="brand-mark" alt="Logo">
                 <span>Spicy Monitor</span>
             </div>
 
@@ -2275,7 +2275,7 @@
                     const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
                     avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
                 }
-                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${profileData.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
+                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${profileData.username}" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
                 avatarEl.style.padding = '0';
                 avatarEl.style.background = 'transparent';
                 avatarEl.style.overflow = 'hidden';
