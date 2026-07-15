@@ -1,10 +1,11 @@
 // File: sw.js
-const CACHE_NAME = 'spicy-monitor-cache-v1';
+const CACHE_NAME = 'spicy-monitor-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/dashboard.html',
   '/user.html',
-  '/admin.html'
+  '/admin.html',
+  '/icon.png'
 ];
 
 self.addEventListener('install', (event) => {
