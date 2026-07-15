@@ -710,8 +710,12 @@ async function populateMetadataCache(env, targetUsername = null) {
                 const response = await fetch(pageUrl, { headers });
                 if (!response.ok) continue;
                 const html = await response.text();
-                const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
-                if (avatarMatch) userId = avatarMatch[1];
+                const globalMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})/i);
+                if (globalMatch) userId = globalMatch[1];
+                if (!userId) {
+                    const guildMatch = html.match(/cdn\.discordapp\.com\/guilds\/\d{1,21}\/users\/(\d{1,21})/i);
+                    if (guildMatch) userId = guildMatch[1];
+                }
                 if (!userId) {
                     const patterns = [
                         /"userId"\s*:\s*"?(\d{1,21})"?/i,
@@ -1171,10 +1175,16 @@ async function fetchUserDataFromAPI(username, discordId = null) {
         if (!response.ok) return null;
         const html = await response.text();
 
-        const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
-        if (avatarMatch) {
-            userId = avatarMatch[1];
-            discord_avatar = avatarMatch[2];
+        const globalMatch = html.match(/(https:\/\/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/(a_[a-f0-9]{32}|[a-f0-9]{32})[^\s"']*)/i);
+        if (globalMatch) {
+            userId = globalMatch[2];
+            discord_avatar = globalMatch[1];
+        } else {
+            const guildMatch = html.match(/(https:\/\/cdn\.discordapp\.com\/guilds\/\d{1,21}\/users\/(\d{1,21})\/avatars\/(a_[a-f0-9]{32}|[a-f0-9]{32})[^\s"']*)/i);
+            if (guildMatch) {
+                userId = guildMatch[2];
+                discord_avatar = guildMatch[1];
+            }
         }
 
         if (!userId) {
@@ -1209,15 +1219,7 @@ async function fetchUserDataFromAPI(username, discordId = null) {
 
     // Fallback to TRPC if avatar was not found in HTML meta
     if (!discord_avatar) {
-        const trpcAvatar = profile?.data?.avatar || perUser?.avatar || null;
-        if (trpcAvatar) {
-            const hashMatch = trpcAvatar.match(/\/avatars\/\d{1,21}\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
-            if (hashMatch) {
-                discord_avatar = hashMatch[1];
-            } else {
-                discord_avatar = trpcAvatar.includes('/') ? null : trpcAvatar;
-            }
-        }
+        discord_avatar = profile?.data?.avatar || perUser?.avatar || null;
     }
 
     const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
