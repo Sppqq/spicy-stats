@@ -2205,8 +2205,8 @@
             return localeMap[currentLang] || 'en-US';
         }
 
-        async function loadProfile() {
-            showLoading();
+        async function loadProfile(silent = false) {
+            if (!silent) showLoading();
             try {
                 // First, fetch dashboard to find the rank
                 let rankText = 'Rank #--';
@@ -2236,7 +2236,7 @@
                 renderProfile(rankText);
             } catch (err) {
                 console.error(err);
-                showError(err.message);
+                if (!silent) showError(err.message);
             }
         }
 
@@ -2318,6 +2318,10 @@
             if (window.updateCountdownInterval) {
                 clearInterval(window.updateCountdownInterval);
             }
+            if (window.autoRefreshTimeout) {
+                clearTimeout(window.autoRefreshTimeout);
+                window.autoRefreshTimeout = null;
+            }
             const updateCountdown = () => {
                 const countdownEl = document.getElementById('profile-next-update');
                 if (!countdownEl) return;
@@ -2329,6 +2333,13 @@
                 const diffMs = nextUpdate.getTime() - Date.now();
                 if (diffMs <= 0) {
                     countdownEl.textContent = currentLang === 'ru' ? '• Обновление сейчас...' : '• Updating now...';
+                    // Auto-refresh profile data in 15 seconds after countdown reaches 0
+                    if (!window.autoRefreshTimeout) {
+                        window.autoRefreshTimeout = setTimeout(() => {
+                            window.autoRefreshTimeout = null;
+                            loadProfile(true);
+                        }, 15000);
+                    }
                     return;
                 }
                 const diffSec = Math.floor(diffMs / 1000);
