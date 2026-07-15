@@ -269,20 +269,91 @@ export default {
 // ==========================================
 
 async function handleAddUser(request, env, ctx) {
-    const { username } = await request.json();
+    const { username, lang: userLang } = await request.json();
+    const lang = userLang || "en";
+
+    const localMsgs = {
+        en: {
+            invalid_username: "Invalid username format. Only alphanumeric characters, dots, hyphens, and underscores are allowed (up to 50 characters).",
+            valid_username: "Please enter a valid username.",
+            already_added: "This user has already been added to the tracking list.",
+            fetch_error: "Could not fetch user profile from SpicyLyrics.",
+            not_found: "User not found on SpicyLyrics.",
+            not_creator: "User is not a creator on SpicyLyrics.",
+            failed_retrieve: "Failed to retrieve user data from SpicyLyrics.",
+            min_tracks: (count) => `At least 2 tracks are required to add a profile (this profile has ${count} track${count === 1 ? '' : 's'}).`
+        },
+        ru: {
+            invalid_username: "Неверный формат имени пользователя. Разрешены только латинские буквы, цифры, точки, дефисы и подчеркивания (до 50 символов).",
+            valid_username: "Пожалуйста, введите корректное имя пользователя.",
+            already_added: "Этот пользователь уже добавлен в список мониторинга.",
+            fetch_error: "Не удалось получить профиль пользователя со SpicyLyrics.",
+            not_found: "Пользователь не найден на SpicyLyrics.",
+            not_creator: "Пользователь не является автором на SpicyLyrics.",
+            failed_retrieve: "Не удалось загрузить данные пользователя со SpicyLyrics.",
+            min_tracks: (count) => `Минимум 2 трека требуется для добавления профиля (у этого профиля ${count} трек${count === 1 ? '' : 'ов'}).`
+        },
+        uk: {
+            invalid_username: "Неправильний формат імені користувача. Дозволені тільки латинські літери, цифри, крапки, дефіси та підкреслення (до 50 символів).",
+            valid_username: "Будь ласка, введіть коректне ім'я користувача.",
+            already_added: "Цей користувач вже доданий до списку моніторингу.",
+            fetch_error: "Не вдалося отримати профіль користувача зі SpicyLyrics.",
+            not_found: "Користувача не знайдено на SpicyLyrics.",
+            not_creator: "Користувач не є автором на SpicyLyrics.",
+            failed_retrieve: "Не вдалося завантажити дані користувача зі SpicyLyrics.",
+            min_tracks: (count) => `Мінімум 2 треки потрібно для додавання профілю (у цього профілю ${count} трек${count === 1 ? '' : 'ів'}).`
+        },
+        pl: {
+            invalid_username: "Nieprawidłowy format nazwy użytkownika. Dozwolone są tylko litery, cyfry, kropki, myślniki i podkreślenia (do 50 znaków).",
+            valid_username: "Wprowadź poprawną nazwę użytkownika.",
+            already_added: "Ten użytkownik został już dodany do listy monitorowania.",
+            fetch_error: "Nie udało się pobrać profilu użytkownika ze SpicyLyrics.",
+            not_found: "Nie znaleziono użytkownika na SpicyLyrics.",
+            not_creator: "Użytkownik nie jest twórcą na SpicyLyrics.",
+            failed_retrieve: "Nie udało się pobrać danych użytkownika ze SpicyLyrics.",
+            min_tracks: (count) => `Wymagane są co najmniej 2 utwory, aby dodać profil (ten profil ma ${count} utwór${count === 1 ? '' : 'ów'}).`
+        },
+        de: {
+            invalid_username: "Ungültiges Benutzernamen-Format. Nur alphanumerische Zeichen, Punkte, Bindestriche und Unterstriche sind erlaubt (bis zu 50 Zeichen).",
+            valid_username: "Bitte geben Sie einen gültigen Benutzernamen ein.",
+            already_added: "Dieser Benutzer wurde bereits zur Liste hinzugefügt.",
+            fetch_error: "Profil konnte nicht von SpicyLyrics geladen werden.",
+            not_found: "Benutzer auf SpicyLyrics nicht gefunden.",
+            not_creator: "Benutzer ist kein Ersteller auf SpicyLyrics.",
+            failed_retrieve: "Fehler beim Laden der Benutzerdaten von SpicyLyrics.",
+            min_tracks: (count) => `Mindestens 2 Tracks sind erforderlich, um ein Profil hinzuzufügen (dieses Profil hat ${count} Track${count === 1 ? '' : 's'}).`
+        },
+        it: {
+            invalid_username: "Formato nome utente non valido. Sono ammessi solo caratteri alfanumerici, punti, trattini e trattini bassi (fino a 50 caratteri).",
+            valid_username: "Inserisci un nome utente valido.",
+            already_added: "Questo utente è già stato aggiunto all'elenco di monitoraggio.",
+            fetch_error: "Impossibile recuperare il profilo utente da SpicyLyrics.",
+            not_found: "Utente non trovato su SpicyLyrics.",
+            not_creator: "L'utente non è un creatore su SpicyLyrics.",
+            failed_retrieve: "Impossibile recuperare i dati dell'utente da SpicyLyrics.",
+            min_tracks: (count) => `Sono necessari almeno 2 brani per aggiungere un profilo (questo profilo ha ${count} bran${count === 1 ? 'o' : 'i'}).`
+        }
+    };
+
+    const getMsg = (key, count) => {
+        const set = localMsgs[lang] || localMsgs.en;
+        const val = set[key] || localMsgs.en[key];
+        return typeof val === "function" ? val(count) : val;
+    };
+
     if (!username || typeof username !== "string") {
-        return new Response(JSON.stringify({ error: "Please enter a valid username." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: getMsg("valid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     const cleanName = username.trim().replace(/^@/, "");
     if (cleanName.length === 0 || cleanName.length > 50 || !/^[a-zA-Z0-9_\.\-]+$/.test(cleanName)) {
-        return new Response(JSON.stringify({ error: "Invalid username format. Only alphanumeric characters, dots, hyphens, and underscores are allowed (up to 50 characters)." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: getMsg("invalid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     // Check if the user is already in the database
     const existingUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
     if (existingUser) {
-        return new Response(JSON.stringify({ error: "This user has already been added to the tracking list." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: getMsg("already_added") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     // Fetch user data first to validate that the profile has at least 2 tracks (makes)
@@ -290,21 +361,21 @@ async function handleAddUser(request, env, ctx) {
     try {
         data = await fetchUserDataFromAPI(cleanName);
     } catch (err) {
-        let msg = "Could not fetch user profile from SpicyLyrics.";
-        if (err.message === "USER_NOT_FOUND") msg = "User not found on SpicyLyrics.";
-        if (err.message === "USER_NOT_CREATOR") msg = "User is not a creator on SpicyLyrics.";
+        let msg = getMsg("fetch_error");
+        if (err.message === "USER_NOT_FOUND") msg = getMsg("not_found");
+        if (err.message === "USER_NOT_CREATOR") msg = getMsg("not_creator");
         return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     if (!data) {
-        return new Response(JSON.stringify({ error: "Failed to retrieve user data from SpicyLyrics." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: getMsg("failed_retrieve") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
     // Validate the track count (minimum 2 tracks)
     const tracksCount = data.songs ? data.songs.length : 0;
     if (tracksCount < 2) {
         return new Response(JSON.stringify({ 
-            error: `Минимум 2 трека требуется для добавления профиля (у этого профиля ${tracksCount} трек${tracksCount === 1 ? '' : 'ов'}).` 
+            error: getMsg("min_tracks", tracksCount)
         }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
