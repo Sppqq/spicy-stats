@@ -2269,8 +2269,8 @@
             if (profileData.discord_id) {
                 let avatarUrl = '';
                 if (profileData.discord_avatar) {
-                    const ext = profileData.discord_avatar.startsWith('a_') ? 'gif' : 'png';
-                    avatarUrl = `https://cdn.discordapp.com/avatars/${profileData.discord_id}/${profileData.discord_avatar}.${ext}`;
+                    const ext = profileData.discord_avatar.startsWith('a_') ? 'gif' : 'webp';
+                    avatarUrl = `https://cdn.discordapp.com/avatars/${profileData.discord_id}/${profileData.discord_avatar}.${ext}?size=256`;
                 } else {
                     const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
                     avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
