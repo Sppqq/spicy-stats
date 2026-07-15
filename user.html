@@ -1550,10 +1550,12 @@
             }
             const timestamp = Math.floor(Date.now() / 1000).toString();
             const signature = generateSignature(path, timestamp);
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
             options.headers = {
                 ...(options.headers || {}),
                 "X-Spicy-Timestamp": timestamp,
-                "X-Spicy-Signature": signature
+                "X-Spicy-Signature": signature,
+                "X-Spicy-Lang": currentLang
             };
             return fetch(urlStr, options);
         }

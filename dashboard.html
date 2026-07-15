@@ -1866,10 +1866,12 @@
             }
             const timestamp = Math.floor(Date.now() / 1000).toString();
             const signature = generateSignature(path, timestamp);
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
             options.headers = {
                 ...(options.headers || {}),
                 "X-Spicy-Timestamp": timestamp,
-                "X-Spicy-Signature": signature
+                "X-Spicy-Signature": signature,
+                "X-Spicy-Lang": currentLang
             };
             return fetch(urlStr, options);
         }
@@ -2086,7 +2088,9 @@
                 compare_btn: "⚖ Compare",
                 compare_title: "Compare Authors",
                 compare_desc: "Comparing daily view counts over the last 30 days.",
-                compare_close: "Close"
+                compare_close: "Close",
+                adding_queue: "Adding user to queue...",
+                add_success: "Success! @{name} has been queued."
             },
             ru: {
                 headline: "Знай, что популярно.",
@@ -2137,7 +2141,9 @@
                 compare_btn: "⚖ Сравнить",
                 compare_title: "Сравнение авторов",
                 compare_desc: "Сравнение количества просмотров за последние 30 дней.",
-                compare_close: "Закрыть"
+                compare_close: "Закрыть",
+                adding_queue: "Добавление пользователя в очередь...",
+                add_success: "Успешно! @{name} добавлен в очередь."
             },
             uk: {
                 headline: "Знай, що популярно.",
@@ -2188,7 +2194,9 @@
                 compare_btn: "⚖ Порівняти",
                 compare_title: "Порівняння авторів",
                 compare_desc: "Порівняння кількості переглядів за останні 30 днів.",
-                compare_close: "Закрити"
+                compare_close: "Закрити",
+                adding_queue: "Додавання користувача в чергу...",
+                add_success: "Успішно! @{name} додано в чергу."
             },
             de: {
                 headline: "Wisse, was sich bewegt.",
@@ -2239,7 +2247,9 @@
                 compare_btn: "⚖ Vergleichen",
                 compare_title: "Autoren vergleichen",
                 compare_desc: "Vergleich der Aufrufe in den letzten 30 Tagen.",
-                compare_close: "Schließen"
+                compare_close: "Schließen",
+                adding_queue: "Benutzer wird zur Warteschlange hinzugefügt...",
+                add_success: "Erfolgreich! @{name} wurde in die Warteschlange eingereiht."
             },
             it: {
                 headline: "Sappi cosa si muove.",
@@ -2290,7 +2300,9 @@
                 compare_btn: "⚖ Confronta",
                 compare_title: "Confronta Autori",
                 compare_desc: "Confronto delle visualizzazioni negli ultimi 30 giorni.",
-                compare_close: "Chiudi"
+                compare_close: "Chiudi",
+                adding_queue: "Aggiunta dell'utente alla coda...",
+                add_success: "Successo! @{name} è stato messo in coda."
             },
             pl: {
                 headline: "Wiedz, co jest na czasie.",
@@ -2341,7 +2353,9 @@
                 compare_btn: "⚖ Porównaj",
                 compare_title: "Porównaj autorów",
                 compare_desc: "Porównanie wyświetleń z ostatnich 30 dni.",
-                compare_close: "Zamknij"
+                compare_close: "Zamknij",
+                adding_queue: "Dodawanie użytkownika do kolejki...",
+                add_success: "Sukces! @{name} został dodany do kolejki."
             }
         };
 
@@ -3419,16 +3433,18 @@
             const username = input.value.trim();
             
             if (!username) return;
+
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             
             feedback.style.display = 'block';
             feedback.style.background = 'var(--paper-dark)';
             feedback.style.color = 'var(--ink)';
             feedback.style.borderColor = 'var(--ink)';
-            feedback.textContent = 'Adding user to queue...';
+            feedback.textContent = dict.adding_queue || 'Adding user to queue...';
             submitBtn.disabled = true;
             
             try {
-                const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const res = await spicyFetch(`${API_BASE}/add-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3440,7 +3456,9 @@
                 if (res.ok && data.success) {
                     feedback.style.background = 'var(--green)';
                     feedback.style.color = 'var(--ink)';
-                    feedback.textContent = `Success! @${data.cleanName} has been queued.`;
+                    
+                    const successMsg = (dict.add_success || 'Success! @{name} has been queued.').replace('{name}', data.cleanName);
+                    feedback.textContent = successMsg;
                     
                     setTimeout(() => {
                         document.getElementById('add-author-modal').style.display = 'none';

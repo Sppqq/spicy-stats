@@ -175,16 +175,27 @@ export default {
 
         // Protection against spam and scraping (Rate Limiting)
         const ip = request.headers.get("CF-Connecting-IP") || "anonymous";
+        const lang = request.headers.get("X-Spicy-Lang") || "en";
+        const rateLimitMsgs = {
+            en: "Too many requests. Please try again later.",
+            ru: "Слишком много запросов. Пожалуйста, попробуйте позже.",
+            uk: "Занадто багато запитів. Будь ласка, спробуйте пізніше.",
+            pl: "Zbyt wiele zapytań. Spróbuj ponownie później.",
+            de: "Zu viele Anfragen. Bitte versuchen Sie es später noch einmal.",
+            it: "Troppe richieste. Riprova più tardi."
+        };
+        const rateLimitMsg = rateLimitMsgs[lang] || rateLimitMsgs.en;
+
         if (url.pathname === "/api/add-user" && request.method === "POST") {
             if (isRateLimited(ip, 5, 60000)) { // 5 requests per minute for adding users
-                return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
+                return new Response(JSON.stringify({ error: rateLimitMsg }), { 
                     status: 429, 
                     headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } 
                 });
             }
         } else if (url.pathname.startsWith("/api/")) {
             if (isRateLimited(ip, 60, 60000)) { // 60 requests per minute for other endpoints
-                return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), { 
+                return new Response(JSON.stringify({ error: rateLimitMsg }), { 
                     status: 429, 
                     headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } 
                 });
