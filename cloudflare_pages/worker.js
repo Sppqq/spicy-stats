@@ -710,7 +710,7 @@ async function populateMetadataCache(env, targetUsername = null) {
                 const response = await fetch(pageUrl, { headers });
                 if (!response.ok) continue;
                 const html = await response.text();
-                const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
+                const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
                 if (avatarMatch) userId = avatarMatch[1];
                 if (!userId) {
                     const patterns = [
@@ -1043,7 +1043,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
                     const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: dbUser.discord_id, includeTracks: false } }))}`, { headers });
                     if (profileRes.ok) {
                         const profileJson = await profileRes.json();
-                        const newUsername = profileJson.result?.data?.json?.perUser?.username;
+                        const newUsername = profileJson.result?.data?.json?.profile?.data?.username || profileJson.result?.data?.json?.perUser?.username;
                         if (newUsername && newUsername.toLowerCase() !== currentUsername.toLowerCase()) {
                             // Update database username
                             await env.DB.prepare("UPDATE users SET username = ? WHERE id = ?").bind(newUsername, userId).run();
@@ -1171,7 +1171,7 @@ async function fetchUserDataFromAPI(username, discordId = null) {
         if (!response.ok) return null;
         const html = await response.text();
 
-        const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/([a-f0-9]{32})/i);
+        const avatarMatch = html.match(/cdn\.discordapp\.com\/avatars\/(\d{1,21})\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
         if (avatarMatch) {
             userId = avatarMatch[1];
             discord_avatar = avatarMatch[2];
@@ -1202,20 +1202,29 @@ async function fetchUserDataFromAPI(username, discordId = null) {
     const profileJson = await profileRes.json();
 
     const perUser = profileJson.result?.data?.json?.perUser;
-    if (!perUser) {
+    const profile = profileJson.result?.data?.json?.profile;
+    if (!perUser && !profile) {
         throw new Error("USER_NOT_FOUND");
     }
 
     // Fallback to TRPC if avatar was not found in HTML meta
     if (!discord_avatar) {
-        discord_avatar = perUser.avatar || null;
+        const trpcAvatar = profile?.data?.avatar || perUser?.avatar || null;
+        if (trpcAvatar) {
+            const hashMatch = trpcAvatar.match(/\/avatars\/\d{1,21}\/(a_[a-f0-9]{32}|[a-f0-9]{32})/i);
+            if (hashMatch) {
+                discord_avatar = hashMatch[1];
+            } else {
+                discord_avatar = trpcAvatar.includes('/') ? null : trpcAvatar;
+            }
+        }
     }
 
     const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
     if (!tracksRes.ok) return null;
     const tracksJson = await tracksRes.json();
 
-    const makesList = perUser.makes || [];
+    const makesList = perUser?.makes || [];
     const tracksDetails = tracksJson.result?.data?.json?.data || [];
     const tracksMap = new Map();
     for (const track of tracksDetails) {
