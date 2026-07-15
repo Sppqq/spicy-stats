@@ -604,7 +604,8 @@ async function handleUserDetailAPI(username, request, env) {
         highlights: topTracks,
         chart_data: chartDataRaw,
         songs: finalSongs,
-        next_update: nextUpdateTimestamp
+        next_update: nextUpdateTimestamp,
+        server_time: new Date().toISOString()
     };
 
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });

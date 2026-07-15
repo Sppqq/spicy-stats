@@ -2314,6 +2314,11 @@
             }
             document.getElementById('profile-updated').textContent = updatedTime ? `${dict.last_updated} ${timeAgo(updatedTime)}` : dict.updated_history;
 
+            // Calculate clock offset between server and client to prevent local system clock drift issues
+            const serverTime = profileData.server_time ? new Date(profileData.server_time) : new Date();
+            const clientTime = new Date();
+            const clockOffset = serverTime.getTime() - clientTime.getTime();
+
             // Next update countdown timer logic
             if (window.updateCountdownInterval) {
                 clearInterval(window.updateCountdownInterval);
@@ -2330,7 +2335,8 @@
                     return;
                 }
                 const nextUpdate = new Date(profileData.next_update);
-                const diffMs = nextUpdate.getTime() - Date.now();
+                const synchronizedNow = Date.now() + clockOffset;
+                const diffMs = nextUpdate.getTime() - synchronizedNow;
                 if (diffMs <= 0) {
                     countdownEl.textContent = currentLang === 'ru' ? '• Обновление сейчас...' : '• Updating now...';
                     // Auto-refresh profile data in 15 seconds after countdown reaches 0
