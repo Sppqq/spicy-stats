@@ -585,7 +585,7 @@ async function handleUserDetailAPI(username, request, env) {
             nextCron.setSeconds(0);
             nextCron.setMilliseconds(0);
 
-            const batchIndex = Math.floor(userIndex / 4);
+            const batchIndex = Math.floor(userIndex / 8);
             const updateTime = new Date(nextCron.getTime() + batchIndex * 5 * 60 * 1000);
             nextUpdateTimestamp = updateTime.toISOString();
         }
