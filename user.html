@@ -1371,8 +1371,9 @@
                         <div>
                             <div class="eyebrow" id="profile-rank">Author profile / Rank #--</div>
                             <h1 id="profile-name">@username</h1>
-                            <div class="profile-caption" id="profile-updated">
-                                Last updated 2 minutes ago
+                            <div class="profile-caption">
+                                <span id="profile-updated">Last updated 2 minutes ago</span>
+                                <span id="profile-next-update" style="margin-left: 8px; opacity: 0.75; font-size: 0.95em; display: none;"></span>
                             </div>
                         </div>
                     </div>
@@ -2238,6 +2239,11 @@
         }
 
         function showLoading() {
+            if (window.updateCountdownInterval) {
+                clearInterval(window.updateCountdownInterval);
+            }
+            const nextUpdateEl = document.getElementById('profile-next-update');
+            if (nextUpdateEl) nextUpdateEl.style.display = 'none';
             document.getElementById('profile-name').textContent = `@${username}...`;
             document.getElementById('profile-updated').textContent = 'Loading profile details...';
             document.getElementById('tracks-list').innerHTML = `
@@ -2248,6 +2254,11 @@
         }
 
         function showError(msg) {
+            if (window.updateCountdownInterval) {
+                clearInterval(window.updateCountdownInterval);
+            }
+            const nextUpdateEl = document.getElementById('profile-next-update');
+            if (nextUpdateEl) nextUpdateEl.style.display = 'none';
             document.getElementById('profile-name').textContent = 'Error';
             document.getElementById('profile-updated').style.color = 'var(--coral)';
             document.getElementById('profile-updated').textContent = msg;
@@ -2300,6 +2311,44 @@
                 updatedTime = profileData.chart_data[profileData.chart_data.length - 1].x;
             }
             document.getElementById('profile-updated').textContent = updatedTime ? `${dict.last_updated} ${timeAgo(updatedTime)}` : dict.updated_history;
+
+            // Next update countdown timer logic
+            if (window.updateCountdownInterval) {
+                clearInterval(window.updateCountdownInterval);
+            }
+            const updateCountdown = () => {
+                const countdownEl = document.getElementById('profile-next-update');
+                if (!countdownEl) return;
+                if (!profileData.next_update) {
+                    countdownEl.style.display = 'none';
+                    return;
+                }
+                const nextUpdate = new Date(profileData.next_update);
+                const diffMs = nextUpdate.getTime() - Date.now();
+                if (diffMs <= 0) {
+                    countdownEl.textContent = currentLang === 'ru' ? '• Обновление сейчас...' : '• Updating now...';
+                    return;
+                }
+                const diffSec = Math.floor(diffMs / 1000);
+                const m = Math.floor(diffSec / 60);
+                const s = diffSec % 60;
+                let nextUpdateText = `• Next update in ${m}m ${s}s`;
+                if (currentLang === 'ru') {
+                    nextUpdateText = `• Сл. обновление через ${m}м ${s}с`;
+                } else if (currentLang === 'uk') {
+                    nextUpdateText = `• Наст. оновлення через ${m}м ${s}с`;
+                } else if (currentLang === 'de') {
+                    nextUpdateText = `• Nächstes Update in ${m}m ${s}s`;
+                } else if (currentLang === 'it') {
+                    nextUpdateText = `• Prossimo aggiornamento tra ${m}m ${s}s`;
+                } else if (currentLang === 'pl') {
+                    nextUpdateText = `• Następna aktualizacja za ${m}m ${s}s`;
+                }
+                countdownEl.textContent = nextUpdateText;
+                countdownEl.style.display = 'inline';
+            };
+            updateCountdown();
+            window.updateCountdownInterval = setInterval(updateCountdown, 1000);
             
             document.getElementById('stat-views').textContent = formatViews(profileData.total_views);
             

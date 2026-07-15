@@ -279,13 +279,46 @@ async function handleAddUser(request, env, ctx) {
         return new Response(JSON.stringify({ error: "Invalid username format. Only alphanumeric characters, dots, hyphens, and underscores are allowed (up to 50 characters)." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
-    await env.DB.prepare("INSERT INTO users (username) VALUES (?) ON CONFLICT(username) DO NOTHING")
-        .bind(cleanName)
+    // Check if the user is already in the database
+    const existingUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    if (existingUser) {
+        return new Response(JSON.stringify({ error: "This user has already been added to the tracking list." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    // Fetch user data first to validate that the profile has at least 2 tracks (makes)
+    let data;
+    try {
+        data = await fetchUserDataFromAPI(cleanName);
+    } catch (err) {
+        let msg = "Could not fetch user profile from SpicyLyrics.";
+        if (err.message === "USER_NOT_FOUND") msg = "User not found on SpicyLyrics.";
+        if (err.message === "USER_NOT_CREATOR") msg = "User is not a creator on SpicyLyrics.";
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    if (!data) {
+        return new Response(JSON.stringify({ error: "Failed to retrieve user data from SpicyLyrics." }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    // Validate the track count (minimum 2 tracks)
+    const tracksCount = data.songs ? data.songs.length : 0;
+    if (tracksCount < 2) {
+        return new Response(JSON.stringify({ 
+            error: `Минимум 2 трека требуется для добавления профиля (у этого профиля ${tracksCount} трек${tracksCount === 1 ? '' : 'ов'}).` 
+        }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    await env.DB.prepare("INSERT INTO users (username, discord_id, discord_avatar) VALUES (?, ?, ?) ON CONFLICT(username) DO NOTHING")
+        .bind(cleanName, data.discord_id || null, data.discord_avatar || null)
         .run();
 
     await logAction(env, "user_add", `Added new creator: @${cleanName}`, request);
 
-    ctx.waitUntil(scrapeSingleUser(cleanName, env));
+    // Save initial scrape data immediately
+    const savedUser = await env.DB.prepare("SELECT id, username, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
+    if (savedUser) {
+        ctx.waitUntil(scrapeAndSave(savedUser.id, savedUser.username, savedUser.discord_id, env));
+    }
 
     return new Response(JSON.stringify({ success: true, cleanName }), {
         headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -448,6 +481,36 @@ async function handleUserDetailAPI(username, request, env) {
         chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
     }
 
+    // Calculate next update time
+    let nextUpdateTimestamp = null;
+    try {
+        const { results: queue } = await env.DB.prepare(`
+            SELECT u.id
+            FROM users u
+            LEFT JOIN snapshots s_latest ON s_latest.id = (
+                SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
+            )
+            ORDER BY s_latest.id ASC
+        `).all();
+
+        const userIndex = (queue || []).findIndex(q => q.id === user.id);
+        if (userIndex !== -1) {
+            const now = new Date();
+            const nextCron = new Date(now);
+            const mins = now.getMinutes();
+            const nextMins = Math.floor(mins / 5) * 5 + 5;
+            nextCron.setMinutes(nextMins);
+            nextCron.setSeconds(0);
+            nextCron.setMilliseconds(0);
+
+            const batchIndex = Math.floor(userIndex / 4);
+            const updateTime = new Date(nextCron.getTime() + batchIndex * 5 * 60 * 1000);
+            nextUpdateTimestamp = updateTime.toISOString();
+        }
+    } catch (e) {
+        console.error("Error calculating next update:", e);
+    }
+
     const data = {
         username: user.username,
         discord_id: user.discord_id || null,
@@ -458,7 +521,8 @@ async function handleUserDetailAPI(username, request, env) {
         total_songs: totalSongs,
         highlights: topTracks,
         chart_data: chartDataRaw,
-        songs: finalSongs
+        songs: finalSongs,
+        next_update: nextUpdateTimestamp
     };
 
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
