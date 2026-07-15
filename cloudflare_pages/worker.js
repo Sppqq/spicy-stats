@@ -1157,7 +1157,7 @@ async function runScraper(env) {
 
     if (!users || users.length === 0) return;
 
-    const batchSize = 4;
+    const batchSize = 2;
     for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
         await Promise.all(batch.map(user => scrapeAndSave(user.id, user.username, user.discord_id, env).catch(err => console.error(`Error updating @${user.username}:`, err.message))));
