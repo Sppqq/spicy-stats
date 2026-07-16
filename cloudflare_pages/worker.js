@@ -1267,16 +1267,14 @@ async function scrapeAndSave(userId, username, discordId, env) {
             }
         }
 
-        const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
+        const stmt = env.DB.prepare("INSERT OR IGNORE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
         const batch = [];
         
         for (const track of data.tracksDetails) {
             if (!track) continue;
-            const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-            batch.push(stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames));
-            
-            // If it is a new track, log it!
             if (!existingIds.has(track.id)) {
+                const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
+                batch.push(stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames));
                 await logAction(env, "new_track", `New track cached for @${currentUsername}: "${track.name}" by "${artistNames}" (ISRC: ${track.isrc || 'None'})`, null);
             }
         }
