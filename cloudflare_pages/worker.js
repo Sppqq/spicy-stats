@@ -582,7 +582,7 @@ async function handleUserDetailAPI(username, request, env) {
             nextCron.setSeconds(0);
             nextCron.setMilliseconds(0);
 
-            const batchIndex = Math.floor(userIndex / 8);
+            const batchIndex = Math.floor(userIndex / 4);
             const updateTime = new Date(nextCron.getTime() + batchIndex * 5 * 60 * 1000);
             nextUpdateTimestamp = updateTime.toISOString();
         }
@@ -1154,7 +1154,7 @@ async function runScraper(env) {
         SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1
     )
     ORDER BY latest_snap_id ASC
-    LIMIT 8
+    LIMIT 4
   `).all();
 
     if (!users || users.length === 0) return;
