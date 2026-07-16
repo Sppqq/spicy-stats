@@ -537,7 +537,7 @@ async function handleUserDetailAPI(username, request, env) {
         totalSongs = latestSongs.length;
 
         const findPastViews = (ls, pastSongsList) => {
-            const lsNormTitle = normalizeTitle(ls.title);
+            const lsNormTitle = ls.normTitle;
             const lsArtist = ls.artist.trim().toLowerCase();
             const lsIsrc = ls.isrc ? ls.isrc.trim() : null;
             
@@ -546,7 +546,7 @@ async function handleUserDetailAPI(username, request, env) {
                 if (lsIsrc && psIsrc && lsIsrc === psIsrc) {
                     return ps.views;
                 }
-                if (lsNormTitle === normalizeTitle(ps.title) && lsArtist === ps.artist.trim().toLowerCase()) {
+                if (lsNormTitle === ps.normTitle && lsArtist === ps.artist.trim().toLowerCase()) {
                     return ps.views;
                 }
             }
@@ -578,10 +578,7 @@ async function handleUserDetailAPI(username, request, env) {
         const userIndex = (queue || []).findIndex(q => q.id === user.id);
         if (userIndex !== -1) {
             const now = new Date();
-            const nextCron = new Date(now);
-            const mins = now.getMinutes();
-            const nextMins = Math.floor(mins / 5) * 5 + 5;
-            nextCron.setMinutes(nextMins);
+            const nextCron = new Date(now.getTime() + (5 - (now.getMinutes() % 5)) * 60 * 1000);
             nextCron.setSeconds(0);
             nextCron.setMilliseconds(0);
 
@@ -1024,6 +1021,7 @@ function aggregateSongs(rawList) {
         const title = (s.meta_title || s.title || "Hidden").trim();
         const artist = (s.meta_artist || s.artist || "SpicyLyrics").trim();
         const normTitle = normalizeTitle(title);
+        const primaryArtist = getPrimaryArtist(artist);
         const cleanArtist = artist.toLowerCase();
         const isrc = s.isrc ? s.isrc.trim() : null;
         
@@ -1035,7 +1033,7 @@ function aggregateSongs(rawList) {
                     match = true;
                     break;
                 }
-                if (normTitle === member.normTitle && getPrimaryArtist(artist) === getPrimaryArtist(member.artist)) {
+                if (normTitle === member.normTitle && primaryArtist === member.primaryArtist) {
                     match = true;
                     break;
                 }
@@ -1051,6 +1049,7 @@ function aggregateSongs(rawList) {
             title,
             artist,
             normTitle,
+            primaryArtist,
             cleanArtist,
             isrc,
             views: s.views || 0
@@ -1082,7 +1081,9 @@ function aggregateSongs(rawList) {
         artist: g.artist,
         views: g.views,
         spotify_id: g.songs[0].spotify_id,
-        isrc: g.songs.find(x => x.isrc)?.isrc || null
+        isrc: g.songs.find(x => x.isrc)?.isrc || null,
+        normTitle: g.songs[0].normTitle,
+        primaryArtist: g.songs[0].primaryArtist
     }));
 }
 
