@@ -3029,7 +3029,11 @@
         }
 
         function goBack() {
-            window.location.href = '/';
+            if (window.location.pathname.endsWith('.html') || window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io')) {
+                window.location.href = 'dashboard.html';
+            } else {
+                window.location.href = '/';
+            }
         }
 
         function showEasterEgg() {

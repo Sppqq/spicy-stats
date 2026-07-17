@@ -3479,7 +3479,11 @@
         }
 
         function openProfile(username) {
-            window.location.href = `/user/${username}`;
+            if (window.location.pathname.endsWith('.html') || window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io')) {
+                window.location.href = `user.html?username=${username}`;
+            } else {
+                window.location.href = `/user/${username}`;
+            }
         }
 
         function showEasterEgg() {
