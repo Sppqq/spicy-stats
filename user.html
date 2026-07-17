@@ -443,6 +443,7 @@
         /* Theme picker */
         .topbar-right { display: flex; align-items: center; gap: 18px; }
         .theme-selector { z-index: 1001; position: relative; }
+        .lang-selector { z-index: 1002; position: relative; }
 
         .theme-toggle {
             display: inline-flex;
@@ -1083,9 +1084,8 @@
                 </div>
 
                 <div class="lang-selector" id="lang-selector">
-                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="display: flex; align-items: center; gap: 6px;">
+                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="display: flex; align-items: center; justify-content: center; font-size: 18px;">
                         <span id="lang-toggle-flag">🇬🇧</span>
-                        <span id="lang-toggle-label">EN</span>
                     </button>
                     <div class="lang-dropdown" id="lang-dropdown">
                         <button class="lang-option" data-lang-value="en">🇬🇧 English</button>
@@ -1860,8 +1860,6 @@
             }
 
             const info = LANGUAGES[lang] || LANGUAGES.en;
-            const label = document.getElementById('lang-toggle-label');
-            if (label) label.textContent = info.name;
             const flagEl = document.getElementById('lang-toggle-flag');
             if (flagEl) flagEl.textContent = info.flag;
 

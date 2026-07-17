@@ -2187,6 +2187,8 @@
             if (toggle && dropdown) {
                 toggle.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    document.getElementById('theme-dropdown')?.classList.remove('open');
+                    document.getElementById('settings-dropdown')?.classList.remove('open');
                     dropdown.classList.toggle('open');
                 });
 
@@ -2297,6 +2299,7 @@
             toggle.addEventListener('click', (event) => {
                 event.stopPropagation();
                 document.getElementById('lang-dropdown')?.classList.remove('open');
+                document.getElementById('settings-dropdown')?.classList.remove('open');
                 setMenuOpen(!dropdown.classList.contains('open'));
             });
 
@@ -2379,6 +2382,8 @@
             if (toggle && dropdown) {
                 toggle.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    document.getElementById('theme-dropdown')?.classList.remove('open');
+                    document.getElementById('lang-dropdown')?.classList.remove('open');
                     dropdown.classList.toggle('open');
                 });
 
