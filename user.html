@@ -1480,8 +1480,13 @@
                 ago: "ago",
                 hour: "hour",
                 hours: "hours",
+                minute: "minute",
+                minutes: "minutes",
+                second: "second",
+                seconds: "seconds",
                 day: "day",
                 days: "days",
+                at_time: "at",
                 theme_appearance: "Appearance",
                 theme_choose: "Choose your atmosphere",
                 theme_saved: "Saved across pages",
@@ -1548,8 +1553,13 @@
                 ago: "назад",
                 hour: "час",
                 hours: "часа(ов)",
+                minute: "минута",
+                minutes: "минут(ы)",
+                second: "секунда",
+                seconds: "секунд(ы)",
                 day: "день",
                 days: "дня(ей)",
+                at_time: "в",
                 theme_appearance: "Оформление",
                 theme_choose: "Выберите настроение",
                 theme_saved: "Сохраняется на всех страницах",
@@ -1616,8 +1626,13 @@
                 ago: "тому",
                 hour: "годину",
                 hours: "години(ин)",
+                minute: "хвилина",
+                minutes: "хвилини(ин)",
+                second: "секунда",
+                seconds: "секунди(ин)",
                 day: "день",
                 days: "діб",
+                at_time: "о",
                 theme_appearance: "Оформлення",
                 theme_choose: "Оберіть настрій",
                 theme_saved: "Зберігається на всіх сторінках",
@@ -1684,8 +1699,13 @@
                 ago: "",
                 hour: "Stunde",
                 hours: "Stunden",
+                minute: "Minute",
+                minutes: "Minuten",
+                second: "Sekunde",
+                seconds: "Sekunden",
                 day: "Tag",
                 days: "Tage",
+                at_time: "um",
                 theme_appearance: "Darstellung",
                 theme_choose: "Wähle deine Atmosphäre",
                 theme_saved: "Auf allen Seiten gespeichert",
@@ -1752,8 +1772,13 @@
                 ago: "fa",
                 hour: "ora",
                 hours: "ore",
+                minute: "minuto",
+                minutes: "minuti",
+                second: "secondo",
+                seconds: "secondi",
                 day: "giorno",
                 days: "giorni",
+                at_time: "alle",
                 theme_appearance: "Aspetto",
                 theme_choose: "Scegli la tua atmosfera",
                 theme_saved: "Salvato in tutte le pagine",
@@ -1820,8 +1845,13 @@
                 ago: "temu",
                 hour: "godzinę",
                 hours: "godziny",
+                minute: "minutę",
+                minutes: "minuty",
+                second: "sekundę",
+                seconds: "sekundy",
                 day: "dzień",
                 days: "dni",
+                at_time: "o",
                 theme_appearance: "Wygląd",
                 theme_choose: "Wybierz swój klimat",
                 theme_saved: "Zapisane na wszystkich stronach",
@@ -2755,16 +2785,48 @@
             if (estimateEl) {
                 if (growth > 0) {
                     const days = viewsNeeded / growth;
+                    const totalMs = days * 24 * 60 * 60 * 1000;
+                    const arrivalTime = new Date(Date.now() + totalMs);
+                    const timeHH = String(arrivalTime.getHours()).padStart(2, '0');
+                    const timeMM = String(arrivalTime.getMinutes()).padStart(2, '0');
+                    const arrivalStr = `${dict.at_time} ${timeHH}:${timeMM}`;
+
                     let timeStr = '';
-                    if (days < 1) {
-                        const hours = Math.round(days * 24);
-                        const hrUnit = hours === 1 ? dict.hour : dict.hours;
-                        timeStr = `${hours} ${hrUnit}`;
+                    if (days < 1/24) {
+                        const totalSec = Math.round(days * 24 * 60 * 60);
+                        const mins = Math.floor(totalSec / 60);
+                        const secs = totalSec % 60;
+                        if (mins > 0) {
+                            const minUnit = mins === 1 ? dict.minute : dict.minutes;
+                            timeStr = `${mins} ${minUnit}`;
+                            if (secs > 0) {
+                                const secUnit = secs === 1 ? dict.second : dict.seconds;
+                                timeStr += ` ${secs} ${secUnit}`;
+                            }
+                        } else {
+                            const secUnit = secs === 1 ? dict.second : dict.seconds;
+                            timeStr = `${secs} ${secUnit}`;
+                        }
+                    } else if (days < 1) {
+                        const totalMin = Math.round(days * 24 * 60);
+                        const hrs = Math.floor(totalMin / 60);
+                        const mins = totalMin % 60;
+                        if (hrs > 0) {
+                            const hrUnit = hrs === 1 ? dict.hour : dict.hours;
+                            timeStr = `${hrs} ${hrUnit}`;
+                            if (mins > 0) {
+                                const minUnit = mins === 1 ? dict.minute : dict.minutes;
+                                timeStr += ` ${mins} ${minUnit}`;
+                            }
+                        } else {
+                            const minUnit = mins === 1 ? dict.minute : dict.minutes;
+                            timeStr = `${mins} ${minUnit}`;
+                        }
                     } else {
                         const dayUnit = days.toFixed(1) === '1.0' ? dict.day : dict.days;
                         timeStr = `${days.toFixed(1)} ${dayUnit}`;
                     }
-                    estimateEl.innerHTML = `⚡ ${dict.estimated} <strong>${timeStr} ${dict.remaining}</strong> ${dict.at_rate} (+${formatViews(growth)} ${dict.views_per_day || 'views/day'})`;
+                    estimateEl.innerHTML = `⚡ ${dict.estimated} <strong>${timeStr} ${dict.remaining}</strong> ${arrivalStr} (${dict.at_rate} +${formatViews(growth)} ${dict.views_per_day || 'views/day'})`;
                 } else {
                     estimateEl.innerHTML = `❄ ${dict.static_creator} (+0 ${dict.views_per_day || 'views/day'})`;
                 }
