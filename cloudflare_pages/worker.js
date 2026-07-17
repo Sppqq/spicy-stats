@@ -297,7 +297,7 @@ async function handleDashboardAPI(request, env) {
         WHERE id = (SELECT id FROM snapshots s2 WHERE s2.user_id = s1.user_id ORDER BY id DESC LIMIT 1)
     )
     SELECT
-        u.username, ls.latest_views AS current_views, ls.latest_timestamp AS last_updated, s_past.total_views AS past_views,
+        u.username, ls.latest_views AS current_views, u.last_scraped_at AS last_updated, s_past.total_views AS past_views,
         (SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1) AS first_snapshot,
         s_past_7d.id AS past_7d_id,
         COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id), 0) AS total_songs,
