@@ -12,3 +12,15 @@ database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"   # Реальный ID в�
 [observability.logs]
 enabled = true
 invocation_logs = true
+
+# Это позволяет скрипту ОТПРАВЛЯТЬ в очередь (через env.SCRAPE_QUEUE)
+[[queues.producers]]
+queue = "spicy-scrape-queue"
+binding = "SCRAPE_QUEUE"
+
+# Это заставляет скрипт ПОЛУЧАТЬ из очереди (вызывает функцию queue() в скрипте)
+[[queues.consumers]]
+queue = "spicy-scrape-queue"
+# Указываем, сколько профилей за раз берет ОДИН инстанс (ставим 1 для максимальной безопасности CPU)
+max_batch_size = 1
+max_retries = 2
