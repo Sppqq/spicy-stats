@@ -2759,6 +2759,7 @@
 
         async function loadActivityFeed() {
             const showTicker = localStorage.getItem('spicy-show-ticker') === 'true';
+            console.log('[Ticker] loadActivityFeed() - showTicker:', showTicker);
             const container = document.getElementById('activity-ticker-container');
             if (!showTicker) {
                 if (container) container.style.display = 'none';
