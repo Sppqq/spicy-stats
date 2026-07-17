@@ -53,7 +53,7 @@ async function checkSchema(env) {
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
         // POISON PILL FIX: Tracking scrape queue independently of successful snapshot inserts
-        await env.DB.prepare("ALTER TABLE users ADD COLUMN last_scraped_at TEXT DEFAULT (datetime('now', '-1 day'))").run().catch(() => {});
+        await env.DB.prepare("ALTER TABLE users ADD COLUMN last_scraped_at TEXT").run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_users_last_scraped ON users(last_scraped_at)").run().catch(() => {});
 
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_snapshot_songs_snapshot_id ON snapshot_songs(snapshot_id)").run().catch(() => {});
