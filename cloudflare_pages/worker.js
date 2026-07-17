@@ -204,33 +204,7 @@ export default {
 
     // КРОН (PRODUCER)
     async scheduled(event, env, ctx) {
-        try {
-            if (env.SCRAPE_QUEUE) {
-                // Если Очередь настроена в wrangler.toml -> Берем 50 профилей
-                const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 50`).all();
-                if (!users || users.length === 0) return;
-
-                const userIds = users.map(u => u.id);
-                await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
-
-                const messages = users.map(u => ({ body: { id: u.id, username: u.username, discord_id: u.discord_id } }));
-                await env.SCRAPE_QUEUE.sendBatch(messages);
-            } else {
-                // ФОЛЛБЭК: Если Очередь ЕЩЕ НЕ настроена -> парсим 2-х профилей обычным способом (без краша CPU)
-                const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 2`).all();
-                if (!users || users.length === 0) return;
-
-                const userIds = users.map(u => u.id);
-                await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
-
-                for (const user of users) {
-                    try { await scrapeAndSave(user.id, user.username, user.discord_id, env); }
-                    catch (err) { console.error(`Scrape error fallback:`, err.message); }
-                }
-            }
-        } catch (e) {
-            console.error("Cron execution error:", e);
-        }
+        await triggerGlobalScrape(env);
     },
 
     // ОБРАБОТЧИК ОЧЕРЕДИ (CONSUMER)
@@ -581,10 +555,37 @@ async function handleAdminScrapeAll(request, env, ctx) {
     const { secret } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
 
-    // Ручной триггер глобального крона
-    ctx.waitUntil(export default.scheduled(null, env, ctx));
+    ctx.waitUntil(triggerGlobalScrape(env));
     await logAction(env, "global_scrape", "Global scraper run triggered manually", request);
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+}
+
+async function triggerGlobalScrape(env) {
+    try {
+        if (env.SCRAPE_QUEUE) {
+            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 50`).all();
+            if (!users || users.length === 0) return;
+
+            const userIds = users.map(u => u.id);
+            await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
+
+            const messages = users.map(u => ({ body: { id: u.id, username: u.username, discord_id: u.discord_id } }));
+            await env.SCRAPE_QUEUE.sendBatch(messages);
+        } else {
+            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 2`).all();
+            if (!users || users.length === 0) return;
+
+            const userIds = users.map(u => u.id);
+            await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
+
+            for (const user of users) {
+                try { await scrapeAndSave(user.id, user.username, user.discord_id, env); }
+                catch (err) { console.error(`Scrape error fallback:`, err.message); }
+            }
+        }
+    } catch (e) {
+        console.error("Cron execution error:", e);
+    }
 }
 
 async function handleAdminLogs(request, env) {
