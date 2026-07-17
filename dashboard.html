@@ -1582,6 +1582,15 @@
         }
 
         /* Live Activity Ticker Styles */
+        #activity-ticker {
+            display: flex;
+            gap: 40px;
+            white-space: nowrap;
+            width: max-content;
+            animation: ticker-scroll 80s linear infinite;
+            position: absolute;
+            left: 0;
+        }
         #activity-ticker-container:hover #activity-ticker {
             animation-play-state: paused;
         }
@@ -1687,7 +1696,7 @@
                 <span class="live-dot" style="background: #fff; border-color: var(--blue); width: 6px; height: 6px; box-shadow: none; animation: none;"></span> LIVE
             </div>
             <div style="overflow: hidden; width: 100%; position: relative; display: flex; align-items: center; height: 100%;">
-                <div id="activity-ticker" style="display: flex; gap: 40px; white-space: nowrap; width: max-content; animation: ticker-scroll 80s linear infinite; position: absolute; left: 0;">
+                <div id="activity-ticker">
                     <!-- Rendered dynamically -->
                 </div>
             </div>
