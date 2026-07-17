@@ -1369,7 +1369,7 @@
                 </div>
 
                 <!-- Settings Selector -->
-                <div style="position: relative; display: flex; align-items: center;">
+                <div style="position: relative; display: flex; align-items: center; z-index: 1010;">
                     <button class="theme-toggle" id="settings-toggle" type="button" aria-label="Settings" style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; font-size: 14px;">
                         ⚙️
                     </button>
@@ -1390,7 +1390,7 @@
         </header>
 
         <!-- Live Activity Ticker -->
-        <div id="activity-ticker-container" style="margin-top: 14px; border: 1px solid var(--line); background: var(--white); font-family: 'DM Mono', monospace; font-size: 11px; padding: 10px 16px; position: relative; height: 38px; display: none; align-items: center;">
+        <div id="activity-ticker-container" style="margin-top: 14px; border: 1px solid var(--line); background: var(--white); font-family: 'DM Mono', monospace; font-size: 11px; padding: 10px 16px; position: relative; z-index: 1; height: 38px; display: none; align-items: center;">
             <div style="background: var(--blue); color: #fff; padding: 2px 8px; font-weight: 700; border-radius: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 16px; z-index: 10; position: relative; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
                 <span class="live-dot" style="background: #fff; border-color: var(--blue); width: 6px; height: 6px; box-shadow: none; animation: none;"></span> LIVE
             </div>
