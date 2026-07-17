@@ -405,11 +405,11 @@ async function handleUserDetailAPI(username, request, env) {
         const userIndex = (queue || []).findIndex(q => q.id === user.id);
         if (userIndex !== -1) {
             const now = new Date();
-            const nextCron = new Date(now.getTime() + (5 - (now.getMinutes() % 5)) * 60 * 1000);
+            const nextCron = new Date(now.getTime() + 60000);
             nextCron.setSeconds(0); nextCron.setMilliseconds(0);
             // batch index mapped to new scraper batch size = 3
             const batchIndex = Math.floor(userIndex / 3);
-            nextUpdateTimestamp = new Date(nextCron.getTime() + batchIndex * 5 * 60 * 1000).toISOString();
+            nextUpdateTimestamp = new Date(nextCron.getTime() + batchIndex * 60000).toISOString();
         }
     } catch (e) {}
 
