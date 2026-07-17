@@ -2523,7 +2523,33 @@
             if (!svgArea || !svgLine || !profileData.chart_data || profileData.chart_data.length < 2) return;
 
             const rawPoints = profileData.chart_data;
-            const points = chartTimeframe === 'all' ? rawPoints : rawPoints.slice(-chartTimeframe);
+            let points = rawPoints;
+
+            // 1. Адаптивная фильтрация по реальному времени
+            if (chartTimeframe !== 'all' && rawPoints.length > 0) {
+                const lastPointDate = parseUTCDate(rawPoints[rawPoints.length - 1].x);
+                const lastTime = lastPointDate ? lastPointDate.getTime() : Date.now();
+                const cutoffTime = lastTime - (chartTimeframe * 24 * 60 * 60 * 1000);
+
+                points = rawPoints.filter(p => {
+                    const d = parseUTCDate(p.x);
+                    return d && d.getTime() >= cutoffTime;
+                });
+
+                // Захватываем одну точку до начала периода для красивого старта линии
+                if (points.length > 0 && points[0] !== rawPoints[0]) {
+                    const firstIncludedIndex = rawPoints.indexOf(points[0]);
+                    if (firstIncludedIndex > 0) {
+                        points.unshift(rawPoints[firstIncludedIndex - 1]);
+                    }
+                }
+            }
+
+            // 2. Адаптивное прореживание (чтобы не перегружать SVG при частых апдейтах)
+            if (points.length > 300) {
+                const step = Math.ceil(points.length / 300);
+                points = points.filter((_, index) => index % step === 0 || index === points.length - 1);
+            }
 
             if (points.length < 2) {
                 // If selected timeframe doesn't have enough data points, fallback to using all available
@@ -2885,6 +2911,12 @@
             const labelsContainer = document.getElementById('track-chart-labels');
 
             if (!svgArea || !svgLine) return;
+
+            // Прореживание для графиков треков, если точек слишком много
+            if (points && points.length > 300) {
+                const step = Math.ceil(points.length / 300);
+                points = points.filter((_, index) => index % step === 0 || index === points.length - 1);
+            }
 
             if (!points || points.length < 2) {
                 svgArea.setAttribute('d', '');
