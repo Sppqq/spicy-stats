@@ -1531,18 +1531,18 @@
                     <!-- Catalog Insights Card -->
                     <div class="mini-card">
                         <div class="eyebrow" style="color: var(--green);" data-i18n="catalog_insights">Catalog Insights</div>
-                        <h2 style="font-size: 16px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.02em;">Distribution & Growth</h2>
+                        <h2 style="font-size: 16px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.02em;" data-i18n="dist_growth">Distribution & Growth</h2>
                         
                         <!-- 7d Growth -->
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 11px;">
-                            <span style="color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-size: 10px;">7d Growth</span>
+                            <span style="color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-size: 10px;" data-i18n="growth_7d_label">7d Growth</span>
                             <strong id="insight-growth-7d" style="font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green);">...</strong>
                         </div>
                         
                         <!-- Solo vs Collab Segment Bar -->
                         <div style="margin-bottom: 20px;">
                             <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-family: 'DM Mono', monospace;">
-                                <span>Solo vs Collab</span>
+                                <span data-i18n="solo_vs_collab">Solo vs Collab</span>
                                 <span id="insight-collab-ratio" style="font-family: 'DM Mono', monospace;">0% / 0%</span>
                             </div>
                             <div style="width: 100%; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; display: flex;">
@@ -1553,7 +1553,7 @@
 
                         <!-- Top Track Shares -->
                         <div>
-                            <div style="font-size: 10px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace;">Top Track Shares</div>
+                            <div style="font-size: 10px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace;" data-i18n="top_shares">Top Track Shares</div>
                             <div id="insight-track-shares" style="display: flex; flex-direction: column; gap: 10px;">
                                 <!-- Dynamic shares list -->
                             </div>
@@ -1630,10 +1630,12 @@
                     // Update subtext
                     const subLabel = document.getElementById('profile-chart-sub-label');
                     if (subLabel) {
+                        const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                         if (chartTimeframe === 'all') {
-                            subLabel.textContent = currentLang === 'ru' ? 'Общие просмотры за все время отслеживания' : 'Total views over all tracking history';
+                            subLabel.textContent = dict.chart_sub_all || 'Total views over all tracking history';
                         } else {
-                            subLabel.textContent = currentLang === 'ru' ? `Общие просмотры за последние ${chartTimeframe} дней` : `Total views over the last ${chartTimeframe} days`;
+                            const template = dict.chart_sub_days || 'Total views over the last {days} days';
+                            subLabel.textContent = template.replace('{days}', chartTimeframe);
                         }
                     }
                     
@@ -1748,7 +1750,13 @@
                 perf_stable_dist: "Views are stable and evenly distributed across the artist's tracked catalog.",
                 perf_high_dep: '<strong>High dependency:</strong> Over half of this author\'s views ({share}%) come from a single track ("{song}").',
                 perf_flat_act: "<strong>Flat activity:</strong> None of the tracked songs showed view growth in the last tracking interval.",
-                perf_healthy: "<strong>Healthy stats:</strong> Views are well distributed, indicating a balanced catalog of tracks.",
+                catalog_insights: "Catalog Insights",
+                dist_growth: "Distribution & Growth",
+                growth_7d_label: "7d Growth",
+                solo_vs_collab: "Solo vs Collab",
+                top_shares: "Top Track Shares",
+                chart_sub_all: "Total views over all tracking history",
+                chart_sub_days: "Total views over the last {days} days",
                 contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq"
             },
             ru: {
@@ -1806,6 +1814,13 @@
                 perf_high_dep: '<strong>Высокая зависимость:</strong> Более половины просмотров автора ({share}%) приходится на один трек ("{song}").',
                 perf_flat_act: '<strong>Нулевая активность:</strong> Ни один из треков не показал роста просмотров за последний интервал.',
                 perf_healthy: '<strong>Хорошие показатели:</strong> Просмотры отлично распределены, что говорит о сбалансированном каталоге.',
+                catalog_insights: "Аналитика каталога",
+                dist_growth: "Распределение и рост",
+                growth_7d_label: "Рост за 7 дней",
+                solo_vs_collab: "Соло / Коллаборации",
+                top_shares: "Доли топовых треков",
+                chart_sub_all: "Общие просмотры за все время отслеживания",
+                chart_sub_days: "Общие просмотры за последние {days} дней",
                 contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq"
             },
             uk: {
@@ -1863,6 +1878,13 @@
                 perf_high_dep: '<strong>Висока залежність:</strong> Більше половини переглядів автора ({share}%) припадає на один трек ("{song}").',
                 perf_flat_act: '<strong>Нульова активність:</strong> Жоден із треків не показав зростання переглядів за останній інтервал.',
                 perf_healthy: '<strong>Гарні показники:</strong> Перегляди добре розподілені, що свідчить про збалансований каталог.',
+                catalog_insights: "Аналітика каталогу",
+                dist_growth: "Розподіл і зростання",
+                growth_7d_label: "Зростання за 7 днів",
+                solo_vs_collab: "Соло / Колаборації",
+                top_shares: "Частки топових треків",
+                chart_sub_all: "Загальна кількість переглядів за всю історію відстеження",
+                chart_sub_days: "Загальна кількість переглядів за останні {days} днів",
                 contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq"
             },
             de: {
@@ -1920,6 +1942,13 @@
                 perf_high_dep: '<strong>Hohe Abhängigkeit:</strong> Mehr als die Hälfte der Aufrufe ({share}%) stammt von einem einzigen Track ("{song}").',
                 perf_flat_act: "<strong>Keine Aktivität:</strong> Keiner der erfassten Songs verzeichnete im letzten Intervall Wachstum.",
                 perf_healthy: "<strong>Gesunde Werte:</strong> Die Aufrufe sind gut verteilt, was auf einen ausgewogenen Katalog hinweist.",
+                catalog_insights: "Katalog-Einblicke",
+                dist_growth: "Verteilung & Wachstum",
+                growth_7d_label: "7-Tage-Wachstum",
+                solo_vs_collab: "Solo vs. Kollab.",
+                top_shares: "Top-Track-Anteile",
+                chart_sub_all: "Gesamtansichten über die gesamte Erfassungshistorie",
+                chart_sub_days: "Gesamtansichten in den letzten {days} Tagen",
                 contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq"
             },
             it: {
@@ -1977,6 +2006,13 @@
                 perf_high_dep: '<strong>Alta dipendenza:</strong> Oltre la metà delle visualizzazioni ({share}%) proviene da un singolo brano ("{song}").',
                 perf_flat_act: "<strong>Attività piatta:</strong> Nessuno dei brani tracciati ha mostrato crescita nell'ultimo intervallo.",
                 perf_healthy: "<strong>Statistiche sane:</strong> Le visualizzazioni sono ben distribuite, indicando un catalogo bilanciato.",
+                catalog_insights: "Analisi catalogo",
+                dist_growth: "Distribuzione e crescita",
+                growth_7d_label: "Crescita 7 giorni",
+                solo_vs_collab: "Solista vs Collab",
+                top_shares: "Quote dei brani migliori",
+                chart_sub_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
+                chart_sub_days: "Visualizzazioni totali negli ultimi {days} giorni",
                 contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq"
             },
             pl: {
@@ -2034,6 +2070,13 @@
                 perf_high_dep: '<strong>Wysoka zależność:</strong> Ponad połowa wyświetleń ({share}%) pochodzi z jednego utworu ("{song}").',
                 perf_flat_act: "<strong>Brak aktywności:</strong> Żaden z utwórów nie wykazał wzrostu wyświetleń w ostatnim okresie.",
                 perf_healthy: "<strong>Zdrowe statystyki:</strong> Wyświetlenia są dobrze rozłożone, co wskazuje na zrównoważony katalog.",
+                catalog_insights: "Statystyki katalogu",
+                dist_growth: "Dystrybucja i wzrost",
+                growth_7d_label: "Wzrost 7-dniowy",
+                solo_vs_collab: "Solo vs Kolaboracja",
+                top_shares: "Udziały top utworów",
+                chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
+                chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
                 contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq"
             }
         };
@@ -2410,7 +2453,14 @@
                 const synchronizedNow = Date.now() + clockOffset;
                 const diffMs = nextUpdate.getTime() - synchronizedNow;
                 if (diffMs <= 0) {
-                    countdownEl.textContent = currentLang === 'ru' ? '• Обновление сейчас...' : '• Updating now...';
+                    let updatingText = '• Updating now...';
+                    if (currentLang === 'ru') updatingText = '• Обновление сейчас...';
+                    else if (currentLang === 'uk') updatingText = '• Оновлення зараз...';
+                    else if (currentLang === 'de') updatingText = '• Aktualisierung jetzt...';
+                    else if (currentLang === 'it') updatingText = '• Aggiornamento in corso...';
+                    else if (currentLang === 'pl') updatingText = '• Aktualizacja teraz...';
+                    
+                    countdownEl.textContent = updatingText;
                     // Auto-refresh profile data in 15 seconds after countdown reaches 0
                     if (!window.autoRefreshTimeout) {
                         window.autoRefreshTimeout = setTimeout(() => {

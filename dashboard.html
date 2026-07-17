@@ -2641,6 +2641,57 @@
             return text.replace(/@([a-zA-Z0-9_\.\-]+)/g, '<a href="/user/$1" style="color: inherit; text-decoration: underline; font-weight: 700;">@$1</a>');
         }
 
+        function localizeTickerText(ev) {
+            let details = ev.details || '';
+            const lang = currentLang;
+
+            if (ev.action_type === 'milestone_reached') {
+                const match = details.match(/🎉 @([a-zA-Z0-9_\-\.]+) reached (\d+[KM]) views!/);
+                if (match) {
+                    const user = match[1];
+                    const val = match[2];
+                    if (lang === 'ru') return `🎉 @${user} достиг юбилея в ${val} просмотров!`;
+                    if (lang === 'uk') return `🎉 @${user} досяг ювілею в ${val} переглядів!`;
+                    if (lang === 'de') return `🎉 @${user} hat ${val} Aufrufe erreicht!`;
+                    if (lang === 'it') return `🎉 @${user} ha raggiunto ${val} visualizzazioni!`;
+                    if (lang === 'pl') return `🎉 @${user} osiągnął ${val} wyświetleń!`;
+                }
+            } else if (ev.action_type === 'new_track') {
+                const match = details.match(/🎵 @([a-zA-Z0-9_\-\.]+) added a new track: (.+)/);
+                if (match) {
+                    const user = match[1];
+                    const track = match[2];
+                    if (lang === 'ru') return `🎵 @${user} добавил новый трек: ${track}`;
+                    if (lang === 'uk') return `🎵 @${user} додав новий трек: ${track}`;
+                    if (lang === 'de') return `🎵 @${user} hat einen neuen Track hinzugefügt: ${track}`;
+                    if (lang === 'it') return `🎵 @${user} ha aggiunto un nuovo brano: ${track}`;
+                    if (lang === 'pl') return `🎵 @${user} dodał nowy utwór: ${track}`;
+                }
+            } else if (ev.action_type === 'user_add') {
+                const match = details.match(/➕ Added new profile: @([a-zA-Z0-9_\-\.]+)/);
+                if (match) {
+                    const user = match[1];
+                    if (lang === 'ru') return `➕ Добавлен новый профиль: @${user}`;
+                    if (lang === 'uk') return `➕ Додано новий профіль: @${user}`;
+                    if (lang === 'de') return `➕ Neues Profil hinzugefügt: @${user}`;
+                    if (lang === 'it') return `➕ Aggiunto nuovo profilo: @${user}`;
+                    if (lang === 'pl') return `➕ Dodano nowy profil: @${user}`;
+                }
+            } else if (ev.action_type === 'profile_merge') {
+                const match = details.match(/🔀 Merged profile @([a-zA-Z0-9_\-\.]+) into @([a-zA-Z0-9_\-\.]+)/);
+                if (match) {
+                    const src = match[1];
+                    const tgt = match[2];
+                    if (lang === 'ru') return `🔀 Профиль @${src} объединен с @${tgt}`;
+                    if (lang === 'uk') return `🔀 Профіль @${src} об'єднано з @${tgt}`;
+                    if (lang === 'de') return `🔀 Profil @${src} mit @${tgt} zusammengeführt`;
+                    if (lang === 'it') return `🔀 Profilo @${src} unito a @${tgt}`;
+                    if (lang === 'pl') return `🔀 Profil @${src} połączony z @${tgt}`;
+                }
+            }
+            return details;
+        }
+
         async function loadActivityFeed() {
             try {
                 const res = await spicyFetch(`${API_BASE}/activity-feed`);
@@ -2665,7 +2716,7 @@
 
             const items = events.map(ev => {
                 let timeStr = timeAgo(ev.created_at);
-                let txt = formatTickerText(ev.details);
+                let txt = formatTickerText(localizeTickerText(ev));
                 if (ev.action_type === 'milestone_reached') {
                     return `<span style="color: var(--green); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
                 } else if (ev.action_type === 'new_track') {
