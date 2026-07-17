@@ -563,7 +563,7 @@ async function handleAdminScrapeAll(request, env, ctx) {
 async function triggerGlobalScrape(env) {
     try {
         if (env.SCRAPE_QUEUE) {
-            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 50`).all();
+            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-10 minutes') ORDER BY last_scraped_at ASC LIMIT 10`).all();
             if (!users || users.length === 0) return;
 
             const userIds = users.map(u => u.id);
@@ -572,7 +572,7 @@ async function triggerGlobalScrape(env) {
             const messages = users.map(u => ({ body: { id: u.id, username: u.username, discord_id: u.discord_id } }));
             await env.SCRAPE_QUEUE.sendBatch(messages);
         } else {
-            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users ORDER BY last_scraped_at ASC NULLS FIRST LIMIT 2`).all();
+            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-10 minutes') ORDER BY last_scraped_at ASC LIMIT 2`).all();
             if (!users || users.length === 0) return;
 
             const userIds = users.map(u => u.id);
