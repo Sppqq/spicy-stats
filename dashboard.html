@@ -1580,6 +1580,21 @@
             background: var(--ink);
             color: var(--paper);
         }
+
+        /* Live Activity Ticker Styles */
+        #activity-ticker:hover {
+            animation-play-state: paused;
+            cursor: pointer;
+        }
+
+        @keyframes ticker-scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
     </style>
 </head>
 
@@ -1663,6 +1678,18 @@
                 </div>
             </div>
         </header>
+        
+        <!-- Live Activity Ticker -->
+        <div id="activity-ticker-container" style="margin-top: 14px; border: 1px solid var(--line); background: var(--white); font-family: 'DM Mono', monospace; font-size: 11px; padding: 10px 16px; position: relative; height: 38px; display: none; align-items: center;">
+            <div style="background: var(--blue); color: #fff; padding: 2px 8px; font-weight: 700; border-radius: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 16px; z-index: 10; position: relative; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                <span class="live-dot" style="background: #fff; border-color: var(--blue); width: 6px; height: 6px; box-shadow: none; animation: none;"></span> LIVE
+            </div>
+            <div style="overflow: hidden; width: 100%; position: relative; display: flex; align-items: center; height: 100%;">
+                <div id="activity-ticker" style="display: flex; gap: 40px; white-space: nowrap; width: max-content; animation: ticker-scroll 35s linear infinite; position: absolute; left: 0;">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+        </div>
 
         <main>
             <section class="dashboard-heading">
@@ -1779,7 +1806,10 @@
                 </div>
             </section>
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
-                <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.4</span>
+                </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
             </footer>
         </main>
@@ -2596,9 +2626,62 @@
             return `${diffDays} ${dayText} ${agoText}`;
         }
 
+        function formatTickerText(text) {
+            return text.replace(/@([a-zA-Z0-9_\.\-]+)/g, '<a href="/user/$1" style="color: inherit; text-decoration: underline; font-weight: 700;">@$1</a>');
+        }
+
+        async function loadActivityFeed() {
+            try {
+                const res = await spicyFetch(`${API_BASE}/activity-feed`);
+                if (res.ok) {
+                    const data = await res.json();
+                    renderTicker(data.events || []);
+                }
+            } catch (e) {
+                console.error('Failed to load activity feed', e);
+            }
+        }
+
+        function renderTicker(events) {
+            const container = document.getElementById('activity-ticker-container');
+            const ticker = document.getElementById('activity-ticker');
+            if (!container || !ticker) return;
+
+            if (!events || events.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const items = events.map(ev => {
+                let timeStr = timeAgo(ev.created_at);
+                let txt = formatTickerText(ev.details);
+                if (ev.action_type === 'milestone_reached') {
+                    return `<span style="color: var(--green); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+                } else if (ev.action_type === 'new_track') {
+                    return `<span style="color: var(--blue); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+                } else if (ev.action_type === 'user_add') {
+                    return `<span style="color: var(--ink);">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+                } else if (ev.action_type === 'profile_merge') {
+                    return `<span style="color: var(--coral); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+                }
+                return `<span>${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+            });
+
+            const content = items.join(' <span style="color: var(--line); margin: 0 15px;">•</span> ');
+            ticker.innerHTML = `${content} <span style="color: var(--line); margin: 0 15px;">•</span> ${content}`;
+            
+            // Auto scroll loop duration calculation
+            const scrollLength = ticker.scrollWidth / 2;
+            const duration = Math.max(15, Math.floor(scrollLength / 40));
+            ticker.style.animationDuration = `${duration}s`;
+
+            container.style.display = 'flex';
+        }
+
         // Fetch dashboard and details
         async function loadDashboard() {
             showLoadingState();
+            loadActivityFeed();
             try {
                 const res = await spicyFetch(`${API_BASE}/dashboard`);
                 if (!res.ok) throw new Error('Failed to fetch dashboard data');

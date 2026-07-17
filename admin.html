@@ -494,10 +494,55 @@
                 </article>
             </section>
 
+            <!-- System Diagnostics & Scraper Health -->
+            <section class="panel" style="margin-top: 12px; margin-bottom: 12px;">
+                <div class="panel-heading" style="border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
+                    <div>
+                        <h2 class="panel-title">System Diagnostics & Scraper Health</h2>
+                        <div class="panel-meta">Real-time database storage capacity and scheduler status</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; padding: 0 8px 8px 8px;">
+                    <!-- Database Storage Capacity (Progress Bar) -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">
+                            <span>Database Storage</span>
+                            <span id="stat-db-size-text">0.00 MB / 500 MB</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                            <div id="stat-db-size-bar" style="height: 100%; width: 0%; background: var(--blue); transition: width 0.8s;"></div>
+                        </div>
+                        <div style="font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            Cache: <span id="stat-metadata-count">0</span> tracks | Logs: <span id="stat-logs-count">0</span> entries
+                        </div>
+                    </div>
+
+                    <!-- Scraper Scheduler Coverage -->
+                    <div>
+                        <div style="font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Scraper Schedule (24h)</div>
+                        <div style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px;" id="stat-scraper-coverage">...</div>
+                        <div style="font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            Last run: <span id="stat-scraper-last-run">never</span>
+                        </div>
+                    </div>
+
+                    <!-- Scraper Failures & Errors -->
+                    <div>
+                        <div style="font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Errors (24h)</div>
+                        <div style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; color: var(--positive-text);" id="stat-scraper-errors">0</div>
+                        <div style="font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace;" id="stat-scraper-errors-sub">
+                            Scraper is running healthy.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Navigation Sub-Tabs -->
             <nav style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--line); padding-bottom: 12px; margin-top: 16px;">
                 <button class="tab-btn" id="tab-btn-database" onclick="switchTab('database')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--blue); cursor: pointer; padding: 6px 12px; border-bottom: 2px solid var(--blue); margin-bottom: -14px;">👥 Database</button>
                 <button class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
+                <button class="tab-btn" id="tab-btn-metadata" onclick="switchTab('metadata')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔗 Metadata</button>
                 <button class="tab-btn" id="tab-btn-logs" onclick="switchTab('logs')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">📋 Audit Logs</button>
             </nav>
 
@@ -650,8 +695,49 @@
                 </section>
             </div>
 
+            <!-- Tab 4: Metadata Editor -->
+            <div id="tab-content-metadata" class="tab-content" style="display: none;">
+                <section class="panel">
+                    <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h2 class="panel-title">Track Metadata Cache Editor</h2>
+                            <div class="panel-meta">Search and edit cached Spotify tracks, ISRCs, and groups</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Input -->
+                    <div style="margin: 0 24px 16px 24px;">
+                        <input type="text" id="metadata-search" placeholder="Search track cache by title, artist, ISRC, or Spotify ID..." class="admin-input" style="height: 38px; width: 100%;" oninput="searchMetadataDebounced()">
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Spotify ID</th>
+                                    <th>Title</th>
+                                    <th>Artist</th>
+                                    <th>ISRC</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metadata-tbody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                                        Search metadata by typing above...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
-                <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.4</span>
+                </div>
                 <div style="margin-top: 6px;">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</div>
             </footer>
         </main>
@@ -670,6 +756,41 @@
                 <button type="button" onclick="closeDeleteModal()" class="admin-btn secondary">Cancel</button>
                 <button type="button" id="confirm-delete-btn" onclick="submitDeleteUser()" class="admin-btn coral">Delete Permanently</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Metadata Modal -->
+    <div id="metadata-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button onclick="closeMetadataModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <div class="eyebrow" style="color: var(--blue);">Metadata Editor</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Edit Track Details</h2>
+            
+            <form onsubmit="submitMetadataUpdate(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Spotify ID</label>
+                    <input type="text" id="metadata-modal-id" disabled class="admin-input" style="width: 100%; opacity: 0.6; cursor: not-allowed; background: var(--paper);">
+                </div>
+                <div>
+                    <label for="metadata-modal-title" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Title</label>
+                    <input type="text" id="metadata-modal-title" required class="admin-input" style="width: 100%;">
+                </div>
+                <div>
+                    <label for="metadata-modal-artist" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">Artist</label>
+                    <input type="text" id="metadata-modal-artist" required class="admin-input" style="width: 100%;">
+                </div>
+                <div>
+                    <label for="metadata-modal-isrc" style="display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; font-family: 'DM Mono', monospace;">ISRC Code</label>
+                    <input type="text" id="metadata-modal-isrc" placeholder="e.g. USUM71900123" class="admin-input" style="width: 100%;">
+                </div>
+                
+                <div id="metadata-modal-feedback" style="display: none; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+                    <button type="button" onclick="closeMetadataModal()" class="admin-btn secondary">Cancel</button>
+                    <button type="submit" id="metadata-modal-submit-btn" class="admin-btn">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
     <!-- Confirm Merge Modal -->
@@ -865,6 +986,44 @@
             document.getElementById('stat-total-users').textContent = systemData.total_users;
             document.getElementById('stat-total-snapshots').textContent = formatFullNumber(systemData.total_snapshots);
             document.getElementById('stat-total-songs').textContent = formatFullNumber(systemData.total_songs);
+
+            // DB size
+            const sizeBytes = systemData.db_size_bytes || 0;
+            const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+            document.getElementById('stat-db-size-text').textContent = `${sizeMB} MB / 500 MB`;
+            const dbPct = Math.min(100, Math.max(0.5, (sizeBytes / (500 * 1024 * 1024)) * 100));
+            const sizeBar = document.getElementById('stat-db-size-bar');
+            if (sizeBar) {
+                sizeBar.style.width = `${dbPct}%`;
+                sizeBar.style.background = dbPct > 85 ? 'var(--coral)' : 'var(--blue)';
+            }
+            document.getElementById('stat-metadata-count').textContent = formatFullNumber(systemData.total_metadata || 0);
+            document.getElementById('stat-logs-count').textContent = formatFullNumber(systemData.total_logs || 0);
+
+            // Scraper Coverage
+            const coverageEl = document.getElementById('stat-scraper-coverage');
+            if (coverageEl) {
+                coverageEl.textContent = `${systemData.scraped_24h || 0} / ${systemData.total_users || 0} profiles`;
+            }
+            const lastRunEl = document.getElementById('stat-scraper-last-run');
+            if (lastRunEl) {
+                lastRunEl.textContent = systemData.last_scraper_run ? timeAgo(systemData.last_scraper_run) : 'never';
+            }
+
+            // Scraper Errors
+            const errorsEl = document.getElementById('stat-scraper-errors');
+            const errorsSubEl = document.getElementById('stat-scraper-errors-sub');
+            if (errorsEl) {
+                const count = systemData.errors_24h || 0;
+                errorsEl.textContent = count;
+                if (count > 0) {
+                    errorsEl.style.color = 'var(--coral)';
+                    if (errorsSubEl) errorsSubEl.innerHTML = `<span style="color: var(--coral); font-weight: bold;">⚠️ Scraper errors detected! Check logs.</span>`;
+                } else {
+                    errorsEl.style.color = 'var(--positive-text)';
+                    if (errorsSubEl) errorsSubEl.textContent = 'Scraper is running healthy.';
+                }
+            }
         }
 
         function renderUserList() {
@@ -1015,9 +1174,163 @@
                 activeBtn.style.backgroundColor = 'var(--ink)';
             }
 
-            // Load logs if switching to logs tab
+            // Load logs or metadata if switching
             if (tabId === 'logs') {
                 loadLogs();
+            } else if (tabId === 'metadata') {
+                searchMetadata('');
+            }
+        }
+
+        // ===== Metadata Editor JS =====
+        let metadataSearchTimeout = null;
+        function searchMetadataDebounced() {
+            clearTimeout(metadataSearchTimeout);
+            metadataSearchTimeout = setTimeout(() => {
+                const query = document.getElementById('metadata-search').value.trim();
+                searchMetadata(query);
+            }, 300);
+        }
+
+        async function searchMetadata(query) {
+            const tbody = document.getElementById('metadata-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        Searching track metadata...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/search-metadata`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, query })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Failed to query track metadata cache');
+                }
+
+                const data = await res.json();
+                renderMetadataList(data.results || []);
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                            Error searching metadata: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderMetadataList(results) {
+            const tbody = document.getElementById('metadata-tbody');
+            if (!tbody) return;
+
+            if (results.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                            No matching tracks found in cache.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            results.forEach(r => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-family: 'DM Mono', monospace; font-size: 11px;">${r.spotify_id}</td>
+                    <td style="font-weight: 600;">${r.title || 'Hidden'}</td>
+                    <td>${r.artist || 'SpicyLyrics'}</td>
+                    <td style="font-family: 'DM Mono', monospace;">${r.isrc || '—'}</td>
+                    <td style="text-align: right;">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px;" onclick="openMetadataModal('${r.spotify_id}', '${escapeQuote(r.title)}', '${escapeQuote(r.artist)}', '${r.isrc || ''}')">
+                            Edit
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function escapeQuote(str) {
+            return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function openMetadataModal(spotifyId, title, artist, isrc) {
+            document.getElementById('metadata-modal-id').value = spotifyId;
+            document.getElementById('metadata-modal-title').value = title;
+            document.getElementById('metadata-modal-artist').value = artist;
+            document.getElementById('metadata-modal-isrc').value = isrc;
+            
+            const feedback = document.getElementById('metadata-modal-feedback');
+            if (feedback) feedback.style.display = 'none';
+
+            document.getElementById('metadata-modal').style.display = 'flex';
+        }
+
+        function closeMetadataModal() {
+            document.getElementById('metadata-modal').style.display = 'none';
+        }
+
+        async function submitMetadataUpdate(event) {
+            event.preventDefault();
+            
+            const spotify_id = document.getElementById('metadata-modal-id').value;
+            const title = document.getElementById('metadata-modal-title').value.trim();
+            const artist = document.getElementById('metadata-modal-artist').value.trim();
+            const isrc = document.getElementById('metadata-modal-isrc').value.trim();
+            
+            const feedback = document.getElementById('metadata-modal-feedback');
+            const submitBtn = document.getElementById('metadata-modal-submit-btn');
+
+            feedback.style.display = 'block';
+            feedback.style.color = 'var(--muted)';
+            feedback.style.borderColor = 'var(--line)';
+            feedback.textContent = 'Saving track metadata...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/update-metadata`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, spotify_id, title, artist, isrc })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({ error: 'Failed to update metadata' }));
+                    throw new Error(errData.error || 'Failed to update metadata');
+                }
+
+                feedback.style.color = 'var(--positive-text)';
+                feedback.style.borderColor = 'var(--green)';
+                feedback.textContent = 'Metadata updated successfully!';
+
+                // Refresh search list & system stats
+                setTimeout(() => {
+                    closeMetadataModal();
+                    const query = document.getElementById('metadata-search').value.trim();
+                    searchMetadata(query);
+                    // Refresh totals in the background
+                    loadAdminData();
+                }, 1000);
+
+            } catch (err) {
+                console.error(err);
+                feedback.style.color = 'var(--coral)';
+                feedback.style.borderColor = 'var(--coral)';
+                feedback.textContent = err.message || 'Error updating metadata';
+            } finally {
+                submitBtn.disabled = false;
             }
         }
 

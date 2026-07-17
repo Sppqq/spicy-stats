@@ -1402,13 +1402,21 @@
             </section>
 
             <section class="panel profile-chart">
-                <div class="panel-heading">
+                <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <div>
                         <h2 class="panel-title" data-i18n="profile_activity">Profile activity</h2>
-                        <div class="panel-meta" data-i18n="chart_sub">Total views over the last 30 days</div>
+                        <div class="panel-meta" id="profile-chart-sub-label" data-i18n="chart_sub">Total views over the last 30 days</div>
                     </div>
 
-                    <div class="panel-meta" id="profile-chart-growth-header">+0.0%</div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="timeframe-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
+                            <button type="button" class="timeframe-btn" data-val="7" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">7D</button>
+                            <button type="button" class="timeframe-btn active" data-val="30" style="background: var(--line); border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--ink); border-radius: 3px; transition: background 0.15s, color 0.15s;">30D</button>
+                            <button type="button" class="timeframe-btn" data-val="90" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">90D</button>
+                            <button type="button" class="timeframe-btn" data-val="all" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">ALL</button>
+                        </div>
+                        <div class="panel-meta" id="profile-chart-growth-header" style="font-weight: 700; font-family: 'DM Mono', monospace;">+0.0%</div>
+                    </div>
                 </div>
 
                 <div class="chart-wrap" style="position: relative;">
@@ -1519,10 +1527,45 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Catalog Insights Card -->
+                    <div class="mini-card">
+                        <div class="eyebrow" style="color: var(--green);" data-i18n="catalog_insights">Catalog Insights</div>
+                        <h2 style="font-size: 16px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.02em;">Distribution & Growth</h2>
+                        
+                        <!-- 7d Growth -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 11px;">
+                            <span style="color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-size: 10px;">7d Growth</span>
+                            <strong id="insight-growth-7d" style="font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green);">...</strong>
+                        </div>
+                        
+                        <!-- Solo vs Collab Segment Bar -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; font-family: 'DM Mono', monospace;">
+                                <span>Solo vs Collab</span>
+                                <span id="insight-collab-ratio" style="font-family: 'DM Mono', monospace;">0% / 0%</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; display: flex;">
+                                <div id="insight-solo-bar" style="height: 100%; width: 50%; background: var(--blue); transition: width 0.8s;"></div>
+                                <div id="insight-collab-bar" style="height: 100%; width: 50%; background: var(--coral); transition: width 0.8s;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Top Track Shares -->
+                        <div>
+                            <div style="font-size: 10px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace;">Top Track Shares</div>
+                            <div id="insight-track-shares" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Dynamic shares list -->
+                            </div>
+                        </div>
+                    </div>
                 </aside>
             </section>
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
-                <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.4</span>
+                </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
             </footer>
         </main>
@@ -1561,6 +1604,7 @@
         }
         let profileData = null;
         let username = null;
+        let chartTimeframe = 30;
 
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -1568,6 +1612,34 @@
             initLiveIndicator();
             showEasterEgg();
             checkLanguageSuggestion();
+
+            // Timeframe Selector Bindings
+            document.querySelectorAll('.timeframe-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.timeframe-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.style.background = 'transparent';
+                        b.style.color = 'var(--muted)';
+                    });
+                    btn.classList.add('active');
+                    btn.style.background = 'var(--line)';
+                    btn.style.color = 'var(--ink)';
+                    
+                    chartTimeframe = btn.dataset.val === 'all' ? 'all' : parseInt(btn.dataset.val);
+                    
+                    // Update subtext
+                    const subLabel = document.getElementById('profile-chart-sub-label');
+                    if (subLabel) {
+                        if (chartTimeframe === 'all') {
+                            subLabel.textContent = currentLang === 'ru' ? 'Общие просмотры за все время отслеживания' : 'Total views over all tracking history';
+                        } else {
+                            subLabel.textContent = currentLang === 'ru' ? `Общие просмотры за последние ${chartTimeframe} дней` : `Total views over the last ${chartTimeframe} days`;
+                        }
+                    }
+                    
+                    renderChart();
+                });
+            });
 
             // Register Service Worker for offline support / speed caching
             if ('serviceWorker' in navigator) {
@@ -2433,6 +2505,85 @@
             renderTracks();
             renderPerformanceNote();
             renderMilestone();
+            renderCatalogInsights();
+        }
+
+        function renderCatalogInsights() {
+            const rawPoints = profileData.chart_data;
+            let growth7d = 0;
+            let pct7d = '0.0';
+            
+            if (rawPoints && rawPoints.length >= 2) {
+                const current = rawPoints[rawPoints.length - 1].y;
+                const prevIndex = Math.max(0, rawPoints.length - 8);
+                const prev = rawPoints[prevIndex].y;
+                growth7d = current - prev;
+                pct7d = prev > 0 ? ((growth7d / prev) * 100).toFixed(1) : '0.0';
+            }
+
+            const growth7dEl = document.getElementById('insight-growth-7d');
+            if (growth7dEl) {
+                const sign = growth7d >= 0 ? '+' : '';
+                growth7dEl.textContent = `${sign}${formatViews(growth7d)} (${sign}${pct7d}%)`;
+                growth7dEl.style.color = growth7d >= 0 ? 'var(--positive-text)' : 'var(--coral)';
+            }
+
+            // Solo vs Collabs Breakdown
+            let soloViews = 0;
+            let collabViews = 0;
+            const songs = profileData.songs || [];
+            
+            songs.forEach(song => {
+                const isCollab = song.artist.includes(',') || 
+                                 song.artist.includes('&') || 
+                                 song.artist.toLowerCase().includes('feat.') || 
+                                 song.artist.toLowerCase().includes('with');
+                if (isCollab) {
+                    collabViews += song.views || 0;
+                } else {
+                    soloViews += song.views || 0;
+                }
+            });
+
+            const totalInsightViews = soloViews + collabViews;
+            const soloPct = totalInsightViews > 0 ? Math.round((soloViews / totalInsightViews) * 100) : 50;
+            const collabPct = totalInsightViews > 0 ? 100 - soloPct : 50;
+
+            const collabRatioEl = document.getElementById('insight-collab-ratio');
+            const soloBar = document.getElementById('insight-solo-bar');
+            const collabBar = document.getElementById('insight-collab-bar');
+
+            if (collabRatioEl) collabRatioEl.textContent = `${soloPct}% / ${collabPct}%`;
+            if (soloBar) soloBar.style.width = `${soloPct}%`;
+            if (collabBar) collabBar.style.width = `${collabPct}%`;
+
+            // Top Track Shares
+            const sharesContainer = document.getElementById('insight-track-shares');
+            if (sharesContainer) {
+                sharesContainer.innerHTML = '';
+                // Sort songs descending by views and take top 4
+                const sortedSongs = [...songs].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 4);
+                
+                if (sortedSongs.length === 0) {
+                    sharesContainer.innerHTML = `<div style="color: var(--muted); font-size: 11px;">No tracks found</div>`;
+                    return;
+                }
+
+                sortedSongs.forEach(track => {
+                    const pct = profileData.total_views > 0 ? ((track.views / profileData.total_views) * 100).toFixed(1) : '0.0';
+                    const trackRow = document.createElement('div');
+                    trackRow.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${track.title}">${track.title}</span>
+                            <strong style="font-family: 'DM Mono', monospace; font-size: 10px;">${pct}%</strong>
+                        </div>
+                        <div style="width: 100%; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden;">
+                            <div style="height: 100%; width: ${pct}%; background: var(--blue); border-radius: 2px;"></div>
+                        </div>
+                    `;
+                    sharesContainer.appendChild(trackRow);
+                });
+            }
         }
 
         function renderChart() {
@@ -2442,7 +2593,16 @@
             
             if (!svgArea || !svgLine || !profileData.chart_data || profileData.chart_data.length < 2) return;
             
-            const points = profileData.chart_data;
+            const rawPoints = profileData.chart_data;
+            const points = chartTimeframe === 'all' ? rawPoints : rawPoints.slice(-chartTimeframe);
+            
+            if (points.length < 2) {
+                // If selected timeframe doesn't have enough data points, fallback to using all available
+                svgArea.setAttribute('d', '');
+                svgLine.setAttribute('d', '');
+                labelsContainer.innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">Not enough data for this timeframe</span>';
+                return;
+            }
             
             const firstVal = points[0].y;
             const lastVal = points[points.length - 1].y;

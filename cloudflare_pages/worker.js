@@ -187,7 +187,10 @@ export default {
             else if (url.pathname === "/api/dashboard" && request.method === "GET") response = await handleDashboardAPI(request, env);
             else if (url.pathname === "/api/track-history" && request.method === "GET") response = await handleTrackHistoryAPI(request, env);
             else if (url.pathname.startsWith("/api/user/") && request.method === "GET") response = await handleUserDetailAPI(url.pathname.split("/")[3], request, env);
+            else if (url.pathname === "/api/activity-feed" && request.method === "GET") response = await handleActivityFeedAPI(request, env);
             else if (url.pathname === "/api/admin/stats" && request.method === "POST") response = await handleAdminStats(request, env);
+            else if (url.pathname === "/api/admin/search-metadata" && request.method === "POST") response = await handleAdminSearchMetadata(request, env);
+            else if (url.pathname === "/api/admin/update-metadata" && request.method === "POST") response = await handleAdminUpdateMetadata(request, env);
             else if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") response = await handleAdminScrapeUser(request, env);
             else if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") response = await handleAdminScrapeAll(request, env, ctx);
             else if (url.pathname === "/api/admin/populate-metadata" && request.method === "POST") response = await handleAdminPopulateMetadata(request, env, ctx);
@@ -465,9 +468,29 @@ async function handleAdminStats(request, env) {
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
     const songCount = await env.DB.prepare("SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) as cnt FROM snapshot_songs").first();
+    const metadataCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM track_metadata").first();
+    const logCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM audit_logs").first();
+
+    // DB size
+    let dbSize = 0;
+    try {
+        const pcRes = await env.DB.prepare("PRAGMA page_count").first();
+        const psRes = await env.DB.prepare("PRAGMA page_size").first();
+        if (pcRes && psRes) {
+            dbSize = (pcRes.page_count || 0) * (psRes.page_size || 0);
+        }
+    } catch (e) {
+        console.error("Failed to query db size", e);
+    }
+
+    // Scraper health metrics
+    const scraperRunRes = await env.DB.prepare("SELECT MAX(last_scraped_at) as last_run FROM users").first();
+    const scraped24h = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users WHERE last_scraped_at >= datetime('now', '-24 hours')").first();
+    const errors24h = await env.DB.prepare("SELECT COUNT(*) as cnt FROM audit_logs WHERE action_type = 'scrape_error' AND created_at >= datetime('now', '-24 hours')").first();
 
     const { results: usersList } = await env.DB.prepare(`
-        SELECT u.id, u.username, (SELECT COUNT(*) FROM snapshots WHERE user_id = u.id) as snap_count,
+        SELECT u.id, u.username, u.last_scraped_at,
+               (SELECT COUNT(*) FROM snapshots WHERE user_id = u.id) as snap_count,
                (SELECT MAX(timestamp) FROM snapshots WHERE user_id = u.id) as last_updated,
                (SELECT total_views FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as current_views
         FROM users u ORDER BY current_views DESC
@@ -486,9 +509,17 @@ async function handleAdminStats(request, env) {
     (latestSnaps || []).forEach(r => userLatestSnapMap.set(r.user_id, r.latest_snap_id));
 
     const data = {
-        total_users: userCount.cnt || 0, total_snapshots: snapshotCount.cnt || 0, total_songs: songCount.cnt || 0,
+        total_users: userCount.cnt || 0, 
+        total_snapshots: snapshotCount.cnt || 0, 
+        total_songs: songCount.cnt || 0,
+        total_metadata: metadataCount.cnt || 0,
+        total_logs: logCount.cnt || 0,
+        db_size_bytes: dbSize,
+        last_scraper_run: scraperRunRes ? scraperRunRes.last_run : null,
+        scraped_24h: scraped24h ? scraped24h.cnt : 0,
+        errors_24h: errors24h ? errors24h.cnt : 0,
         users: usersList.map(u => ({
-            id: u.id, username: u.username, snap_count: u.snap_count || 0, last_updated: u.last_updated || null,
+            id: u.id, username: u.username, last_scraped_at: u.last_scraped_at || null, snap_count: u.snap_count || 0, last_updated: u.last_updated || null,
             views: u.current_views || 0, song_count: userLatestSnapMap.has(u.id) ? (songCountMap.get(userLatestSnapMap.get(u.id)) || 0) : 0
         }))
     };
@@ -838,16 +869,25 @@ async function scrapeAndSave(userId, username, discordId, env) {
                         if (newUsername && newUsername.toLowerCase() !== currentUsername.toLowerCase()) {
                             await env.DB.prepare("UPDATE users SET username = ? WHERE id = ?").bind(newUsername, userId).run();
                             currentUsername = newUsername; currentDiscordId = dbUser.discord_id;
-                            data = await fetchUserDataFromAPI(currentUsername, currentDiscordId);
+                            try {
+                                data = await fetchUserDataFromAPI(currentUsername, currentDiscordId);
+                            } catch (err2) {
+                                await logAction(env, "scrape_error", `❌ Failed to scrape @${currentUsername}: ${err2.message}`, null);
+                            }
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    await logAction(env, "scrape_error", `❌ Failed to resolve updated username for @${currentUsername}: ${e.message}`, null);
+                }
             }
             if (!data) {
+                await logAction(env, "scrape_error", `❌ Failed to scrape @${currentUsername}: Creator not found on SpicyLyrics`, null);
                 const hasSnapshots = await env.DB.prepare("SELECT 1 FROM snapshots WHERE user_id = ? LIMIT 1").bind(userId).first();
                 if (!hasSnapshots) await deleteUserFromDB(userId, env);
                 return;
             }
+        } else {
+            await logAction(env, "scrape_error", `❌ Failed to scrape @${currentUsername}: ${err.message}`, null);
         }
     }
 
@@ -884,7 +924,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     const totalSongsCount = aggregateSongs(data.songs).length;
 
-    const prevSnap = await env.DB.prepare("SELECT total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
+    const prevSnap = await env.DB.prepare("SELECT id, total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
     const oldViews = prevSnap ? prevSnap.total_views : 0;
 
     const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
@@ -894,6 +934,21 @@ async function scrapeAndSave(userId, username, discordId, env) {
         const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
         const batch = data.songs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
         await env.DB.batch(batch); // Max items per batch safe here since rows are small
+    }
+
+    // Compare with previous snapshot to find new tracks
+    if (prevSnap && data.songs && data.songs.length > 0) {
+        try {
+            const { results: prevSongs } = await env.DB.prepare("SELECT spotify_id FROM snapshot_songs WHERE snapshot_id = ?").bind(prevSnap.id).all();
+            const prevSongIds = new Set((prevSongs || []).map(r => r.spotify_id));
+            
+            const newSongs = data.songs.filter(s => s && s.spotify_id && !prevSongIds.has(s.spotify_id));
+            for (const song of newSongs) {
+                await logAction(env, "new_track", `🆕 @${currentUsername} added a new track: "${song.title}"!`, null);
+            }
+        } catch (e) {
+            console.error("Failed to check for new tracks:", e);
+        }
     }
 
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
@@ -955,4 +1010,60 @@ async function fetchUserDataFromAPI(username, discordId = null) {
     }
 
     return { total_views, songs, tracksDetails, discord_id: userId, discord_avatar };
+}
+
+async function handleActivityFeedAPI(request, env) {
+    try {
+        const { results } = await env.DB.prepare(`
+            SELECT id, action_type, details, created_at 
+            FROM audit_logs 
+            WHERE action_type IN ('milestone_reached', 'new_track', 'user_add', 'profile_merge') 
+            ORDER BY id DESC 
+            LIMIT 30
+        `).all();
+        return new Response(JSON.stringify({ events: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function handleAdminSearchMetadata(request, env) {
+    const { secret, query } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    
+    try {
+        const searchQuery = `%${(query || "").trim()}%`;
+        const { results } = await env.DB.prepare(`
+            SELECT spotify_id, title, artist, isrc, created_at 
+            FROM track_metadata 
+            WHERE title LIKE ? OR artist LIKE ? OR isrc LIKE ? OR spotify_id LIKE ? 
+            LIMIT 50
+        `).bind(searchQuery, searchQuery, searchQuery, searchQuery).all();
+        
+        return new Response(JSON.stringify({ results: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+}
+
+async function handleAdminUpdateMetadata(request, env) {
+    const { secret, spotify_id, title, artist, isrc } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!spotify_id) return new Response(JSON.stringify({ error: "Spotify ID required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    
+    try {
+        const cleanTitle = (title || "").trim();
+        const cleanArtist = (artist || "").trim();
+        const cleanIsrc = isrc ? isrc.trim() : null;
+        
+        await env.DB.prepare("UPDATE track_metadata SET title = ?, artist = ?, isrc = ? WHERE spotify_id = ?")
+            .bind(cleanTitle, cleanArtist, cleanIsrc, spotify_id)
+            .run();
+            
+        await logAction(env, "metadata_update", `Updated metadata for Spotify ID ${spotify_id}: "${cleanTitle}" by "${cleanArtist}" (ISRC: ${cleanIsrc || "none"})`, request);
+        
+        return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
 }
