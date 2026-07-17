@@ -1313,7 +1313,7 @@
                     <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.4</span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
-                <div style="margin-top: 6px;"><span data-i18n="credits">Special thanks to @hik0w for the contribution</span></div>
+                <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
             </footer>
         </main>
     </div>
@@ -1510,7 +1510,7 @@
                 chart_sub_all: "Total views over all tracking history",
                 chart_sub_days: "Total views over the last {days} days",
                 contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq",
-                credits: "Special thanks to @hik0w for the contribution"
+                credits: 'Special thanks to <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> for the contribution'
             },
             ru: {
                 back: "← Вернуться на дашборд",
@@ -1578,7 +1578,7 @@
                 chart_sub_all: "Общие просмотры за все время отслеживания",
                 chart_sub_days: "Общие просмотры за последние {days} дней",
                 contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq",
-                credits: "Отдельная благодарность @hik0w за вклад"
+                credits: 'Отдельная благодарность <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за вклад'
             },
             uk: {
                 back: "← Повернутися на дашборд",
@@ -1646,7 +1646,7 @@
                 chart_sub_all: "Загальна кількість переглядів за всю історію відстеження",
                 chart_sub_days: "Загальна кількість переглядів за останні {days} днів",
                 contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq",
-                credits: "Окрема подяка @hik0w за внесок"
+                credits: 'Окрема подяка <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за внесок'
             },
             de: {
                 back: "← Zurück zum Dashboard",
@@ -1714,7 +1714,7 @@
                 chart_sub_all: "Gesamtansichten über die gesamte Erfassungshistorie",
                 chart_sub_days: "Gesamtansichten in den letzten {days} Tagen",
                 contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq",
-                credits: "Besonderer Dank an @hik0w für den Beitrag"
+                credits: 'Besonderer Dank an <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> für den Beitrag'
             },
             it: {
                 back: "← Torna al dashboard",
@@ -1782,7 +1782,7 @@
                 chart_sub_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
                 chart_sub_days: "Visualizzazioni totali negli ultimi {days} giorni",
                 contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq",
-                credits: "Un ringraziamento speciale a @hik0w per il contributo"
+                credits: 'Un ringraziamento speciale a <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> per il contributo'
             },
             pl: {
                 back: "← Powrót do panelu",
@@ -1850,7 +1850,7 @@
                 chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
                 contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
-                credits: "Specjalne podziękowania dla @hik0w za wkład"
+                credits: 'Specjalne podziękowania dla <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wkład'
             }
         };
 
@@ -1874,7 +1874,7 @@
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
                 if (dict[key]) {
-                    el.textContent = dict[key];
+                    el.innerHTML = dict[key];
                 }
             });
 
