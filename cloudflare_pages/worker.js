@@ -346,6 +346,14 @@ async function handleUserDetailAPI(username, request, env) {
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
     const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 100").bind(user.id).all();
 
+    // ИСПРАВЛЕНИЕ 1: Целенаправленно ищем снапшот, которому ровно или чуть больше 24 часов
+    const pastSnapshot = await env.DB.prepare(`
+        SELECT id, total_views, timestamp
+        FROM snapshots
+        WHERE user_id = ? AND timestamp <= datetime('now', '-24 hours')
+        ORDER BY timestamp DESC LIMIT 1
+    `).bind(user.id).first();
+
     let totalViews = 0, growth24h = null, totalSongs = 0;
     let topTracks = [], chartDataRaw = [], finalSongs = [];
 
@@ -364,14 +372,7 @@ async function handleUserDetailAPI(username, request, env) {
         if (!latestSnapshot) latestSnapshot = history[0];
         totalViews = history[0].total_views;
 
-        const latestDate = parseDate(latestSnapshot.timestamp);
-        const latestTimeMs = latestDate ? latestDate.getTime() : Date.now();
-        const pastSnapshot = history.find(h => {
-            const d = parseDate(h.timestamp);
-            return d && d.getTime() <= latestTimeMs - 24 * 60 * 60 * 1000;
-        });
-
-        let has24h = pastSnapshot !== undefined;
+        let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
         growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
         let pastRaw = [];
@@ -405,10 +406,20 @@ async function handleUserDetailAPI(username, request, env) {
         chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
     }
 
+    // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)
+    let nextUpdateTimestamp = null;
+    if (user.last_scraped_at) {
+        const parsedLastScraped = parseDate(user.last_scraped_at);
+        if (parsedLastScraped) {
+            nextUpdateTimestamp = new Date(parsedLastScraped.getTime() + 10 * 60000).toISOString();
+        }
+    }
+
     const data = {
         username: user.username, discord_id: user.discord_id || null, discord_avatar: user.discord_avatar || null,
         total_views: totalViews, growth24h, first_snapshot: firstSnapshot ? firstSnapshot.timestamp : null,
         total_songs: totalSongs, highlights: topTracks, chart_data: chartDataRaw, songs: finalSongs,
+        next_update: nextUpdateTimestamp,
         server_time: new Date().toISOString()
     };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
