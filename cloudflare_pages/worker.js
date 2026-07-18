@@ -344,7 +344,7 @@ async function handleUserDetailAPI(username, request, env) {
     await logAction(env, "visit_profile", `Viewed profile for @${user.username}`, request);
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
-    const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 100").bind(user.id).all();
+    const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
 
     // ИСПРАВЛЕНИЕ 1: Целенаправленно ищем снапшот, которому ровно или чуть больше 24 часов
     const pastSnapshot = await env.DB.prepare(`
