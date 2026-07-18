@@ -573,25 +573,43 @@ async function handleAdminScrapeAll(request, env, ctx) {
 
 async function triggerGlobalScrape(env) {
     try {
+        // Берем по 10 человек, у которых прошло 10 минут
+        const { results: users } = await env.DB.prepare(`
+            SELECT id, username, discord_id
+            FROM users
+            WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-10 minutes')
+            ORDER BY last_scraped_at ASC
+            LIMIT 10
+        `).all();
+
+        if (!users || users.length === 0) return;
+
+        let queueSuccess = false;
+
         if (env.SCRAPE_QUEUE) {
-            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-10 minutes') ORDER BY last_scraped_at ASC LIMIT 10`).all();
-            if (!users || users.length === 0) return;
+            try {
+                const messages = users.map(u => ({ body: { id: u.id, username: u.username, discord_id: u.discord_id } }));
+                await env.SCRAPE_QUEUE.sendBatch(messages);
+                queueSuccess = true; // Ура, бесплатная очередь сработала
+            } catch (queueErr) {
+                // Лимит очередей исчерпан! Ошибка перехвачена, скрипт не падает.
+                console.warn("Очереди закончились! Переходим на прямой парсинг...");
+            }
+        }
 
-            const userIds = users.map(u => u.id);
-            await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
+        // Обновляем таймер в БД, чтобы в следующую минуту взять СЛЕДУЮЩИХ 10 человек
+        const userIds = users.map(u => u.id);
+        await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
 
-            const messages = users.map(u => ({ body: { id: u.id, username: u.username, discord_id: u.discord_id } }));
-            await env.SCRAPE_QUEUE.sendBatch(messages);
-        } else {
-            const { results: users } = await env.DB.prepare(`SELECT id, username, discord_id FROM users WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-10 minutes') ORDER BY last_scraped_at ASC LIMIT 2`).all();
-            if (!users || users.length === 0) return;
-
-            const userIds = users.map(u => u.id);
-            await env.DB.prepare(`UPDATE users SET last_scraped_at = datetime('now') WHERE id IN (${userIds.map(()=>'?').join(',')})`).bind(...userIds).run();
-
+        // МАГИЯ ЗДЕСЬ: Если очередь кончилась (или отключена) - парсим руками прямо тут!
+        // Благодаря нашей оптимизации, 10 человек легко проскочат лимит в 10мс CPU.
+        if (!queueSuccess) {
             for (const user of users) {
-                try { await scrapeAndSave(user.id, user.username, user.discord_id, env); }
-                catch (err) { console.error(`Scrape error fallback:`, err.message); }
+                try {
+                    await scrapeAndSave(user.id, user.username, user.discord_id, env);
+                } catch (err) {
+                    console.error(`Ошибка при прямом парсинге @${user.username}:`, err.message);
+                }
             }
         }
     } catch (e) {
