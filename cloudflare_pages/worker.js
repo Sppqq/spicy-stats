@@ -106,8 +106,7 @@ const allowedOrigins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173"
 ];
-// If env var APIURL is provided, allow it
-// But since this is global scope, we check dynamically in getCorsHeaders instead
+// We will dynamically check APIURL inside getCorsHeaders
 
 function getCorsHeaders(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -364,30 +363,39 @@ async function handleUserDetailAPI(username, request, env) {
     let topTracks = [], chartDataRaw = [], finalSongs = [];
 
     if (history && history.length > 0) {
-        let latestSnapshot = null, latestRaw = [];
-        for (const snap of history) {
-            const { results: songs } = await env.DB.prepare(`
-                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?
-            `).bind(snap.id).all();
-            if (songs && songs.length > 0) {
-                latestSnapshot = snap; latestRaw = songs; break;
-            }
-        }
+        latestSnapshot = history[0];
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
+            FROM (
+                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                WHERE s.user_id = ? AND s.id <= ?
+            ) WHERE rn = 1
+        `).bind(user.id, latestSnapshot.id).all();
+        let latestRaw = latestSongs || [];
 
-        if (!latestSnapshot) latestSnapshot = history[0];
-        totalViews = history[0].total_views;
+        totalViews = latestSnapshot.total_views;
 
         let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
         growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
         let pastRaw = [];
         if (has24h) {
-            const { results } = await env.DB.prepare(`
-                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?
-            `).bind(pastSnapshot.id).all();
-            if (results) pastRaw = results;
+            const { results: pSongs } = await env.DB.prepare(`
+                SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
+                FROM (
+                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                           ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                    FROM snapshot_songs ss
+                    JOIN snapshots s ON ss.snapshot_id = s.id
+                    LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                    WHERE s.user_id = ? AND s.id <= ?
+                ) WHERE rn = 1
+            `).bind(user.id, pastSnapshot.id).all();
+            if (pSongs) pastRaw = pSongs;
         }
 
         const latestSongs = aggregateSongs(latestRaw);
@@ -449,16 +457,43 @@ async function handleTrackHistoryAPI(request, env) {
         .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
         .map(r => r.isrc).filter(Boolean);
 
-    let sql = `
-        SELECT SUM(ss.views) as views, s.timestamp
+    // With delta compression, we need to join every snapshot against the latest song data up to that snapshot
+    const { results: allSnaps } = await env.DB.prepare("SELECT id, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
+    const historyData = [];
+
+    const isrcList = isrcs.map(i => \`'\${i}'\`).join(',');
+    const isrcClause = isrcs.length > 0 ? \`OR (tm.isrc IN (\${isrcList}))\` : '';
+
+    let sqlAllChanges = \`
+        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
         FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
         WHERE s.user_id = ? AND (
             (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
-            ${isrcs.length > 0 ? `OR (tm.isrc IN (${isrcs.map(() => '?').join(', ')}))` : ''}
-        ) GROUP BY s.id, s.timestamp ORDER BY s.id ASC
-    `;
+            \${isrcClause}
+        ) ORDER BY s.id ASC
+    \`;
+    const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
 
-    const { results } = await env.DB.prepare(sql).bind(user.id, title.trim(), artist.trim(), ...isrcs).all();
+    let trackState = new Map();
+    let historyIndex = 0;
+
+    for (const snap of (allSnaps || [])) {
+        while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
+            const m = allMatches[historyIndex];
+            const key = \`\${m.title}||\${m.artist}||\${m.spotify_id}\`;
+            trackState.set(key, m.views);
+            historyIndex++;
+        }
+
+        let sumViews = 0;
+        for (const v of trackState.values()) sumViews += v;
+
+        if (sumViews > 0) {
+            historyData.push({ views: sumViews, timestamp: snap.timestamp });
+        }
+    }
+
+    const results = historyData;
     return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
@@ -539,15 +574,33 @@ async function handleAdminExportUser(request, env) {
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { ...getCorsHeaders(request, env) } });
 
-    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp DESC").bind(user.id).all();
-    const songs = await env.DB.prepare("SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? ORDER BY s.timestamp DESC").bind(user.id).all();
+    // Order ASC so we can rebuild state forwards
+    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
+    const songs = await env.DB.prepare("SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? ORDER BY s.id ASC").bind(user.id).all();
+
+    const historyData = [];
+    const state = new Map();
+    let songIdx = 0;
+    const songsList = songs.results || [];
+
+    for (const snap of (snapshots.results || [])) {
+        while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
+            const s = songsList[songIdx];
+            const key = \`\${s.title}||\${s.artist}||\${s.spotify_id}\`;
+            state.set(key, s);
+            songIdx++;
+        }
+
+        historyData.push({
+            timestamp: snap.timestamp,
+            total_views: snap.total_views,
+            songs: Array.from(state.values()).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
+        });
+    }
 
     const exportData = {
         username: cleanName, exported_at: new Date().toISOString(),
-        history: (snapshots.results || []).map(snap => ({
-            timestamp: snap.timestamp, total_views: snap.total_views,
-            songs: (songs.results || []).filter(s => s.snapshot_id === snap.id).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
-        }))
+        history: historyData.reverse()
     };
     return new Response(JSON.stringify(exportData, null, 2), { headers: { "Content-Type": "application/json;charset=UTF-8", ...getCorsHeaders(request, env) } });
 }
@@ -684,7 +737,17 @@ async function populateMetadataCache(env, targetUsername = null) {
 
             const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
             if (latestSnap) {
-                const { results: snapSongs } = await env.DB.prepare(`SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?`).bind(latestSnap.id).all();
+                const { results: snapSongs } = await env.DB.prepare(`
+                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                    FROM (
+                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                               ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                        FROM snapshot_songs ss
+                        JOIN snapshots s ON ss.snapshot_id = s.id
+                        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                        WHERE s.user_id = ?
+                    ) ss WHERE rn = 1
+                `).bind(user.id).all();
                 const uniqueSongs = aggregateSongs(snapSongs);
                 await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
             }
@@ -788,7 +851,7 @@ async function handleImport(request, env) {
 }
 
 function handleExport() {
-    return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: getCorsHeaders(request, env) });
 }
 
 // ==========================================
@@ -937,12 +1000,44 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     const totalSongsCount = aggregateSongs(data.songs).length;
 
+    // Fetch latest known views for all songs for delta compression
+    let latestSongsMap = new Map();
+    if (prevSnap) {
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT title, artist, views
+            FROM (
+                SELECT ss.title, ss.artist, ss.views,
+                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                WHERE s.user_id = ?
+            )
+            WHERE rn = 1
+        `).bind(userId).all();
+
+        for (const ls of (latestSongs || [])) {
+            const key = \`\${(ls.title || "").trim().toLowerCase()}|||\${(ls.artist || "").trim().toLowerCase()}\`;
+            latestSongsMap.set(key, ls.views);
+        }
+    }
+
+    const changedSongs = [];
+    for (const song of data.songs) {
+        const key = \`\${(song.title || "").trim().toLowerCase()}|||\${(song.artist || "").trim().toLowerCase()}\`;
+        const prevViews = latestSongsMap.get(key);
+        if (prevViews === undefined || prevViews !== song.views) {
+            changedSongs.push(song);
+        }
+    }
+
     const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
-    const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-    const batch = data.songs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
-    await env.DB.batch(batch);
+    if (changedSongs.length > 0) {
+        const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
+        const batch = changedSongs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
+        await env.DB.batch(batch);
+    }
 
     // Уведомление о майлстоунах
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
