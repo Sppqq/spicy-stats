@@ -1,12 +1,4 @@
-// Updated after rollback to main dev baseline
 const IMPORT_SECRET = "Spicy_Admin_#7f8c9b2d4e1a0673f8b9d07c01a2f3e4";
-
-const getCorsHeaders(request, env) = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
-    "Access-Control-Max-Age": "86400",
-    "Access-Control-Allow-Headers": "Content-Type",
-};
 
 // ==========================================
 // ГЛОБАЛЬНЫЙ КЭШ ДЛЯ CPU-ОПТИМИЗАЦИИ (МЕМОИЗАЦИЯ)
@@ -364,7 +356,7 @@ async function handleUserDetailAPI(username, request, env) {
 
     if (history && history.length > 0) {
         latestSnapshot = history[0];
-        const { results: latestSongs } = await env.DB.prepare(`
+        const { results: dbLatestSongs } = await env.DB.prepare(`
             SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
             FROM (
                 SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
@@ -375,7 +367,7 @@ async function handleUserDetailAPI(username, request, env) {
                 WHERE s.user_id = ? AND s.id <= ?
             ) WHERE rn = 1
         `).bind(user.id, latestSnapshot.id).all();
-        let latestRaw = latestSongs || [];
+        let latestRaw = dbLatestSongs || [];
 
         totalViews = latestSnapshot.total_views;
 
@@ -461,17 +453,17 @@ async function handleTrackHistoryAPI(request, env) {
     const { results: allSnaps } = await env.DB.prepare("SELECT id, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
     const historyData = [];
 
-    const isrcList = isrcs.map(i => \`'\${i}'\`).join(',');
-    const isrcClause = isrcs.length > 0 ? \`OR (tm.isrc IN (\${isrcList}))\` : '';
+    const isrcList = isrcs.map(i => `'${i}'`).join(',');
+    const isrcClause = isrcs.length > 0 ? `OR (tm.isrc IN (${isrcList}))` : '';
     
-    let sqlAllChanges = \`
+    let sqlAllChanges = `
         SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
         FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
         WHERE s.user_id = ? AND (
             (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
-            \${isrcClause}
+            ${isrcClause}
         ) ORDER BY s.id ASC
-    \`;
+    `;
     const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
     
     let trackState = new Map();
@@ -480,7 +472,7 @@ async function handleTrackHistoryAPI(request, env) {
     for (const snap of (allSnaps || [])) {
         while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
             const m = allMatches[historyIndex];
-            const key = \`\${m.title}||\${m.artist}||\${m.spotify_id}\`;
+            const key = `${m.title}||${m.artist}||${m.spotify_id}`;
             trackState.set(key, m.views);
             historyIndex++;
         }
@@ -586,7 +578,7 @@ async function handleAdminExportUser(request, env) {
     for (const snap of (snapshots.results || [])) {
         while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
             const s = songsList[songIdx];
-            const key = \`\${s.title}||\${s.artist}||\${s.spotify_id}\`;
+            const key = `${s.title}||${s.artist}||${s.spotify_id}`;
             state.set(key, s);
             songIdx++;
         }
@@ -1016,14 +1008,14 @@ async function scrapeAndSave(userId, username, discordId, env) {
         `).bind(userId).all();
         
         for (const ls of (latestSongs || [])) {
-            const key = \`\${(ls.title || "").trim().toLowerCase()}|||\${(ls.artist || "").trim().toLowerCase()}\`;
+            const key = `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
             latestSongsMap.set(key, ls.views);
         }
     }
 
     const changedSongs = [];
     for (const song of data.songs) {
-        const key = \`\${(song.title || "").trim().toLowerCase()}|||\${(song.artist || "").trim().toLowerCase()}\`;
+        const key = `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
         const prevViews = latestSongsMap.get(key);
         if (prevViews === undefined || prevViews !== song.views) {
             changedSongs.push(song);
