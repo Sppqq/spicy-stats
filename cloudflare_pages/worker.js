@@ -219,6 +219,7 @@ export default {
             else if (url.pathname === "/api/admin/merge-users" && request.method === "POST") response = await handleAdminMergeUsers(request, env);
             else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") response = await handleAdminDeleteUser(request, env);
             else if (url.pathname === "/api/admin/export-user" && request.method === "POST") response = await handleAdminExportUser(request, env);
+            else if (url.pathname === "/api/admin/sync-prod-db" && request.method === "POST") response = await handleAdminSyncProdDb(request, env);
             else response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
         } catch (err) {
             response = new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
@@ -627,6 +628,70 @@ async function handleAdminExportUser(request, env) {
         history: historyData.reverse()
     };
     return new Response(JSON.stringify(exportData, null, 2), { headers: { "Content-Type": "application/json;charset=UTF-8", ...getCorsHeaders(request, env) } });
+}
+
+async function handleAdminSyncProdDb(request, env) {
+    const { secret } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
+
+    try {
+        // 1. Sync users
+        const { results: users } = await env.DB_PROD.prepare("SELECT * FROM users").all();
+        await env.DB.prepare("DELETE FROM users").run();
+        if (users && users.length > 0) {
+            const stmt = env.DB.prepare("INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)");
+            await env.DB.batch(users.map(u => stmt.bind(u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at)));
+        }
+
+        // 2. Sync snapshots
+        const { results: snapshots } = await env.DB_PROD.prepare("SELECT * FROM snapshots").all();
+        await env.DB.prepare("DELETE FROM snapshots").run();
+        if (snapshots && snapshots.length > 0) {
+            const stmt = env.DB.prepare("INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)");
+            await env.DB.batch(snapshots.map(s => stmt.bind(s.id, s.user_id, s.total_views, s.total_songs, s.timestamp)));
+        }
+
+        // 3. Sync snapshot_songs (with chunking to avoid D1 batch limit)
+        const { results: songs } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs").all();
+        await env.DB.prepare("DELETE FROM snapshot_songs").run();
+        if (songs && songs.length > 0) {
+            const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
+            const batch = songs.map(s => stmt.bind(s.snapshot_id, s.spotify_id, s.title, s.artist, s.views));
+            const chunkSize = 500;
+            for (let i = 0; i < batch.length; i += chunkSize) {
+                await env.DB.batch(batch.slice(i, i + chunkSize));
+            }
+        }
+
+        // 4. Sync track_metadata (with chunking)
+        const { results: metadata } = await env.DB_PROD.prepare("SELECT * FROM track_metadata").all();
+        await env.DB.prepare("DELETE FROM track_metadata").run();
+        if (metadata && metadata.length > 0) {
+            const stmt = env.DB.prepare("INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)");
+            const batch = metadata.map(m => stmt.bind(m.spotify_id, m.isrc, m.title, m.artist, m.created_at));
+            const chunkSize = 500;
+            for (let i = 0; i < batch.length; i += chunkSize) {
+                await env.DB.batch(batch.slice(i, i + chunkSize));
+            }
+        }
+
+        // 5. Sync audit_logs (with chunking)
+        const { results: logs } = await env.DB_PROD.prepare("SELECT * FROM audit_logs").all();
+        await env.DB.prepare("DELETE FROM audit_logs").run();
+        if (logs && logs.length > 0) {
+            const stmt = env.DB.prepare("INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)");
+            const batch = logs.map(l => stmt.bind(l.id, l.action_type, l.details, l.ip_address, l.created_at));
+            const chunkSize = 500;
+            for (let i = 0; i < batch.length; i += chunkSize) {
+                await env.DB.batch(batch.slice(i, i + chunkSize));
+            }
+        }
+
+        return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    }
 }
 
 async function handleAdminScrapeUser(request, env) {
