@@ -60,6 +60,38 @@ let schemaChecked = false;
 async function checkSchema(env) {
     if (schemaChecked) return;
     try {
+        // Create base tables if they do not exist (useful for clean dev database setup)
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                discord_id TEXT,
+                discord_avatar TEXT,
+                last_scraped_at TEXT
+            )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                total_views INTEGER,
+                total_songs INTEGER,
+                timestamp TEXT
+            )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS snapshot_songs (
+                snapshot_id INTEGER,
+                spotify_id TEXT,
+                title TEXT,
+                artist TEXT,
+                views INTEGER,
+                PRIMARY KEY (snapshot_id, spotify_id)
+            )
+        `).run().catch(() => {});
+
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_id TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN discord_avatar TEXT").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE users ADD COLUMN last_scraped_at TEXT").run().catch(() => {});
