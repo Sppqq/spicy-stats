@@ -336,13 +336,17 @@ async function handleDashboardAPI(request, env) {
     LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
         SELECT id FROM snapshots s_past_in
-        WHERE s_past_in.user_id = u.id AND s_past_in.timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-30 hours') AND s_past_in.timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-18 hours')
-        ORDER BY ABS(strftime('%s', s_past_in.timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), '-24 hours'))) ASC LIMIT 1
+        WHERE s_past_in.user_id = u.id 
+          AND substr(s_past_in.timestamp, 1, 19) >= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-30 hours') 
+          AND substr(s_past_in.timestamp, 1, 19) <= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-18 hours')
+        ORDER BY ABS(strftime('%s', substr(s_past_in.timestamp, 1, 19)) - strftime('%s', datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-24 hours'))) ASC LIMIT 1
     )
     LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
         SELECT id FROM snapshots s_7d_in
-        WHERE s_7d_in.user_id = u.id AND s_7d_in.timestamp >= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-8.5 days') AND s_7d_in.timestamp <= datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-5.5 days')
-        ORDER BY ABS(strftime('%s', s_7d_in.timestamp) - strftime('%s', datetime((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), '-7 days'))) ASC LIMIT 1
+        WHERE s_7d_in.user_id = u.id 
+          AND substr(s_7d_in.timestamp, 1, 19) >= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-8.5 days') 
+          AND substr(s_7d_in.timestamp, 1, 19) <= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-5.5 days')
+        ORDER BY ABS(strftime('%s', substr(s_7d_in.timestamp, 1, 19)) - strftime('%s', datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-7 days'))) ASC LIMIT 1
     )
     ORDER BY current_views DESC
   `).all();
@@ -380,7 +384,7 @@ async function handleUserDetailAPI(username, request, env) {
     const pastSnapshot = await env.DB.prepare(`
         SELECT id, total_views, timestamp
         FROM snapshots
-        WHERE user_id = ? AND timestamp <= datetime('now', '-24 hours')
+        WHERE user_id = ? AND substr(timestamp, 1, 19) <= datetime('now', '-24 hours')
         ORDER BY timestamp DESC LIMIT 1
     `).bind(user.id).first();
 
@@ -642,7 +646,7 @@ async function handleAdminSyncProdDb(request, env) {
         await env.DB.prepare("DELETE FROM users").run();
         let usersOffset = 0;
         while (true) {
-            const { results: usersChunk } = await env.DB_PROD.prepare("SELECT * FROM users LIMIT ? OFFSET ?").bind(pageSize, usersOffset).all();
+            const { results: usersChunk } = await env.DB_PROD.prepare("SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, usersOffset).all();
             if (!usersChunk || usersChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)");
             await env.DB.batch(usersChunk.map(u => stmt.bind(u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at)));
@@ -653,7 +657,7 @@ async function handleAdminSyncProdDb(request, env) {
         await env.DB.prepare("DELETE FROM snapshots").run();
         let snapshotsOffset = 0;
         while (true) {
-            const { results: snapshotsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshots LIMIT ? OFFSET ?").bind(pageSize, snapshotsOffset).all();
+            const { results: snapshotsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshots ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, snapshotsOffset).all();
             if (!snapshotsChunk || snapshotsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)");
             await env.DB.batch(snapshotsChunk.map(s => stmt.bind(s.id, s.user_id, s.total_views, s.total_songs, s.timestamp)));
@@ -664,7 +668,7 @@ async function handleAdminSyncProdDb(request, env) {
         await env.DB.prepare("DELETE FROM snapshot_songs").run();
         let songsOffset = 0;
         while (true) {
-            const { results: songsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs LIMIT ? OFFSET ?").bind(pageSize, songsOffset).all();
+            const { results: songsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs ORDER BY snapshot_id, spotify_id LIMIT ? OFFSET ?").bind(pageSize, songsOffset).all();
             if (!songsChunk || songsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
             await env.DB.batch(songsChunk.map(s => stmt.bind(s.snapshot_id, s.spotify_id, s.title, s.artist, s.views)));
@@ -675,7 +679,7 @@ async function handleAdminSyncProdDb(request, env) {
         await env.DB.prepare("DELETE FROM track_metadata").run();
         let metadataOffset = 0;
         while (true) {
-            const { results: metadataChunk } = await env.DB_PROD.prepare("SELECT * FROM track_metadata LIMIT ? OFFSET ?").bind(pageSize, metadataOffset).all();
+            const { results: metadataChunk } = await env.DB_PROD.prepare("SELECT * FROM track_metadata ORDER BY spotify_id LIMIT ? OFFSET ?").bind(pageSize, metadataOffset).all();
             if (!metadataChunk || metadataChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)");
             await env.DB.batch(metadataChunk.map(m => stmt.bind(m.spotify_id, m.isrc, m.title, m.artist, m.created_at)));
@@ -686,7 +690,7 @@ async function handleAdminSyncProdDb(request, env) {
         await env.DB.prepare("DELETE FROM audit_logs").run();
         let logsOffset = 0;
         while (true) {
-            const { results: logsChunk } = await env.DB_PROD.prepare("SELECT * FROM audit_logs LIMIT ? OFFSET ?").bind(pageSize, logsOffset).all();
+            const { results: logsChunk } = await env.DB_PROD.prepare("SELECT * FROM audit_logs ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, logsOffset).all();
             if (!logsChunk || logsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)");
             await env.DB.batch(logsChunk.map(l => stmt.bind(l.id, l.action_type, l.details, l.ip_address, l.created_at)));
