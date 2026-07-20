@@ -544,6 +544,7 @@
                 <button class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
                 <button class="tab-btn" id="tab-btn-metadata" onclick="switchTab('metadata')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔗 Metadata</button>
                 <button class="tab-btn" id="tab-btn-logs" onclick="switchTab('logs')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">📋 Audit Logs</button>
+                <button class="tab-btn" id="tab-btn-notifications" onclick="switchTab('notifications')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔔 Notifications</button>
             </nav>
 
             <!-- Tab 1: Database -->
@@ -732,6 +733,84 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab 5: Notification & Maintenance settings -->
+            <div id="tab-content-notifications" class="tab-content" style="display: none;">
+                <section class="panel">
+                    <div class="panel-heading" style="border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h2 class="panel-title">Site Announcements & Maintenance Mode</h2>
+                            <div class="panel-meta">Configure alerts or put the site into technical maintenance mode</div>
+                        </div>
+                    </div>
+
+                    <div style="padding: 0 24px 24px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <!-- Settings Form -->
+                        <form id="notification-form" onsubmit="saveNotificationSettings(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                    <input type="checkbox" id="notif-enabled" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <span style="font-weight: bold; font-size: 14px;">Enable Site Notification / Banner</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Notification Mode</label>
+                                <select id="notif-type" onchange="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px; background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 0 10px; color: var(--ink); cursor: pointer;">
+                                    <option value="banner">Floating Side Toast (Dismissible banner on the side)</option>
+                                    <option value="maintenance">Maintenance Mode (Full screen block page)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Style Template Preset</label>
+                                <select id="notif-style" onchange="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px; background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 0 10px; color: var(--ink); cursor: pointer;">
+                                    <option value="warning">Warning (Orange accent / Warning symbol)</option>
+                                    <option value="critical">Critical/Error (Red accent / Danger symbol)</option>
+                                    <option value="info">Information (Blue accent / Info symbol)</option>
+                                    <option value="success">Success (Green accent / Success symbol)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Quick Fill Presets</label>
+                                <select id="notif-preset" onchange="applyNotifPreset(this.value)" class="admin-input" style="width: 100%; height: 38px; background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 0 10px; color: var(--ink); cursor: pointer;">
+                                    <option value="custom">-- Custom Notification --</option>
+                                    <option value="maint_tech">🔧 Technical Maintenance (Full Screen Warning)</option>
+                                    <option value="maint_short">⚡ Short Interruption (Full Screen Info)</option>
+                                    <option value="banner_update">📢 System Update Banner (Side Toast)</option>
+                                    <option value="banner_promo">🎉 Creators Promo (Side Toast Success)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Title</label>
+                                <input type="text" id="notif-title" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="e.g. Technical Maintenance">
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Message</label>
+                                <textarea id="notif-message" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Enter details about maintenance or announcement..."></textarea>
+                            </div>
+
+                            <button type="submit" id="save-notif-btn" class="admin-btn" style="height: 42px; background: var(--blue); color: #fff; font-weight: bold; border: 0; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'DM Mono', monospace; cursor: pointer; transition: opacity 0.2s;">
+                                💾 Save Settings
+                            </button>
+                            <div id="notif-save-feedback" style="display: none; font-family: 'DM Mono', monospace; font-size: 12px; padding: 10px; border-radius: 4px;"></div>
+                        </form>
+
+                        <!-- Live Preview Panel -->
+                        <div style="border: 1px dashed var(--line); border-radius: 8px; padding: 20px; background: rgba(0,0,0,0.15); display: flex; flex-direction: column;">
+                            <h3 style="font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 16px;">Live Preview</h3>
+                            
+                            <div id="preview-container" style="flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 250px; background: var(--paper-dark); border-radius: 6px; border: 1px solid var(--line); overflow: hidden; padding: 20px;">
+                                <!-- Live element rendering -->
+                                <div id="preview-notif-element" style="width: 100%;"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -1243,6 +1322,8 @@
                 loadLogs();
             } else if (tabId === 'metadata') {
                 searchMetadata('');
+            } else if (tabId === 'notifications') {
+                loadNotificationSettings();
             }
         }
 
@@ -1859,6 +1940,174 @@
             if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
             const diffDays = Math.floor(diffHours / 24);
             return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        }
+
+        async function loadNotificationSettings() {
+            try {
+                const res = await spicyFetch(`${API_BASE}/notification-settings`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        document.getElementById('notif-enabled').checked = !!data.enabled;
+                        document.getElementById('notif-type').value = data.type || 'banner';
+                        document.getElementById('notif-style').value = data.style_template || 'warning';
+                        document.getElementById('notif-title').value = data.title || '';
+                        document.getElementById('notif-message').value = data.message || '';
+                        
+                        // Set the preset value if it matches one of the values, else custom
+                        const presetSelect = document.getElementById('notif-preset');
+                        presetSelect.value = 'custom'; // default
+                        
+                        updateNotifPreview();
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load notification settings:", err);
+            }
+        }
+
+        function updateNotifPreview() {
+            const enabled = document.getElementById('notif-enabled').checked;
+            const type = document.getElementById('notif-type').value;
+            const style = document.getElementById('notif-style').value;
+            const title = document.getElementById('notif-title').value || 'Технические работы';
+            const message = document.getElementById('notif-message').value || 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.';
+
+            const element = document.getElementById('preview-notif-element');
+            
+            let accentColor = 'var(--blue)';
+            let shadowColor = 'rgba(77, 101, 255, 0.2)';
+            let icon = 'ℹ️';
+
+            if (style === 'warning') {
+                accentColor = '#f5a623';
+                shadowColor = 'rgba(245, 166, 35, 0.2)';
+                icon = '⚠️';
+            } else if (style === 'critical') {
+                accentColor = 'var(--coral)';
+                shadowColor = 'rgba(255, 113, 91, 0.2)';
+                icon = '🚨';
+            } else if (style === 'success') {
+                accentColor = 'var(--green)';
+                shadowColor = 'rgba(185, 242, 39, 0.2)';
+                icon = '✅';
+            }
+
+            if (!enabled) {
+                element.innerHTML = `<div style="text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; padding: 20px;">Notification is currently disabled.</div>`;
+                return;
+            }
+
+            if (type === 'maintenance') {
+                element.innerHTML = `
+                    <div style="background: var(--paper); border: 2px solid ${accentColor}; border-radius: 6px; padding: 24px; text-align: center; box-shadow: 0 4px 20px ${shadowColor}; max-width: 100%;">
+                        <div style="font-size: 32px; margin-bottom: 12px;">${icon}</div>
+                        <h3 style="font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 8px; font-family: 'Manrope', sans-serif;">${title}</h3>
+                        <p style="font-size: 13px; color: var(--muted); line-height: 1.6; font-family: 'Manrope', sans-serif;">${message}</p>
+                        <div style="margin-top: 16px; font-size: 10px; font-family: 'DM Mono', monospace; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.1em;">Maintenance Mode Active</div>
+                    </div>
+                `;
+            } else {
+                element.innerHTML = `
+                    <div style="background: var(--paper-dark); border-left: 4px solid ${accentColor}; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 4px; padding: 14px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 100%;">
+                        <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;">✕</button>
+                        <div style="display: flex; gap: 10px; align-items: flex-start;">
+                            <span style="font-size: 16px; margin-top: 2px;">${icon}</span>
+                            <div style="padding-right: 14px;">
+                                <h4 style="font-size: 12px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0; font-family: 'Manrope', sans-serif;">${title}</h4>
+                                <p style="font-size: 11px; color: var(--muted); margin: 0; line-height: 1.4; font-family: 'Manrope', sans-serif;">${message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function applyNotifPreset(preset) {
+            if (preset === 'custom') return;
+
+            const titleInput = document.getElementById('notif-title');
+            const messageInput = document.getElementById('notif-message');
+            const typeSelect = document.getElementById('notif-type');
+            const styleSelect = document.getElementById('notif-style');
+
+            if (preset === 'maint_tech') {
+                titleInput.value = 'Технические работы';
+                messageInput.value = 'На сайте ведутся плановые технические работы. Мы обновим статистику и вернемся в течение нескольких часов. Спасибо за ваше терпение!';
+                typeSelect.value = 'maintenance';
+                styleSelect.value = 'warning';
+            } else if (preset === 'maint_short') {
+                titleInput.value = 'Кратковременный перерыв';
+                messageInput.value = 'Мы обновляем серверную базу данных. Сайт будет полностью доступен в ближайшие 10-15 минут.';
+                typeSelect.value = 'maintenance';
+                styleSelect.value = 'info';
+            } else if (preset === 'banner_update') {
+                titleInput.value = 'Обновление Spicy Monitor';
+                messageInput.value = 'Мы добавили автоматическое отслеживание новых треков и исправили баг с обновлением статистики.';
+                typeSelect.value = 'banner';
+                styleSelect.value = 'info';
+            } else if (preset === 'banner_promo') {
+                titleInput.value = 'Spicy Monitor расширяется!';
+                messageInput.value = 'Хотите добавить своего любимого исполнителя в список мониторинга? Напишите нам!';
+                typeSelect.value = 'banner';
+                styleSelect.value = 'success';
+            }
+
+            updateNotifPreview();
+        }
+
+        async function saveNotificationSettings(event) {
+            event.preventDefault();
+            const enabled = document.getElementById('notif-enabled').checked;
+            const type = document.getElementById('notif-type').value;
+            const style = document.getElementById('notif-style').value;
+            const title = document.getElementById('notif-title').value.trim();
+            const message = document.getElementById('notif-message').value.trim();
+            
+            const btn = document.getElementById('save-notif-btn');
+            const feedback = document.getElementById('notif-save-feedback');
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            feedback.style.display = 'none';
+
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/notification-settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        secret: adminSecret,
+                        enabled,
+                        type,
+                        title,
+                        message,
+                        style_template: style
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    feedback.style.display = 'block';
+                    feedback.style.background = 'rgba(185,242,39,0.1)';
+                    feedback.style.color = 'var(--green)';
+                    feedback.style.border = '1px solid var(--green)';
+                    feedback.textContent = 'Settings saved successfully!';
+                    setTimeout(() => {
+                        feedback.style.display = 'none';
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Failed to save settings');
+                }
+            } catch (err) {
+                feedback.style.display = 'block';
+                feedback.style.background = 'rgba(255,113,91,0.1)';
+                feedback.style.color = 'var(--coral)';
+                feedback.style.border = '1px solid var(--coral)';
+                feedback.textContent = `Error: ${err.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 Save Settings';
+            }
         }
 
         function showEasterEgg() {
