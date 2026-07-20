@@ -23,7 +23,7 @@ max_retries = 2
 
 # Production Environment (Main Branch)
 [env.production]
-name = "spicy-stats-prod"
+name = "spicy-stats"
 
 [[env.production.d1_databases]]
 binding = "DB"
