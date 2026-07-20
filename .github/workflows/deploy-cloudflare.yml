@@ -3,9 +3,10 @@ name: Deploy Backend to Cloudflare Worker
 on:
   push:
     branches:
-      - main     # Name of your main branch (change to master if the main branch is master)
+      - main
+      - dev
     paths:
-      - 'cloudflare_pages/**' # Trigger deploy only when files in this folder change
+      - 'cloudflare_pages/**'
 
 jobs:
   deploy:
@@ -15,9 +16,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to Cloudflare Worker
+      - name: Deploy Prod to Cloudflare Worker
+        if: github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'cloudflare_pages'
+          environment: production
+
+      - name: Deploy Dev to Cloudflare Worker
+        if: github.ref == 'refs/heads/dev'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'cloudflare_pages'
+          environment: preview
