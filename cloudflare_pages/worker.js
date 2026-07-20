@@ -196,7 +196,7 @@ export default {
 
         if (url.pathname === "/api/add-user" && request.method === "POST") {
             if (isRateLimited(ip, 5, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
-        } else if (url.pathname.startsWith("/api/")) {
+        } else if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/admin/")) {
             if (isRateLimited(ip, 60, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
