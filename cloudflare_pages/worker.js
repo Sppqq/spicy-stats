@@ -635,69 +635,60 @@ async function handleAdminExportUser(request, env) {
 }
 
 async function handleAdminSyncProdDb(request, env) {
-    const { secret } = await request.json().catch(() => ({}));
+    const { secret, table, lastRowid } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
+    if (!table) return new Response(JSON.stringify({ error: "Table parameter required." }), { status: 400, headers: getCorsHeaders(request, env) });
+
+    const pageSize = 2000;
+    const startRowid = Number(lastRowid) || 0;
 
     try {
-        const pageSize = 1000;
-
-        // 1. Sync users
-        await env.DB.prepare("DELETE FROM users").run();
-        let usersOffset = 0;
-        while (true) {
-            const { results: usersChunk } = await env.DB_PROD.prepare("SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, usersOffset).all();
-            if (!usersChunk || usersChunk.length === 0) break;
-            const stmt = env.DB.prepare("INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(usersChunk.map(u => stmt.bind(u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at)));
-            usersOffset += pageSize;
+        if (startRowid === 0) {
+            await env.DB.prepare(`DELETE FROM ${table}`).run();
         }
 
-        // 2. Sync snapshots
-        await env.DB.prepare("DELETE FROM snapshots").run();
-        let snapshotsOffset = 0;
-        while (true) {
-            const { results: snapshotsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshots ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, snapshotsOffset).all();
-            if (!snapshotsChunk || snapshotsChunk.length === 0) break;
-            const stmt = env.DB.prepare("INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(snapshotsChunk.map(s => stmt.bind(s.id, s.user_id, s.total_views, s.total_songs, s.timestamp)));
-            snapshotsOffset += pageSize;
+        let query = "";
+        let insertStmt = "";
+        let mapFn = null;
+
+        if (table === "users") {
+            query = "SELECT rowid, id, username, discord_id, discord_avatar, last_scraped_at FROM users WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            insertStmt = "INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)";
+            mapFn = u => [u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at];
+        } else if (table === "snapshots") {
+            query = "SELECT rowid, id, user_id, total_views, total_songs, timestamp FROM snapshots WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            insertStmt = "INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)";
+            mapFn = s => [s.id, s.user_id, s.total_views, s.total_songs, s.timestamp];
+        } else if (table === "snapshot_songs") {
+            query = "SELECT rowid, snapshot_id, spotify_id, title, artist, views FROM snapshot_songs WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            insertStmt = "INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)";
+            mapFn = s => [s.snapshot_id, s.spotify_id, s.title, s.artist, s.views];
+        } else if (table === "track_metadata") {
+            query = "SELECT rowid, spotify_id, isrc, title, artist, created_at FROM track_metadata WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            insertStmt = "INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)";
+            mapFn = m => [m.spotify_id, m.isrc, m.title, m.artist, m.created_at];
+        } else if (table === "audit_logs") {
+            query = "SELECT rowid, id, action_type, details, ip_address, created_at FROM audit_logs WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            insertStmt = "INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)";
+            mapFn = l => [l.id, l.action_type, l.details, l.ip_address, l.created_at];
+        } else {
+            return new Response(JSON.stringify({ error: "Invalid table." }), { status: 400, headers: getCorsHeaders(request, env) });
         }
 
-        // 3. Sync snapshot_songs
-        await env.DB.prepare("DELETE FROM snapshot_songs").run();
-        let songsOffset = 0;
-        while (true) {
-            const { results: songsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs ORDER BY snapshot_id, spotify_id LIMIT ? OFFSET ?").bind(pageSize, songsOffset).all();
-            if (!songsChunk || songsChunk.length === 0) break;
-            const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(songsChunk.map(s => stmt.bind(s.snapshot_id, s.spotify_id, s.title, s.artist, s.views)));
-            songsOffset += pageSize;
+        const { results: chunk } = await env.DB_PROD.prepare(query).bind(startRowid, pageSize).all();
+        
+        if (!chunk || chunk.length === 0) {
+            return new Response(JSON.stringify({ success: true, done: true, copied: 0 }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
-        // 4. Sync track_metadata
-        await env.DB.prepare("DELETE FROM track_metadata").run();
-        let metadataOffset = 0;
-        while (true) {
-            const { results: metadataChunk } = await env.DB_PROD.prepare("SELECT * FROM track_metadata ORDER BY spotify_id LIMIT ? OFFSET ?").bind(pageSize, metadataOffset).all();
-            if (!metadataChunk || metadataChunk.length === 0) break;
-            const stmt = env.DB.prepare("INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(metadataChunk.map(m => stmt.bind(m.spotify_id, m.isrc, m.title, m.artist, m.created_at)));
-            metadataOffset += pageSize;
-        }
+        const stmt = env.DB.prepare(insertStmt);
+        await env.DB.batch(chunk.map(row => stmt.bind(...mapFn(row))));
 
-        // 5. Sync audit_logs
-        await env.DB.prepare("DELETE FROM audit_logs").run();
-        let logsOffset = 0;
-        while (true) {
-            const { results: logsChunk } = await env.DB_PROD.prepare("SELECT * FROM audit_logs ORDER BY id LIMIT ? OFFSET ?").bind(pageSize, logsOffset).all();
-            if (!logsChunk || logsChunk.length === 0) break;
-            const stmt = env.DB.prepare("INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(logsChunk.map(l => stmt.bind(l.id, l.action_type, l.details, l.ip_address, l.created_at)));
-            logsOffset += pageSize;
-        }
+        const nextRowid = chunk[chunk.length - 1].rowid;
+        const done = chunk.length < pageSize;
 
-        return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+        return new Response(JSON.stringify({ success: true, nextRowid, done, copied: chunk.length }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     }

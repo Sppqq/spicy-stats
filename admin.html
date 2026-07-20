@@ -1167,26 +1167,43 @@
             }
             
             btn.disabled = true;
-            statusMsg.textContent = 'Syncing production database tables to local dev...';
             statusMsg.style.color = 'var(--blue)';
 
-            try {
-                const res = await spicyFetch(`${API_BASE}/admin/sync-prod-db`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret: adminSecret })
-                });
+            const tables = ["users", "snapshots", "snapshot_songs", "track_metadata", "audit_logs"];
 
-                const data = await res.json().catch(() => ({}));
-                if (res.ok) {
-                    statusMsg.textContent = 'Database sync completed successfully! Dev database is now updated.';
-                    statusMsg.style.color = 'var(--green)';
-                    setTimeout(() => {
-                        loadAdminData();
-                    }, 2000);
-                } else {
-                    throw new Error(data.error || 'Database sync failed');
+            try {
+                for (const table of tables) {
+                    let lastRowid = 0;
+                    let done = false;
+                    let totalCopied = 0;
+
+                    statusMsg.textContent = `Syncing table: ${table}...`;
+
+                    while (!done) {
+                        const res = await spicyFetch(`${API_BASE}/admin/sync-prod-db`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ secret: adminSecret, table, lastRowid })
+                        });
+
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            throw new Error(data.error || `Failed to sync table ${table}`);
+                        }
+
+                        done = data.done;
+                        lastRowid = data.nextRowid;
+                        totalCopied += data.copied;
+
+                        statusMsg.textContent = `Syncing table: ${table} (${totalCopied} rows copied)...`;
+                    }
                 }
+
+                statusMsg.textContent = 'Database sync completed successfully! All tables are now up to date.';
+                statusMsg.style.color = 'var(--green)';
+                setTimeout(() => {
+                    loadAdminData();
+                }, 2000);
             } catch (err) {
                 statusMsg.textContent = `Sync error: ${err.message}`;
                 statusMsg.style.color = 'var(--coral)';
