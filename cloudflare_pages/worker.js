@@ -463,7 +463,7 @@ async function handleTrackHistoryAPI(request, env) {
 
     const isrcList = isrcs.map(i => \`'\${i}'\`).join(',');
     const isrcClause = isrcs.length > 0 ? \`OR (tm.isrc IN (\${isrcList}))\` : '';
-
+    
     let sqlAllChanges = \`
         SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
         FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
@@ -473,10 +473,10 @@ async function handleTrackHistoryAPI(request, env) {
         ) ORDER BY s.id ASC
     \`;
     const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
-
+    
     let trackState = new Map();
     let historyIndex = 0;
-
+    
     for (const snap of (allSnaps || [])) {
         while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
             const m = allMatches[historyIndex];
@@ -484,15 +484,15 @@ async function handleTrackHistoryAPI(request, env) {
             trackState.set(key, m.views);
             historyIndex++;
         }
-
+        
         let sumViews = 0;
         for (const v of trackState.values()) sumViews += v;
-
+        
         if (sumViews > 0) {
             historyData.push({ views: sumViews, timestamp: snap.timestamp });
         }
     }
-
+    
     const results = historyData;
     return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
@@ -582,7 +582,7 @@ async function handleAdminExportUser(request, env) {
     const state = new Map();
     let songIdx = 0;
     const songsList = songs.results || [];
-
+    
     for (const snap of (snapshots.results || [])) {
         while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
             const s = songsList[songIdx];
@@ -590,7 +590,7 @@ async function handleAdminExportUser(request, env) {
             state.set(key, s);
             songIdx++;
         }
-
+        
         historyData.push({
             timestamp: snap.timestamp,
             total_views: snap.total_views,
@@ -1014,7 +1014,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
             )
             WHERE rn = 1
         `).bind(userId).all();
-
+        
         for (const ls of (latestSongs || [])) {
             const key = \`\${(ls.title || "").trim().toLowerCase()}|||\${(ls.artist || "").trim().toLowerCase()}\`;
             latestSongsMap.set(key, ls.views);
