@@ -48,6 +48,11 @@ binding = "DB"
 database_name = "spicy-stats-db-dev"         # You should create a second DB for dev and put its name/id here
 database_id = "60a18bdf-1b42-4c49-85c7-5524a317adcf"          # CHANGE THIS TO YOUR DEV DB ID!
 
+[[env.preview.d1_databases]]
+binding = "DB_PROD"
+database_name = "spicy-stats-db"
+database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"
+
 [[env.preview.queues.producers]]
 queue = "spicy-scrape-queue-dev"             # Recommend creating a separate dev queue
 binding = "SCRAPE_QUEUE"
