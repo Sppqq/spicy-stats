@@ -1357,6 +1357,7 @@
         let chartTimeframe = 30;
 
         window.addEventListener('DOMContentLoaded', () => {
+            checkNotifications();
             initTheme();
             initLanguage();
             initLiveIndicator();
@@ -3284,12 +3285,121 @@
             }
         }
 
-        function hideToast(toast) {
-            toast.style.transform = 'translateY(100px)';
-            toast.style.opacity = '0';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 300);
+        async function checkNotifications() {
+            try {
+                const res = await spicyFetch(`${API_BASE}/notification-settings`);
+                if (!res.ok) return;
+                const settings = await res.json();
+                if (!settings || !settings.enabled) return;
+
+                const { type, title, message, style_template, updated_at } = settings;
+                
+                let accentColor = 'var(--blue)';
+                let glowColor = 'rgba(77, 101, 255, 0.15)';
+                let icon = '📢';
+
+                if (style_template === 'warning') {
+                    accentColor = '#f5a623';
+                    glowColor = 'rgba(245, 166, 35, 0.15)';
+                    icon = '⚠️';
+                } else if (style_template === 'critical') {
+                    accentColor = 'var(--coral)';
+                    glowColor = 'rgba(255, 113, 91, 0.15)';
+                    icon = '🚨';
+                } else if (style_template === 'success') {
+                    accentColor = 'var(--green)';
+                    glowColor = 'rgba(185, 242, 39, 0.15)';
+                    icon = '✅';
+                }
+
+                if (type === 'maintenance') {
+                    const overlay = document.createElement('div');
+                    overlay.id = 'maintenance-overlay';
+                    overlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: var(--paper);
+                        z-index: 9999999;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 24px;
+                        box-sizing: border-box;
+                        font-family: 'Manrope', sans-serif;
+                    `;
+
+                    overlay.innerHTML = `
+                        <div style="max-width: 500px; width: 100%; background: var(--white); border: 1px solid var(--line); border-top: 4px solid ${accentColor}; padding: 40px 32px; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 50px ${glowColor}; animation: fadeIn 0.4s ease-out;">
+                            <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 0 10px ${accentColor}44);">${icon}</div>
+                            <h1 style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;">${title}</h1>
+                            <p style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;">${message}</p>
+                            <div style="display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: ${accentColor}; border: 1px solid ${accentColor}33; padding: 6px 14px; border-radius: 4px; background: ${accentColor}0a;">
+                                <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${accentColor}; animation: pulse 1.5s infinite;"></span>
+                                Временные технические работы
+                            </div>
+                        </div>
+                        <style>
+                            @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+                            @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+                        </style>
+                    `;
+                    document.body.appendChild(overlay);
+                    document.body.style.overflow = 'hidden';
+                } else if (type === 'banner') {
+                    const closedKey = `spicy-notif-closed-${updated_at || '0'}`;
+                    if (localStorage.getItem(closedKey)) return;
+
+                    const toast = document.createElement('div');
+                    toast.id = 'spicy-notification-toast';
+                    toast.style.cssText = `
+                        position: fixed;
+                        bottom: 24px;
+                        right: 24px;
+                        max-width: 360px;
+                        width: calc(100vw - 48px);
+                        background: var(--white);
+                        border: 1px solid var(--line);
+                        border-left: 4px solid ${accentColor};
+                        border-radius: 6px;
+                        padding: 16px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px ${glowColor};
+                        z-index: 999999;
+                        font-family: 'Manrope', sans-serif;
+                        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                        display: flex;
+                        gap: 12px;
+                    `;
+
+                    toast.innerHTML = `
+                        <div style="font-size: 20px; flex-shrink: 0; margin-top: 2px;">${icon}</div>
+                        <div style="flex-grow: 1; padding-right: 12px;">
+                            <h4 style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">${title}</h4>
+                            <p style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;">${message}</p>
+                        </div>
+                        <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+                        <style>
+                            @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                        </style>
+                    `;
+                    document.body.appendChild(toast);
+                    
+                    window.dismissSpicyNotification = function(key) {
+                        const t = document.getElementById('spicy-notification-toast');
+                        if (t) {
+                            t.style.transition = 'opacity 0.2s, transform 0.2s';
+                            t.style.opacity = '0';
+                            t.style.transform = 'translateY(10px)';
+                            setTimeout(() => t.remove(), 200);
+                        }
+                        localStorage.setItem(key, 'true');
+                    };
+                }
+            } catch (err) {
+                console.error("Error fetching notification settings:", err);
+            }
         }
     </script>
     <!-- Track Stats Modal -->

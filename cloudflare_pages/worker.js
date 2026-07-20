@@ -118,6 +118,24 @@ async function checkSchema(env) {
             )
         `).run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)").run().catch(() => {});
+
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS notification_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER DEFAULT 0,
+                type TEXT DEFAULT 'banner',
+                title TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                style_template TEXT DEFAULT 'warning',
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+            INSERT OR IGNORE INTO notification_settings (id, enabled, type, title, message, style_template)
+            VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
+        `).run().catch(() => {});
+
         schemaChecked = true;
     } catch (e) {}
 }
@@ -220,6 +238,8 @@ export default {
             else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") response = await handleAdminDeleteUser(request, env);
             else if (url.pathname === "/api/admin/export-user" && request.method === "POST") response = await handleAdminExportUser(request, env);
             else if (url.pathname === "/api/admin/sync-prod-db" && request.method === "POST") response = await handleAdminSyncProdDb(request, env);
+            else if (url.pathname === "/api/notification-settings" && request.method === "GET") response = await handleGetNotificationSettings(request, env);
+            else if (url.pathname === "/api/admin/notification-settings" && request.method === "POST") response = await handleSaveNotificationSettings(request, env);
             else response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
         } catch (err) {
             response = new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
@@ -1141,4 +1161,44 @@ async function scrapeAndSave(userId, username, discordId, env) {
     }
 
     if (data.discord_id) await env.DB.prepare("UPDATE users SET discord_id = ?, discord_avatar = ? WHERE id = ?").bind(data.discord_id, data.discord_avatar || null, userId).run();
+}
+
+async function handleGetNotificationSettings(request, env) {
+    try {
+        const settings = await env.DB.prepare("SELECT enabled, type, title, message, style_template, updated_at FROM notification_settings WHERE id = 1").first();
+        return new Response(JSON.stringify(settings || { enabled: 0 }), {
+            headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
+        });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    }
+}
+
+async function handleSaveNotificationSettings(request, env) {
+    try {
+        const { secret, enabled, type, title, message, style_template } = await request.json().catch(() => ({}));
+        if (secret !== IMPORT_SECRET) {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+        }
+
+        await env.DB.prepare(`
+            UPDATE notification_settings
+            SET enabled = ?, type = ?, title = ?, message = ?, style_template = ?, updated_at = datetime('now')
+            WHERE id = 1
+        `).bind(
+            enabled ? 1 : 0,
+            type || 'banner',
+            title || '',
+            message || '',
+            style_template || 'warning'
+        ).run();
+
+        await logAction(env, "settings_update", `Notification settings updated: enabled=${enabled}, type=${type}`, request);
+
+        return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
+        });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    }
 }
