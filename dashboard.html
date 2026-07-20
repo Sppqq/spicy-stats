@@ -3432,7 +3432,22 @@
                 const settings = await res.json();
                 if (!settings || !settings.enabled) return;
 
-                const { type, title, message, style_template, updated_at } = settings;
+                const { type, style_template, updated_at } = settings;
+                
+                const currentLang = localStorage.getItem('spicy-lang') || 'en';
+                const getLocalized = (val) => {
+                    if (!val) return '';
+                    if (val.trim().startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(val);
+                            return parsed[currentLang] || parsed['en'] || Object.values(parsed)[0] || '';
+                        } catch(e) {}
+                    }
+                    return val;
+                };
+
+                const title = getLocalized(settings.title);
+                const message = getLocalized(settings.message);
                 
                 let accentColor = 'var(--blue)';
                 let glowColor = 'rgba(77, 101, 255, 0.15)';

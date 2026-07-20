@@ -786,14 +786,89 @@
                                 </select>
                             </div>
 
+                            <!-- Language Tabs for Inputs -->
                             <div>
-                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Title</label>
-                                <input type="text" id="notif-title" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="e.g. Technical Maintenance">
+                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 8px;">Translations</label>
+                                <div style="display: flex; gap: 4px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px; overflow-x: auto;">
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-en" onclick="setNotifFormLang('en')" style="background: var(--blue); color: #fff; padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 0;">EN</button>
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-ru" onclick="setNotifFormLang('ru')" style="background: transparent; color: var(--muted); padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 1px solid var(--line);">RU</button>
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-uk" onclick="setNotifFormLang('uk')" style="background: transparent; color: var(--muted); padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 1px solid var(--line);">UK</button>
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-de" onclick="setNotifFormLang('de')" style="background: transparent; color: var(--muted); padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 1px solid var(--line);">DE</button>
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-it" onclick="setNotifFormLang('it')" style="background: transparent; color: var(--muted); padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 1px solid var(--line);">IT</button>
+                                    <button type="button" class="admin-btn notif-lang-btn" id="notif-lang-btn-pl" onclick="setNotifFormLang('pl')" style="background: transparent; color: var(--muted); padding: 4px 10px; font-size: 11px; border-radius: 3px; border: 1px solid var(--line);">PL</button>
+                                </div>
                             </div>
 
-                            <div>
-                                <label style="display: block; font-size: 11px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 6px;">Message</label>
-                                <textarea id="notif-message" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Enter details about maintenance or announcement..."></textarea>
+                            <!-- English Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-en">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (English)</label>
+                                    <input type="text" id="notif-title-en" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="e.g. Technical Maintenance">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (English)</label>
+                                    <textarea id="notif-message-en" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Enter details in English..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Russian Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-ru" style="display: none;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (Russian)</label>
+                                    <input type="text" id="notif-title-ru" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="например, Технические работы">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (Russian)</label>
+                                    <textarea id="notif-message-ru" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Введите детали на русском..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Ukrainian Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-uk" style="display: none;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (Ukrainian)</label>
+                                    <input type="text" id="notif-title-uk" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="наприклад, Технічні роботи">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (Ukrainian)</label>
+                                    <textarea id="notif-message-uk" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Введіть деталі українською..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- German Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-de" style="display: none;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (German)</label>
+                                    <input type="text" id="notif-title-de" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="z.B. Technische Wartung">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (German)</label>
+                                    <textarea id="notif-message-de" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Geben Sie Details auf Deutsch ein..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Italian Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-it" style="display: none;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (Italian)</label>
+                                    <input type="text" id="notif-title-it" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="es. Manutenzione Tecnica">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (Italian)</label>
+                                    <textarea id="notif-message-it" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Inserisci dettagli in italiano..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Polish Fields -->
+                            <div class="notif-lang-fields" id="notif-fields-pl" style="display: none;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Title (Polish)</label>
+                                    <input type="text" id="notif-title-pl" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 38px;" placeholder="np. Prace Konserwacyjne">
+                                </div>
+                                <div>
+                                    <label style="display: block; font-size: 10px; text-transform: uppercase; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 4px;">Message (Polish)</label>
+                                    <textarea id="notif-message-pl" oninput="updateNotifPreview()" class="admin-input" style="width: 100%; height: 80px; padding: 10px; resize: vertical; line-height: 1.4;" placeholder="Wpisz szczegóły po polsku..."></textarea>
+                                </div>
                             </div>
 
                             <button type="submit" id="save-notif-btn" class="admin-btn" style="height: 42px; background: var(--blue); color: #fff; font-weight: bold; border: 0; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'DM Mono', monospace; cursor: pointer; transition: opacity 0.2s;">
@@ -1942,6 +2017,27 @@
             return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
         }
 
+        let currentFormLang = 'en';
+
+        function setNotifFormLang(lang) {
+            currentFormLang = lang;
+            document.querySelectorAll('.notif-lang-fields').forEach(el => {
+                el.style.display = el.id === `notif-fields-${lang}` ? 'block' : 'none';
+            });
+            document.querySelectorAll('.notif-lang-btn').forEach(btn => {
+                if (btn.id === `notif-lang-btn-${lang}`) {
+                    btn.style.background = 'var(--blue)';
+                    btn.style.color = '#fff';
+                    btn.style.border = '0';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--muted)';
+                    btn.style.border = '1px solid var(--line)';
+                }
+            });
+            updateNotifPreview();
+        }
+
         async function loadNotificationSettings() {
             try {
                 const res = await spicyFetch(`${API_BASE}/notification-settings`);
@@ -1951,15 +2047,34 @@
                         document.getElementById('notif-enabled').checked = !!data.enabled;
                         document.getElementById('notif-type').value = data.type || 'banner';
                         document.getElementById('notif-style').value = data.style_template || 'warning';
-                        document.getElementById('notif-title').value = data.title || '';
-                        document.getElementById('notif-message').value = data.message || '';
                         
-                        // Set the preset value if it matches one of the values, else custom
-                        const presetSelect = document.getElementById('notif-preset');
-                        presetSelect.value = 'custom'; // default
+                        const langs = ['en', 'ru', 'uk', 'de', 'it', 'pl'];
                         
+                        let titlesObj = {};
+                        if (data.title && data.title.trim().startsWith('{')) {
+                            try { titlesObj = JSON.parse(data.title); } catch(e) {}
+                        }
+                        
+                        let messagesObj = {};
+                        if (data.message && data.message.trim().startsWith('{')) {
+                            try { messagesObj = JSON.parse(data.message); } catch(e) {}
+                        }
+
+                        langs.forEach(l => {
+                            document.getElementById(`notif-title-${l}`).value = titlesObj[l] || data.title || '';
+                            document.getElementById(`notif-message-${l}`).value = messagesObj[l] || data.message || '';
+                        });
+                        
+                        document.getElementById('notif-preset').value = 'custom';
                         updateNotifPreview();
                     }
+                } else {
+                    const feedback = document.getElementById('notif-save-feedback');
+                    feedback.style.display = 'block';
+                    feedback.style.background = 'rgba(255,113,91,0.1)';
+                    feedback.style.color = 'var(--coral)';
+                    feedback.style.border = '1px solid var(--coral)';
+                    feedback.textContent = 'Warning: API Endpoint not found. Please deploy cloudflare_pages worker first!';
                 }
             } catch (err) {
                 console.error("Failed to load notification settings:", err);
@@ -1970,8 +2085,12 @@
             const enabled = document.getElementById('notif-enabled').checked;
             const type = document.getElementById('notif-type').value;
             const style = document.getElementById('notif-style').value;
-            const title = document.getElementById('notif-title').value || 'Технические работы';
-            const message = document.getElementById('notif-message').value || 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.';
+            
+            const titleInput = document.getElementById(`notif-title-${currentFormLang}`);
+            const messageInput = document.getElementById(`notif-message-${currentFormLang}`);
+            
+            const title = (titleInput ? titleInput.value : '') || 'Технические работы';
+            const message = (messageInput ? messageInput.value : '') || 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.';
 
             const element = document.getElementById('preview-notif-element');
             
@@ -1993,22 +2112,33 @@
                 icon = '✅';
             }
 
-            if (!enabled) {
-                element.innerHTML = `<div style="text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; padding: 20px;">Notification is currently disabled.</div>`;
-                return;
-            }
+            const headerStyle = `
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 8px;
+                color: ${accentColor};
+                font-family: 'DM Mono', monospace;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            `;
 
+            let innerHTML = '';
             if (type === 'maintenance') {
-                element.innerHTML = `
-                    <div style="background: var(--paper); border: 2px solid ${accentColor}; border-radius: 6px; padding: 24px; text-align: center; box-shadow: 0 4px 20px ${shadowColor}; max-width: 100%;">
+                innerHTML = `
+                    <div style="background: var(--paper); border: 2px solid ${accentColor}; border-radius: 6px; padding: 24px; text-align: center; box-shadow: 0 4px 20px ${shadowColor}; max-width: 100%; position: relative;">
                         <div style="font-size: 32px; margin-bottom: 12px;">${icon}</div>
-                        <h3 style="font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 8px; font-family: 'Manrope', sans-serif;">${title}</h3>
-                        <p style="font-size: 13px; color: var(--muted); line-height: 1.6; font-family: 'Manrope', sans-serif;">${message}</p>
-                        <div style="margin-top: 16px; font-size: 10px; font-family: 'DM Mono', monospace; color: ${accentColor}; text-transform: uppercase; letter-spacing: 0.1em;">Maintenance Mode Active</div>
+                        <h3 style="font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 8px 0; font-family: 'Manrope', sans-serif;">${title}</h3>
+                        <p style="font-size: 13px; color: var(--muted); line-height: 1.6; font-family: 'Manrope', sans-serif; margin: 0 0 16px 0;">${message}</p>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; color: ${accentColor}; border: 1px solid ${accentColor}33; padding: 4px 10px; border-radius: 3px; background: ${accentColor}0a;">
+                            <span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:${accentColor};"></span>
+                            Maintenance Mode
+                        </div>
                     </div>
                 `;
             } else {
-                element.innerHTML = `
+                innerHTML = `
                     <div style="background: var(--paper-dark); border-left: 4px solid ${accentColor}; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 4px; padding: 14px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 100%;">
                         <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;">✕</button>
                         <div style="display: flex; gap: 10px; align-items: flex-start;">
@@ -2021,37 +2151,127 @@
                     </div>
                 `;
             }
+
+            // Always wrap in a container that shows status badge
+            element.innerHTML = `
+                <div style="position: absolute; top: 8px; left: 8px; font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: bold; background: ${enabled ? 'rgba(185, 242, 39, 0.1)' : 'rgba(255, 113, 91, 0.1)'}; color: ${enabled ? 'var(--green)' : 'var(--coral)'}; border: 1px solid ${enabled ? 'rgba(185, 242, 39, 0.2)' : 'rgba(255, 113, 91, 0.2)'}; z-index: 10;">
+                    ${enabled ? 'STATUS: ACTIVE' : 'STATUS: DISABLED (PREVIEW ONLY)'}
+                </div>
+                <div style="position: absolute; top: 8px; right: 8px; font-family: 'DM Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--line); z-index: 10;">
+                    LANG: ${currentFormLang.toUpperCase()}
+                </div>
+                <div style="width: 100%; margin-top: 15px;">
+                    ${innerHTML}
+                </div>
+            `;
         }
 
         function applyNotifPreset(preset) {
             if (preset === 'custom') return;
 
-            const titleInput = document.getElementById('notif-title');
-            const messageInput = document.getElementById('notif-message');
+            const enabledCheckbox = document.getElementById('notif-enabled');
             const typeSelect = document.getElementById('notif-type');
             const styleSelect = document.getElementById('notif-style');
 
-            if (preset === 'maint_tech') {
-                titleInput.value = 'Технические работы';
-                messageInput.value = 'На сайте ведутся плановые технические работы. Мы обновим статистику и вернемся в течение нескольких часов. Спасибо за ваше терпение!';
-                typeSelect.value = 'maintenance';
-                styleSelect.value = 'warning';
-            } else if (preset === 'maint_short') {
-                titleInput.value = 'Кратковременный перерыв';
-                messageInput.value = 'Мы обновляем серверную базу данных. Сайт будет полностью доступен в ближайшие 10-15 минут.';
-                typeSelect.value = 'maintenance';
-                styleSelect.value = 'info';
-            } else if (preset === 'banner_update') {
-                titleInput.value = 'Обновление Spicy Monitor';
-                messageInput.value = 'Мы добавили автоматическое отслеживание новых треков и исправили баг с обновлением статистики.';
-                typeSelect.value = 'banner';
-                styleSelect.value = 'info';
-            } else if (preset === 'banner_promo') {
-                titleInput.value = 'Spicy Monitor расширяется!';
-                messageInput.value = 'Хотите добавить своего любимого исполнителя в список мониторинга? Напишите нам!';
-                typeSelect.value = 'banner';
-                styleSelect.value = 'success';
-            }
+            const presetsData = {
+                maint_tech: {
+                    enabled: true,
+                    type: 'maintenance',
+                    style: 'warning',
+                    titles: {
+                        en: 'Technical Maintenance',
+                        ru: 'Технические работы',
+                        uk: 'Технічні роботи',
+                        de: 'Technische Wartung',
+                        it: 'Manutenzione Tecnica',
+                        pl: 'Prace Konserwacyjne'
+                    },
+                    messages: {
+                        en: 'We are performing scheduled maintenance to update database snapshots. We will be back online shortly. Thank you for your patience!',
+                        ru: 'На сайте ведутся плановые технические работы. Мы обновим статистику и вернемся в течение нескольких часов. Спасибо за ваше терпение!',
+                        uk: 'На сайті ведуться планові технічні роботи. Ми оновимо статистику та повернемося найближчим часом. Дякуємо за ваше терпіння!',
+                        de: 'Wir führen planmäßige Wartungsarbeiten durch. Wir sind in Kürze wieder online. Vielen Dank für Ihr Verständnis!',
+                        it: 'Stiamo effettuando una manutenzione programmata. Torneremo online a breve. Grazie per la pazienza!',
+                        pl: 'Trwają zaplanowane prace konserwacyjne. Wkrótce będziemy z powrotem online. Dziękujemy za cierpliwość!'
+                    }
+                },
+                maint_short: {
+                    enabled: true,
+                    type: 'maintenance',
+                    style: 'info',
+                    titles: {
+                        en: 'Short Interruption',
+                        ru: 'Кратковременный перерыв',
+                        uk: 'Короткочасна перерва',
+                        de: 'Kurze Unterbrechung',
+                        it: 'Breve Interruzione',
+                        pl: 'Krótka Przerwa'
+                    },
+                    messages: {
+                        en: 'We are restarting database servers. The site will be fully available in 5-10 minutes.',
+                        ru: 'Мы перезагружаем серверную базу данных. Сайт будет полностью доступен в ближайшие 5-10 минут.',
+                        uk: 'Ми перезавантажуємо сервери бази даних. Сайт буде повністю доступний протягом 5-10 хвилин.',
+                        de: 'Wir starten die Datenbankserver neu. Die Website ist in 5-10 Minuten wieder erreichbar.',
+                        it: 'Stiamo riavviando i server del database. Il sito sarà nuovamente disponibile in 5-10 minuti.',
+                        pl: 'Restartujemy serwery baz danych. Strona będzie w pełni dostępna za 5-10 minut.'
+                    }
+                },
+                banner_update: {
+                    enabled: true,
+                    type: 'banner',
+                    style: 'info',
+                    titles: {
+                        en: 'System Update',
+                        ru: 'Обновление системы',
+                        uk: 'Оновлення системи',
+                        de: 'Systemaktualisierung',
+                        it: 'Aggiornamento di Sistema',
+                        pl: 'Aktualizacja Systemu'
+                    },
+                    messages: {
+                        en: 'We have upgraded database snapshot processing and improved tracking speeds.',
+                        ru: 'Мы обновили обработку снимков базы данных и повысили скорость отслеживания.',
+                        uk: 'Ми оновили обробку знімків бази даних та покращили швидкість відстеження.',
+                        de: 'Wir haben die Verarbeitung von Datenbank-Snapshots aktualisiert und die Tracking-Geschwindigkeit verbessert.',
+                        it: 'Abbiamo aggiornato l\'elaborazione degli snapshot del database e migliorato la velocità di tracciamento.',
+                        pl: 'Zaktualizowaliśmy przetwarzanie migawek bazy danych i poprawiliśmy szybkość śledzenia.'
+                    }
+                },
+                banner_promo: {
+                    enabled: true,
+                    type: 'banner',
+                    style: 'success',
+                    titles: {
+                        en: 'Spicy Monitor is growing!',
+                        ru: 'Spicy Monitor растет!',
+                        uk: 'Spicy Monitor росте!',
+                        de: 'Spicy Monitor wächst!',
+                        it: 'Spicy Monitor sta crescendo!',
+                        pl: 'Spicy Monitor rośnie!'
+                    },
+                    messages: {
+                        en: 'Do you want to add your favorite creator to the tracking database? Send us a request!',
+                        ru: 'Хотите добавить своего любимого исполнителя в список мониторинга? Напишите нам!',
+                        uk: 'Бажаєте додати свого улюбленого виконавця до списку моніторингу? Надішліть нам запит!',
+                        de: 'Möchten Sie Ihren Lieblingskünstler zur Tracking-Datenbank hinzufügen? Senden Sie uns eine Anfrage!',
+                        it: 'Vuoi aggiungere il tuo artista preferito al database di monitoraggio? Inviaci una richiesta!',
+                        pl: 'Chcesz dodać swojego ulubionego twórcę do bazy danych? Wyślij nam zgłoszenie!'
+                    }
+                }
+            };
+
+            const data = presetsData[preset];
+            if (!data) return;
+
+            enabledCheckbox.checked = data.enabled;
+            typeSelect.value = data.type;
+            styleSelect.value = data.style;
+
+            const langs = ['en', 'ru', 'uk', 'de', 'it', 'pl'];
+            langs.forEach(l => {
+                document.getElementById(`notif-title-${l}`).value = data.titles[l] || '';
+                document.getElementById(`notif-message-${l}`).value = data.messages[l] || '';
+            });
 
             updateNotifPreview();
         }
@@ -2061,8 +2281,18 @@
             const enabled = document.getElementById('notif-enabled').checked;
             const type = document.getElementById('notif-type').value;
             const style = document.getElementById('notif-style').value;
-            const title = document.getElementById('notif-title').value.trim();
-            const message = document.getElementById('notif-message').value.trim();
+            
+            const langs = ['en', 'ru', 'uk', 'de', 'it', 'pl'];
+            const titlesObj = {};
+            const messagesObj = {};
+            
+            langs.forEach(l => {
+                titlesObj[l] = document.getElementById(`notif-title-${l}`).value.trim();
+                messagesObj[l] = document.getElementById(`notif-message-${l}`).value.trim();
+            });
+
+            const title = JSON.stringify(titlesObj);
+            const message = JSON.stringify(messagesObj);
             
             const btn = document.getElementById('save-notif-btn');
             const feedback = document.getElementById('notif-save-feedback');
