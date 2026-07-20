@@ -651,27 +651,33 @@ async function handleAdminSyncProdDb(request, env) {
         let query = "";
         let insertStmt = "";
         let mapFn = null;
+        let keyField = "id";
 
         if (table === "users") {
-            query = "SELECT rowid, id, username, discord_id, discord_avatar, last_scraped_at FROM users WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            query = "SELECT id, username, discord_id, discord_avatar, last_scraped_at FROM users WHERE id > ? ORDER BY id LIMIT ?";
             insertStmt = "INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)";
             mapFn = u => [u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at];
+            keyField = "id";
         } else if (table === "snapshots") {
-            query = "SELECT rowid, id, user_id, total_views, total_songs, timestamp FROM snapshots WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            query = "SELECT id, user_id, total_views, total_songs, timestamp FROM snapshots WHERE id > ? ORDER BY id LIMIT ?";
             insertStmt = "INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)";
             mapFn = s => [s.id, s.user_id, s.total_views, s.total_songs, s.timestamp];
+            keyField = "id";
         } else if (table === "snapshot_songs") {
-            query = "SELECT rowid, snapshot_id, spotify_id, title, artist, views FROM snapshot_songs WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            query = "SELECT rowid AS row_id, snapshot_id, spotify_id, title, artist, views FROM snapshot_songs WHERE rowid > ? ORDER BY rowid LIMIT ?";
             insertStmt = "INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)";
             mapFn = s => [s.snapshot_id, s.spotify_id, s.title, s.artist, s.views];
+            keyField = "row_id";
         } else if (table === "track_metadata") {
-            query = "SELECT rowid, spotify_id, isrc, title, artist, created_at FROM track_metadata WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            query = "SELECT rowid AS row_id, spotify_id, isrc, title, artist, created_at FROM track_metadata WHERE rowid > ? ORDER BY rowid LIMIT ?";
             insertStmt = "INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)";
             mapFn = m => [m.spotify_id, m.isrc, m.title, m.artist, m.created_at];
+            keyField = "row_id";
         } else if (table === "audit_logs") {
-            query = "SELECT rowid, id, action_type, details, ip_address, created_at FROM audit_logs WHERE rowid > ? ORDER BY rowid LIMIT ?";
+            query = "SELECT id, action_type, details, ip_address, created_at FROM audit_logs WHERE id > ? ORDER BY id LIMIT ?";
             insertStmt = "INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)";
             mapFn = l => [l.id, l.action_type, l.details, l.ip_address, l.created_at];
+            keyField = "id";
         } else {
             return new Response(JSON.stringify({ error: "Invalid table." }), { status: 400, headers: getCorsHeaders(request, env) });
         }
@@ -685,7 +691,7 @@ async function handleAdminSyncProdDb(request, env) {
         const stmt = env.DB.prepare(insertStmt);
         await env.DB.batch(chunk.map(row => stmt.bind(...mapFn(row))));
 
-        const nextRowid = chunk[chunk.length - 1].rowid;
+        const nextRowid = chunk[chunk.length - 1][keyField];
         const done = chunk.length < pageSize;
 
         return new Response(JSON.stringify({ success: true, nextRowid, done, copied: chunk.length }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
