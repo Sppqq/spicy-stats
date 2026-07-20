@@ -176,7 +176,7 @@ function verifySignature(request, path) {
 // ==========================================
 export default {
     async fetch(request, env, ctx) {
-        ctx.waitUntil(checkSchema(env));
+        await checkSchema(env);
         const url = new URL(request.url);
 
         if (request.method === "OPTIONS") {
