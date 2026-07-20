@@ -636,56 +636,61 @@ async function handleAdminSyncProdDb(request, env) {
     if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
 
     try {
+        const pageSize = 1000;
+
         // 1. Sync users
-        const { results: users } = await env.DB_PROD.prepare("SELECT * FROM users").all();
         await env.DB.prepare("DELETE FROM users").run();
-        if (users && users.length > 0) {
+        let usersOffset = 0;
+        while (true) {
+            const { results: usersChunk } = await env.DB_PROD.prepare("SELECT * FROM users LIMIT ? OFFSET ?").bind(pageSize, usersOffset).all();
+            if (!usersChunk || usersChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO users (id, username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(users.map(u => stmt.bind(u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at)));
+            await env.DB.batch(usersChunk.map(u => stmt.bind(u.id, u.username, u.discord_id, u.discord_avatar, u.last_scraped_at)));
+            usersOffset += pageSize;
         }
 
         // 2. Sync snapshots
-        const { results: snapshots } = await env.DB_PROD.prepare("SELECT * FROM snapshots").all();
         await env.DB.prepare("DELETE FROM snapshots").run();
-        if (snapshots && snapshots.length > 0) {
+        let snapshotsOffset = 0;
+        while (true) {
+            const { results: snapshotsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshots LIMIT ? OFFSET ?").bind(pageSize, snapshotsOffset).all();
+            if (!snapshotsChunk || snapshotsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO snapshots (id, user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?, ?)");
-            await env.DB.batch(snapshots.map(s => stmt.bind(s.id, s.user_id, s.total_views, s.total_songs, s.timestamp)));
+            await env.DB.batch(snapshotsChunk.map(s => stmt.bind(s.id, s.user_id, s.total_views, s.total_songs, s.timestamp)));
+            snapshotsOffset += pageSize;
         }
 
-        // 3. Sync snapshot_songs (with chunking to avoid D1 batch limit)
-        const { results: songs } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs").all();
+        // 3. Sync snapshot_songs
         await env.DB.prepare("DELETE FROM snapshot_songs").run();
-        if (songs && songs.length > 0) {
+        let songsOffset = 0;
+        while (true) {
+            const { results: songsChunk } = await env.DB_PROD.prepare("SELECT * FROM snapshot_songs LIMIT ? OFFSET ?").bind(pageSize, songsOffset).all();
+            if (!songsChunk || songsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-            const batch = songs.map(s => stmt.bind(s.snapshot_id, s.spotify_id, s.title, s.artist, s.views));
-            const chunkSize = 500;
-            for (let i = 0; i < batch.length; i += chunkSize) {
-                await env.DB.batch(batch.slice(i, i + chunkSize));
-            }
+            await env.DB.batch(songsChunk.map(s => stmt.bind(s.snapshot_id, s.spotify_id, s.title, s.artist, s.views)));
+            songsOffset += pageSize;
         }
 
-        // 4. Sync track_metadata (with chunking)
-        const { results: metadata } = await env.DB_PROD.prepare("SELECT * FROM track_metadata").all();
+        // 4. Sync track_metadata
         await env.DB.prepare("DELETE FROM track_metadata").run();
-        if (metadata && metadata.length > 0) {
+        let metadataOffset = 0;
+        while (true) {
+            const { results: metadataChunk } = await env.DB_PROD.prepare("SELECT * FROM track_metadata LIMIT ? OFFSET ?").bind(pageSize, metadataOffset).all();
+            if (!metadataChunk || metadataChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO track_metadata (spotify_id, isrc, title, artist, created_at) VALUES (?, ?, ?, ?, ?)");
-            const batch = metadata.map(m => stmt.bind(m.spotify_id, m.isrc, m.title, m.artist, m.created_at));
-            const chunkSize = 500;
-            for (let i = 0; i < batch.length; i += chunkSize) {
-                await env.DB.batch(batch.slice(i, i + chunkSize));
-            }
+            await env.DB.batch(metadataChunk.map(m => stmt.bind(m.spotify_id, m.isrc, m.title, m.artist, m.created_at)));
+            metadataOffset += pageSize;
         }
 
-        // 5. Sync audit_logs (with chunking)
-        const { results: logs } = await env.DB_PROD.prepare("SELECT * FROM audit_logs").all();
+        // 5. Sync audit_logs
         await env.DB.prepare("DELETE FROM audit_logs").run();
-        if (logs && logs.length > 0) {
+        let logsOffset = 0;
+        while (true) {
+            const { results: logsChunk } = await env.DB_PROD.prepare("SELECT * FROM audit_logs LIMIT ? OFFSET ?").bind(pageSize, logsOffset).all();
+            if (!logsChunk || logsChunk.length === 0) break;
             const stmt = env.DB.prepare("INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)");
-            const batch = logs.map(l => stmt.bind(l.id, l.action_type, l.details, l.ip_address, l.created_at));
-            const chunkSize = 500;
-            for (let i = 0; i < batch.length; i += chunkSize) {
-                await env.DB.batch(batch.slice(i, i + chunkSize));
-            }
+            await env.DB.batch(logsChunk.map(l => stmt.bind(l.id, l.action_type, l.details, l.ip_address, l.created_at)));
+            logsOffset += pageSize;
         }
 
         return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
