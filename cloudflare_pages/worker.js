@@ -1171,6 +1171,32 @@ async function handleGetNotificationSettings(request, env) {
             headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
         });
     } catch (err) {
+        if (err.message.includes("no such table")) {
+            try {
+                await env.DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS notification_settings (
+                        id INTEGER PRIMARY KEY,
+                        enabled INTEGER DEFAULT 0,
+                        type TEXT DEFAULT 'banner',
+                        title TEXT DEFAULT '',
+                        message TEXT DEFAULT '',
+                        style_template TEXT DEFAULT 'warning',
+                        updated_at TEXT DEFAULT (datetime('now'))
+                    )
+                `).run();
+                await env.DB.prepare(`
+                    INSERT OR IGNORE INTO notification_settings (id, enabled, type, title, message, style_template)
+                    VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
+                `).run();
+                
+                const settings = await env.DB.prepare("SELECT enabled, type, title, message, style_template, updated_at FROM notification_settings WHERE id = 1").first();
+                return new Response(JSON.stringify(settings || { enabled: 0 }), {
+                    headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
+                });
+            } catch (createErr) {
+                return new Response(JSON.stringify({ error: createErr.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+            }
+        }
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     }
 }
@@ -1182,17 +1208,51 @@ async function handleSaveNotificationSettings(request, env) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
-        await env.DB.prepare(`
-            UPDATE notification_settings
-            SET enabled = ?, type = ?, title = ?, message = ?, style_template = ?, updated_at = datetime('now')
-            WHERE id = 1
-        `).bind(
-            enabled ? 1 : 0,
-            type || 'banner',
-            title || '',
-            message || '',
-            style_template || 'warning'
-        ).run();
+        const runUpdate = async () => {
+            return await env.DB.prepare(`
+                UPDATE notification_settings
+                SET enabled = ?, type = ?, title = ?, message = ?, style_template = ?, updated_at = datetime('now')
+                WHERE id = 1
+            `).bind(
+                enabled ? 1 : 0,
+                type || 'banner',
+                title || '',
+                message || '',
+                style_template || 'warning'
+            ).run();
+        };
+
+        try {
+            const info = await runUpdate();
+            if (!info.meta.changes || info.meta.changes === 0) {
+                await env.DB.prepare(`
+                    INSERT OR IGNORE INTO notification_settings (id, enabled, type, title, message, style_template)
+                    VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
+                `).run();
+                await runUpdate();
+            }
+        } catch (err) {
+            if (err.message.includes("no such table")) {
+                await env.DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS notification_settings (
+                        id INTEGER PRIMARY KEY,
+                        enabled INTEGER DEFAULT 0,
+                        type TEXT DEFAULT 'banner',
+                        title TEXT DEFAULT '',
+                        message TEXT DEFAULT '',
+                        style_template TEXT DEFAULT 'warning',
+                        updated_at TEXT DEFAULT (datetime('now'))
+                    )
+                `).run();
+                await env.DB.prepare(`
+                    INSERT OR IGNORE INTO notification_settings (id, enabled, type, title, message, style_template)
+                    VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
+                `).run();
+                await runUpdate();
+            } else {
+                throw err;
+            }
+        }
 
         await logAction(env, "settings_update", `Notification settings updated: enabled=${enabled}, type=${type}`, request);
 
