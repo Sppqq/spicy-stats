@@ -1,26 +1,58 @@
-# Настройки для развертывания Worker в Cloudflare
 name = "spicy-stats"
 main = "worker.js"
 compatibility_date = "2024-03-01"
-
-# Привязка вашей базы данных D1
-[[d1_databases]]
-binding = "DB"                               # Обязательно "DB", так как это используется в worker.js
-database_name = "spicy-stats-db"             # Замените на имя вашей D1 базы данных в Cloudflare
-database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"   # Реальный ID вашей D1 базы данных
 
 [observability.logs]
 enabled = true
 invocation_logs = true
 
-# Это позволяет скрипту ОТПРАВЛЯТЬ в очередь (через env.SCRAPE_QUEUE)
+# Default bindings (used for local/legacy if not matching env)
+[[d1_databases]]
+binding = "DB"
+database_name = "spicy-stats-db"
+database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"
+
 [[queues.producers]]
 queue = "spicy-scrape-queue"
 binding = "SCRAPE_QUEUE"
 
-# Это заставляет скрипт ПОЛУЧАТЬ из очереди (вызывает функцию queue() в скрипте)
 [[queues.consumers]]
 queue = "spicy-scrape-queue"
-# Указываем, сколько профилей за раз берет ОДИН инстанс (ставим 1 для максимальной безопасности CPU)
+max_batch_size = 1
+max_retries = 2
+
+# Production Environment (Main Branch)
+[env.production]
+name = "spicy-stats-prod"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "spicy-stats-db"             # Update to prod DB name if different
+database_id = "1b38736f-6c89-43c2-a7f0-28c0287df169"   # Update to prod DB ID
+
+[[env.production.queues.producers]]
+queue = "spicy-scrape-queue"
+binding = "SCRAPE_QUEUE"
+
+[[env.production.queues.consumers]]
+queue = "spicy-scrape-queue"
+max_batch_size = 1
+max_retries = 2
+
+# Preview / Dev Environment (Dev Branch)
+[env.preview]
+name = "spicy-stats-dev"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "spicy-stats-db-dev"         # You should create a second DB for dev and put its name/id here
+database_id = "60a18bdf-1b42-4c49-85c7-5524a317adcf"          # CHANGE THIS TO YOUR DEV DB ID!
+
+[[env.preview.queues.producers]]
+queue = "spicy-scrape-queue-dev"             # Recommend creating a separate dev queue
+binding = "SCRAPE_QUEUE"
+
+[[env.preview.queues.consumers]]
+queue = "spicy-scrape-queue-dev"
 max_batch_size = 1
 max_retries = 2
