@@ -593,6 +593,9 @@
                         <button class="admin-btn secondary" id="populate-metadata-btn" onclick="triggerPopulateMetadata()">
                             🔄 Rebuild Metadata Cache
                         </button>
+                        <button class="admin-btn coral" id="sync-db-btn" onclick="triggerSyncProdDb()" style="display: none;">
+                            📥 Sync Prod DB to Dev
+                        </button>
                         
                         <div style="flex-grow: 1; min-width: 250px; border-left: 3px solid var(--blue); padding-left: 14px; font-size: 12px; color: var(--muted); line-height: 1.5;" id="system-status-msg">
                             Ready to trigger updates. The scraper runs automatically in the background, but you can force a queue run or rebuild metadata cache here.
@@ -817,7 +820,9 @@
     </div>
 
     <script>
-        const API_BASE = 'https://spicy-api.glyph-labs.site/api';
+        const API_BASE = (window.location.hostname.includes('dev') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))
+            ? 'https://dev-api.glyph-labs.site/api'
+            : 'https://spicy-api.glyph-labs.site/api';
 
         function generateSignature(path, timestamp) {
             const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
@@ -854,6 +859,12 @@
             initTheme();
             checkAuth();
             showEasterEgg();
+
+            // Show sync button only on dev environments
+            if (window.location.hostname.includes('dev') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+                const syncBtn = document.getElementById('sync-db-btn');
+                if (syncBtn) syncBtn.style.display = 'inline-block';
+            }
 
             // Register Service Worker for offline support / speed caching
             if ('serviceWorker' in navigator) {
@@ -1142,6 +1153,59 @@
                 }, 2000);
             } catch (err) {
                 statusMsg.textContent = `Metadata rebuild error: ${err.message}`;
+                statusMsg.style.color = 'var(--coral)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        async function triggerSyncProdDb() {
+            const btn = document.getElementById('sync-db-btn');
+            const statusMsg = document.getElementById('system-status-msg');
+            
+            if (!confirm("Are you sure you want to sync DB? This will overwrite ALL local dev tables with production data!")) {
+                return;
+            }
+            
+            btn.disabled = true;
+            statusMsg.style.color = 'var(--blue)';
+
+            const tables = ["users", "snapshots", "snapshot_songs", "track_metadata", "audit_logs"];
+
+            try {
+                for (const table of tables) {
+                    let lastRowid = 0;
+                    let done = false;
+                    let totalCopied = 0;
+
+                    statusMsg.textContent = `Syncing table: ${table}...`;
+
+                    while (!done) {
+                        const res = await spicyFetch(`${API_BASE}/admin/sync-prod-db`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ secret: adminSecret, table, lastRowid })
+                        });
+
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            throw new Error(data.error || `Failed to sync table ${table}`);
+                        }
+
+                        done = data.done;
+                        lastRowid = data.nextRowid;
+                        totalCopied += data.copied;
+
+                        statusMsg.textContent = `Syncing table: ${table} (${totalCopied} rows copied)...`;
+                    }
+                }
+
+                statusMsg.textContent = 'Database sync completed successfully! All tables are now up to date.';
+                statusMsg.style.color = 'var(--green)';
+                setTimeout(() => {
+                    loadAdminData();
+                }, 2000);
+            } catch (err) {
+                statusMsg.textContent = `Sync error: ${err.message}`;
                 statusMsg.style.color = 'var(--coral)';
             } finally {
                 btn.disabled = false;
