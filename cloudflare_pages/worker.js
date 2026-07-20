@@ -388,7 +388,7 @@ async function handleUserDetailAPI(username, request, env) {
     let topTracks = [], chartDataRaw = [], finalSongs = [];
 
     if (history && history.length > 0) {
-        latestSnapshot = history[0];
+        const latestSnapshot = history[0];
         const { results: dbLatestSongs } = await env.DB.prepare(`
             SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
             FROM (
