@@ -1,7 +1,7 @@
 // Updated after rollback to main dev baseline
 const IMPORT_SECRET = "Spicy_Admin_#7f8c9b2d4e1a0673f8b9d07c01a2f3e4";
 
-const corsHeaders = {
+const getCorsHeaders(request, env) = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
     "Access-Control-Max-Age": "86400",
@@ -106,10 +106,12 @@ const allowedOrigins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173"
 ];
+// We will dynamically check APIURL inside getCorsHeaders
 
-function getCorsHeaders(request) {
+function getCorsHeaders(request, env) {
     const origin = request.headers.get("Origin") || "";
-    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+    let isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".glyph-labs.site");
+    if (env && env.APIURL && env.APIURL === origin) isAllowed = true;
     return {
         "Access-Control-Allow-Origin": isAllowed ? origin : "https://spicy-stats.glyph-labs.site",
         "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
@@ -154,13 +156,13 @@ export default {
         const url = new URL(request.url);
 
         if (request.method === "OPTIONS") {
-            return new Response(null, { headers: { ...getCorsHeaders(request), "Access-Control-Allow-Headers": request.headers.get("Access-Control-Request-Headers") || "Content-Type, X-Spicy-Signature, X-Spicy-Timestamp" } });
+            return new Response(null, { headers: { ...getCorsHeaders(request, env), "Access-Control-Allow-Headers": request.headers.get("Access-Control-Request-Headers") || "Content-Type, X-Spicy-Signature, X-Spicy-Timestamp" } });
         }
 
         const path = url.pathname;
         const isPublicAPI = path.startsWith("/api/") && !path.startsWith("/api/export/") && !path.startsWith("/api/import");
         if (isPublicAPI && !verifySignature(request, path)) {
-            return new Response(JSON.stringify({ error: "Forbidden: API request signature verification failed." }), { status: 403, headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } });
+            return new Response(JSON.stringify({ error: "Forbidden: API request signature verification failed." }), { status: 403, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
         const ip = request.headers.get("CF-Connecting-IP") || "anonymous";
@@ -169,9 +171,9 @@ export default {
         const rateLimitMsg = rateLimitMsgs[lang] || rateLimitMsgs.en;
 
         if (url.pathname === "/api/add-user" && request.method === "POST") {
-            if (isRateLimited(ip, 5, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } });
+            if (isRateLimited(ip, 5, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         } else if (url.pathname.startsWith("/api/")) {
-            if (isRateLimited(ip, 60, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request) } });
+            if (isRateLimited(ip, 60, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
         let response;
@@ -199,13 +201,15 @@ export default {
         }
 
         const finalHeaders = new Headers(response.headers);
-        for (const [key, val] of Object.entries(getCorsHeaders(request))) finalHeaders.set(key, val);
+        for (const [key, val] of Object.entries(getCorsHeaders(request, env))) finalHeaders.set(key, val);
         return new Response(response.body, { status: response.status, headers: finalHeaders });
     },
 
     // КРОН (PRODUCER)
     async scheduled(event, env, ctx) {
         await triggerGlobalScrape(env);
+        // Delete logs older than 3 days
+        ctx.waitUntil(env.DB.prepare("DELETE FROM audit_logs WHERE created_at < datetime('now', '-3 days')").run().catch(() => {}));
     },
 
     // ОБРАБОТЧИК ОЧЕРЕДИ (CONSUMER)
@@ -241,13 +245,13 @@ async function handleAddUser(request, env, ctx) {
         return typeof val === "function" ? val(count) : val;
     };
 
-    if (!username || typeof username !== "string") return new Response(JSON.stringify({ error: getMsg("valid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!username || typeof username !== "string") return new Response(JSON.stringify({ error: getMsg("valid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const cleanName = username.trim().replace(/^@/, "");
-    if (cleanName.length === 0 || cleanName.length > 50 || !/^[a-zA-Z0-9_\.\-]+$/.test(cleanName)) return new Response(JSON.stringify({ error: getMsg("invalid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (cleanName.length === 0 || cleanName.length > 50 || !/^[a-zA-Z0-9_\.\-]+$/.test(cleanName)) return new Response(JSON.stringify({ error: getMsg("invalid_username") }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const existingUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
-    if (existingUser) return new Response(JSON.stringify({ error: getMsg("already_added") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (existingUser) return new Response(JSON.stringify({ error: getMsg("already_added") }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     let data;
     try {
@@ -256,13 +260,13 @@ async function handleAddUser(request, env, ctx) {
         let msg = getMsg("fetch_error");
         if (err.message === "USER_NOT_FOUND") msg = getMsg("not_found");
         if (err.message === "USER_NOT_CREATOR") msg = getMsg("not_creator");
-        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     }
 
-    if (!data) return new Response(JSON.stringify({ error: getMsg("failed_retrieve") }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!data) return new Response(JSON.stringify({ error: getMsg("failed_retrieve") }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const tracksCount = data.songs ? data.songs.length : 0;
-    if (tracksCount < 2) return new Response(JSON.stringify({ error: getMsg("min_tracks", tracksCount) }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (tracksCount < 2) return new Response(JSON.stringify({ error: getMsg("min_tracks", tracksCount) }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     await env.DB.prepare("INSERT INTO users (username, discord_id, discord_avatar, last_scraped_at) VALUES (?, ?, ?, datetime('now')) ON CONFLICT(username) DO NOTHING")
         .bind(cleanName, data.discord_id || null, data.discord_avatar || null)
@@ -278,7 +282,7 @@ async function handleAddUser(request, env, ctx) {
         else ctx.waitUntil(scrapeAndSave(savedUser.id, savedUser.username, savedUser.discord_id, env));
     }
 
-    return new Response(JSON.stringify({ success: true, cleanName }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify({ success: true, cleanName }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleDashboardAPI(request, env) {
@@ -335,12 +339,12 @@ async function handleDashboardAPI(request, env) {
         }))
     };
 
-    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleUserDetailAPI(username, request, env) {
     const user = await env.DB.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     await logAction(env, "visit_profile", `Viewed profile for @${user.username}`, request);
 
@@ -359,30 +363,39 @@ async function handleUserDetailAPI(username, request, env) {
     let topTracks = [], chartDataRaw = [], finalSongs = [];
 
     if (history && history.length > 0) {
-        let latestSnapshot = null, latestRaw = [];
-        for (const snap of history) {
-            const { results: songs } = await env.DB.prepare(`
-                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?
-            `).bind(snap.id).all();
-            if (songs && songs.length > 0) {
-                latestSnapshot = snap; latestRaw = songs; break;
-            }
-        }
+        latestSnapshot = history[0];
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
+            FROM (
+                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                WHERE s.user_id = ? AND s.id <= ?
+            ) WHERE rn = 1
+        `).bind(user.id, latestSnapshot.id).all();
+        let latestRaw = latestSongs || [];
 
-        if (!latestSnapshot) latestSnapshot = history[0];
-        totalViews = history[0].total_views;
+        totalViews = latestSnapshot.total_views;
 
         let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
         growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
         let pastRaw = [];
         if (has24h) {
-            const { results } = await env.DB.prepare(`
-                SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?
-            `).bind(pastSnapshot.id).all();
-            if (results) pastRaw = results;
+            const { results: pSongs } = await env.DB.prepare(`
+                SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
+                FROM (
+                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                           ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                    FROM snapshot_songs ss
+                    JOIN snapshots s ON ss.snapshot_id = s.id
+                    LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                    WHERE s.user_id = ? AND s.id <= ?
+                ) WHERE rn = 1
+            `).bind(user.id, pastSnapshot.id).all();
+            if (pSongs) pastRaw = pSongs;
         }
 
         const latestSongs = aggregateSongs(latestRaw);
@@ -423,16 +436,16 @@ async function handleUserDetailAPI(username, request, env) {
         next_update: nextUpdateTimestamp,
         server_time: new Date().toISOString()
     };
-    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleTrackHistoryAPI(request, env) {
     const url = new URL(request.url);
     const username = url.searchParams.get("username"), title = url.searchParams.get("title"), artist = url.searchParams.get("artist");
-    if (!username || !title || !artist) return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!username || !title || !artist) return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     await logAction(env, "visit_history", `Viewed track history for @${username}: "${title}" by "${artist}"`, request);
 
@@ -444,17 +457,44 @@ async function handleTrackHistoryAPI(request, env) {
         .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
         .map(r => r.isrc).filter(Boolean);
 
-    let sql = `
-        SELECT SUM(ss.views) as views, s.timestamp
+    // With delta compression, we need to join every snapshot against the latest song data up to that snapshot
+    const { results: allSnaps } = await env.DB.prepare("SELECT id, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
+    const historyData = [];
+
+    const isrcList = isrcs.map(i => \`'\${i}'\`).join(',');
+    const isrcClause = isrcs.length > 0 ? \`OR (tm.isrc IN (\${isrcList}))\` : '';
+
+    let sqlAllChanges = \`
+        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
         FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
         WHERE s.user_id = ? AND (
             (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
-            ${isrcs.length > 0 ? `OR (tm.isrc IN (${isrcs.map(() => '?').join(', ')}))` : ''}
-        ) GROUP BY s.id, s.timestamp ORDER BY s.id ASC
-    `;
+            \${isrcClause}
+        ) ORDER BY s.id ASC
+    \`;
+    const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
 
-    const { results } = await env.DB.prepare(sql).bind(user.id, title.trim(), artist.trim(), ...isrcs).all();
-    return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    let trackState = new Map();
+    let historyIndex = 0;
+
+    for (const snap of (allSnaps || [])) {
+        while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
+            const m = allMatches[historyIndex];
+            const key = \`\${m.title}||\${m.artist}||\${m.spotify_id}\`;
+            trackState.set(key, m.views);
+            historyIndex++;
+        }
+
+        let sumViews = 0;
+        for (const v of trackState.values()) sumViews += v;
+
+        if (sumViews > 0) {
+            historyData.push({ views: sumViews, timestamp: snap.timestamp });
+        }
+    }
+
+    const results = historyData;
+    return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleActivityFeedAPI(request, env) {
@@ -466,15 +506,15 @@ async function handleActivityFeedAPI(request, env) {
             ORDER BY id DESC
             LIMIT 30
         `).all();
-        return new Response(JSON.stringify({ events: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ events: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     }
 }
 
 async function handleAdminStats(request, env) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
@@ -522,54 +562,72 @@ async function handleAdminStats(request, env) {
             views: u.current_views || 0, song_count: userLatestSnapMap.has(u.id) ? (songCountMap.get(userLatestSnapMap.get(u.id)) || 0) : 0
         }))
     };
-    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleAdminExportUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders } });
-    if (!username) return new Response(JSON.stringify({ error: "Username required" }), { status: 400, headers: { ...corsHeaders } });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...getCorsHeaders(request, env) } });
+    if (!username) return new Response(JSON.stringify({ error: "Username required" }), { status: 400, headers: { ...getCorsHeaders(request, env) } });
 
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { ...corsHeaders } });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { ...getCorsHeaders(request, env) } });
 
-    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp DESC").bind(user.id).all();
-    const songs = await env.DB.prepare("SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? ORDER BY s.timestamp DESC").bind(user.id).all();
+    // Order ASC so we can rebuild state forwards
+    const snapshots = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
+    const songs = await env.DB.prepare("SELECT ss.title, ss.artist, ss.views, ss.spotify_id, ss.snapshot_id FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id WHERE s.user_id = ? ORDER BY s.id ASC").bind(user.id).all();
+
+    const historyData = [];
+    const state = new Map();
+    let songIdx = 0;
+    const songsList = songs.results || [];
+
+    for (const snap of (snapshots.results || [])) {
+        while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
+            const s = songsList[songIdx];
+            const key = \`\${s.title}||\${s.artist}||\${s.spotify_id}\`;
+            state.set(key, s);
+            songIdx++;
+        }
+
+        historyData.push({
+            timestamp: snap.timestamp,
+            total_views: snap.total_views,
+            songs: Array.from(state.values()).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
+        });
+    }
 
     const exportData = {
         username: cleanName, exported_at: new Date().toISOString(),
-        history: (snapshots.results || []).map(snap => ({
-            timestamp: snap.timestamp, total_views: snap.total_views,
-            songs: (songs.results || []).filter(s => s.snapshot_id === snap.id).map(s => ({ title: s.title, artist: s.artist, views: s.views, spotify_id: s.spotify_id }))
-        }))
+        history: historyData.reverse()
     };
-    return new Response(JSON.stringify(exportData, null, 2), { headers: { "Content-Type": "application/json;charset=UTF-8", ...corsHeaders } });
+    return new Response(JSON.stringify(exportData, null, 2), { headers: { "Content-Type": "application/json;charset=UTF-8", ...getCorsHeaders(request, env) } });
 }
 
 async function handleAdminScrapeUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: corsHeaders });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: getCorsHeaders(request, env) });
 
     try {
         if (env.SCRAPE_QUEUE) await env.SCRAPE_QUEUE.send({ id: user.id, username: cleanName, discord_id: user.discord_id });
         else await scrapeAndSave(user.id, cleanName, user.discord_id, env);
         await logAction(env, "manual_scrape", `Manual scrape triggered for: @${cleanName}`, request);
-        return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminScrapeAll(request, env, ctx) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     ctx.waitUntil(triggerGlobalScrape(env));
     await logAction(env, "global_scrape", "Global scraper run triggered manually", request);
-    return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function triggerGlobalScrape(env) {
@@ -620,27 +678,27 @@ async function triggerGlobalScrape(env) {
 
 async function handleAdminLogs(request, env) {
     const { secret, limit = 50, offset = 0 } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const { results } = await env.DB.prepare("SELECT id, action_type, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT ? OFFSET ?").bind(limit, offset).all();
-        return new Response(JSON.stringify({ logs: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ logs: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminPopulateMetadata(request, env, ctx) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         if (username) {
             await populateMetadataCache(env, username);
             await logAction(env, "cache_rebuild", `Rebuilt metadata cache for: @${username}`, request);
-            return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+            return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
         } else {
             ctx.waitUntil(populateMetadataCache(env));
             await logAction(env, "cache_rebuild", "Rebuilt metadata cache for all creators", request);
-            return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+            return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
         }
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function populateMetadataCache(env, targetUsername = null) {
@@ -679,7 +737,17 @@ async function populateMetadataCache(env, targetUsername = null) {
 
             const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
             if (latestSnap) {
-                const { results: snapSongs } = await env.DB.prepare(`SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist FROM snapshot_songs ss LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id WHERE ss.snapshot_id = ?`).bind(latestSnap.id).all();
+                const { results: snapSongs } = await env.DB.prepare(`
+                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                    FROM (
+                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                               ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                        FROM snapshot_songs ss
+                        JOIN snapshots s ON ss.snapshot_id = s.id
+                        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                        WHERE s.user_id = ?
+                    ) ss WHERE rn = 1
+                `).bind(user.id).all();
                 const uniqueSongs = aggregateSongs(snapSongs);
                 await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
             }
@@ -689,67 +757,67 @@ async function populateMetadataCache(env, targetUsername = null) {
 
 async function handleAdminDeleteUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
-    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: corsHeaders });
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: getCorsHeaders(request, env) });
 
     try {
         await deleteUserFromDB(user.id, env);
         await logAction(env, "user_delete", `Deleted creator: @${cleanName}`, request);
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminMergeUsers(request, env) {
     const { secret, sourceUsername, targetUsername } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const sourceClean = sourceUsername.trim().replace(/^@/, "");
     const targetClean = targetUsername.trim().replace(/^@/, "");
-    if (sourceClean.toLowerCase() === targetClean.toLowerCase()) return new Response(JSON.stringify({ error: "Same profile" }), { status: 400, headers: corsHeaders });
+    if (sourceClean.toLowerCase() === targetClean.toLowerCase()) return new Response(JSON.stringify({ error: "Same profile" }), { status: 400, headers: getCorsHeaders(request, env) });
 
     const sourceUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(sourceClean).first();
     const targetUser = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(targetClean).first();
 
-    if (!sourceUser || !targetUser) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: corsHeaders });
+    if (!sourceUser || !targetUser) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: getCorsHeaders(request, env) });
 
     try {
         await env.DB.prepare("UPDATE snapshots SET user_id = ? WHERE user_id = ?").bind(targetUser.id, sourceUser.id).run();
         await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(sourceUser.id).run();
         await logAction(env, "profile_merge", `Merged @${sourceClean} into @${targetClean}`, request);
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminSearchMetadata(request, env) {
     const { secret, query } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const searchQuery = `%${(query || "").trim()}%`;
         const { results } = await env.DB.prepare(`SELECT spotify_id, title, artist, isrc, created_at FROM track_metadata WHERE title LIKE ? OR artist LIKE ? OR isrc LIKE ? OR spotify_id LIKE ? LIMIT 50`).bind(searchQuery, searchQuery, searchQuery, searchQuery).all();
-        return new Response(JSON.stringify({ results: results || [] }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ results: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminUpdateMetadata(request, env) {
     const { secret, spotify_id, title, artist, isrc } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    if (!spotify_id) return new Response(JSON.stringify({ error: "Spotify ID required" }), { status: 400, headers: corsHeaders });
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!spotify_id) return new Response(JSON.stringify({ error: "Spotify ID required" }), { status: 400, headers: getCorsHeaders(request, env) });
     try {
         const cleanTitle = (title || "").trim();
         const cleanArtist = (artist || "").trim();
         const cleanIsrc = isrc ? isrc.trim() : null;
         await env.DB.prepare("UPDATE track_metadata SET title = ?, artist = ?, isrc = ? WHERE spotify_id = ?").bind(cleanTitle, cleanArtist, cleanIsrc, spotify_id).run();
         await logAction(env, "metadata_update", `Updated metadata for Spotify ID ${spotify_id}: "${cleanTitle}" by "${cleanArtist}" (ISRC: ${cleanIsrc || "none"})`, request);
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleImport(request, env) {
     try {
         const { secret, username, history } = await request.json();
-        if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: corsHeaders });
+        if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: getCorsHeaders(request, env) });
 
         const cleanName = username.trim().replace(/^@/, "");
         let user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -778,12 +846,12 @@ async function handleImport(request, env) {
             }
             snapshotCount++;
         }
-        return new Response(JSON.stringify({ success: true, imported: snapshotCount }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders }); }
+        return new Response(JSON.stringify({ success: true, imported: snapshotCount }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 function handleExport() {
-    return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: getCorsHeaders(request, env) });
 }
 
 // ==========================================
@@ -932,12 +1000,44 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     const totalSongsCount = aggregateSongs(data.songs).length;
 
+    // Fetch latest known views for all songs for delta compression
+    let latestSongsMap = new Map();
+    if (prevSnap) {
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT title, artist, views
+            FROM (
+                SELECT ss.title, ss.artist, ss.views,
+                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                WHERE s.user_id = ?
+            )
+            WHERE rn = 1
+        `).bind(userId).all();
+
+        for (const ls of (latestSongs || [])) {
+            const key = \`\${(ls.title || "").trim().toLowerCase()}|||\${(ls.artist || "").trim().toLowerCase()}\`;
+            latestSongsMap.set(key, ls.views);
+        }
+    }
+
+    const changedSongs = [];
+    for (const song of data.songs) {
+        const key = \`\${(song.title || "").trim().toLowerCase()}|||\${(song.artist || "").trim().toLowerCase()}\`;
+        const prevViews = latestSongsMap.get(key);
+        if (prevViews === undefined || prevViews !== song.views) {
+            changedSongs.push(song);
+        }
+    }
+
     const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
     const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
 
-    const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-    const batch = data.songs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
-    await env.DB.batch(batch);
+    if (changedSongs.length > 0) {
+        const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
+        const batch = changedSongs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
+        await env.DB.batch(batch);
+    }
 
     // Уведомление о майлстоунах
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
