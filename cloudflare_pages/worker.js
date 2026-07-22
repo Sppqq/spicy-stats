@@ -420,6 +420,9 @@ async function handleUserDetailAPI(username, request, env) {
         totalViews = latestSnapshot.total_views;
 
         let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
+        growth24h = (has24h && pastSnapshot.total_views !== undefined && pastSnapshot.total_views !== null)
+            ? (latestSnapshot.total_views - pastSnapshot.total_views)
+            : null;
 
         let pastRaw = [];
         if (has24h) {
@@ -440,41 +443,44 @@ async function handleUserDetailAPI(username, request, env) {
             if (pSongs) pastRaw = pSongs;
         }
 
-        const pastMapBySpotifyId = new Map();
+        const latestAgg = aggregateSongs(latestRaw);
+        const pastAgg = has24h ? aggregateSongs(pastRaw) : [];
+
+        const pastMapByIsrc = new Map();
         const pastMapByTextKey = new Map();
 
-        for (const ps of pastRaw) {
-            if (ps.spotify_id) {
-                pastMapBySpotifyId.set(ps.spotify_id, ps.views || 0);
-            }
-            const normT = normalizeTitle(ps.meta_title || ps.title || "");
-            const primA = getPrimaryArtist(ps.meta_artist || ps.artist || "");
-            const textKey = `${normT}|||${primA}`;
+        for (const p of pastAgg) {
+            if (p.isrc) pastMapByIsrc.set(p.isrc, p.views);
+            const textKey = `${p.normTitle}|||${p.primaryArtist}`;
             if (!pastMapByTextKey.has(textKey)) {
-                pastMapByTextKey.set(textKey, ps.views || 0);
+                pastMapByTextKey.set(textKey, p.views);
             }
         }
 
-        const latestWithPrev = latestRaw.map(s => {
-            const normT = normalizeTitle(s.meta_title || s.title || "");
-            const primA = getPrimaryArtist(s.meta_artist || s.artist || "");
-            const textKey = `${normT}|||${primA}`;
-
+        finalSongs = latestAgg.map(s => {
+            const textKey = `${s.normTitle}|||${s.primaryArtist}`;
             let prevViews = null;
-            if (s.spotify_id && pastMapBySpotifyId.has(s.spotify_id)) {
-                prevViews = pastMapBySpotifyId.get(s.spotify_id);
+
+            if (s.isrc && pastMapByIsrc.has(s.isrc)) {
+                prevViews = pastMapByIsrc.get(s.isrc);
             } else if (pastMapByTextKey.has(textKey)) {
                 prevViews = pastMapByTextKey.get(textKey);
             } else {
-                prevViews = s.views || 0;
+                prevViews = s.views;
             }
 
-            return { ...s, prevViews };
-        });
+            const growth = s.views - prevViews;
+            const growthPct = prevViews > 0 ? (growth / prevViews) * 100 : 0;
 
-        finalSongs = aggregateSongs(latestWithPrev).sort((a, b) => b.growth - a.growth);
+            return {
+                ...s,
+                prevViews,
+                growth,
+                growthPct
+            };
+        }).sort((a, b) => b.growth - a.growth);
+
         totalSongs = finalSongs.length;
-        growth24h = has24h ? finalSongs.reduce((sum, s) => sum + (s.growth || 0), 0) : null;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
         chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
