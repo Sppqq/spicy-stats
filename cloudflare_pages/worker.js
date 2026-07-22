@@ -356,16 +356,14 @@ async function handleDashboardAPI(request, env) {
     LEFT JOIN snapshots s_past ON s_past.id = (
         SELECT id FROM snapshots s_past_in
         WHERE s_past_in.user_id = u.id 
-          AND substr(s_past_in.timestamp, 1, 19) >= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-30 hours') 
-          AND substr(s_past_in.timestamp, 1, 19) <= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-18 hours')
-        ORDER BY ABS(strftime('%s', substr(s_past_in.timestamp, 1, 19)) - strftime('%s', datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_past_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-24 hours'))) ASC LIMIT 1
+          AND substr(s_past_in.timestamp, 1, 19) <= datetime('now', '-12 hours')
+        ORDER BY ABS(strftime('%s', substr(s_past_in.timestamp, 1, 19)) - strftime('%s', datetime('now', '-24 hours'))) ASC LIMIT 1
     )
     LEFT JOIN snapshots s_past_7d ON s_past_7d.id = (
         SELECT id FROM snapshots s_7d_in
         WHERE s_7d_in.user_id = u.id 
-          AND substr(s_7d_in.timestamp, 1, 19) >= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-8.5 days') 
-          AND substr(s_7d_in.timestamp, 1, 19) <= datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-5.5 days')
-        ORDER BY ABS(strftime('%s', substr(s_7d_in.timestamp, 1, 19)) - strftime('%s', datetime(substr((SELECT timestamp FROM snapshots WHERE user_id = s_7d_in.user_id ORDER BY id DESC LIMIT 1), 1, 19), '-7 days'))) ASC LIMIT 1
+          AND substr(s_7d_in.timestamp, 1, 19) <= datetime('now', '-3 days')
+        ORDER BY ABS(strftime('%s', substr(s_7d_in.timestamp, 1, 19)) - strftime('%s', datetime('now', '-7 days'))) ASC LIMIT 1
     )
     ORDER BY current_views DESC
   `).all();
@@ -399,12 +397,12 @@ async function handleUserDetailAPI(username, request, env) {
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
     const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
 
-    // ИСПРАВЛЕНИЕ 1: Целенаправленно ищем снапшот, которому ровно или чуть больше 24 часов
+    // ИСПРАВЛЕНИЕ 1: Ищем снапшот, ближайший к 24 часам назад
     const pastSnapshot = await env.DB.prepare(`
         SELECT id, total_views, timestamp
         FROM snapshots
-        WHERE user_id = ? AND substr(timestamp, 1, 19) <= datetime('now', '-24 hours')
-        ORDER BY timestamp DESC LIMIT 1
+        WHERE user_id = ? AND substr(timestamp, 1, 19) <= datetime('now', '-12 hours')
+        ORDER BY ABS(strftime('%s', substr(timestamp, 1, 19)) - strftime('%s', datetime('now', '-24 hours'))) ASC LIMIT 1
     `).bind(user.id).first();
 
     let totalViews = 0, growth24h = null, totalSongs = 0;
