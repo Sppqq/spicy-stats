@@ -1,5 +1,9 @@
 // Build trigger: v1.0.1 - Notifications Update
-const IMPORT_SECRET = "Spicy_Admin_#7f8c9b2d4e1a0673f8b9d07c01a2f3e4";
+function verifyAdminSecret(secret, env) {
+    const expectedSecret = env?.ADMIN_SECRET || env?.IMPORT_SECRET;
+    if (!expectedSecret || !secret) return false;
+    return secret === expectedSecret;
+}
 
 // ==========================================
 // ГЛОБАЛЬНЫЙ КЭШ ДЛЯ CPU-ОПТИМИЗАЦИИ (МЕМОИЗАЦИЯ)
@@ -109,16 +113,7 @@ async function checkSchema(env) {
         `).run().catch(() => {});
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_track_metadata_isrc ON track_metadata(isrc)").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE snapshots ADD COLUMN total_songs INTEGER").run().catch(() => {});
-        await env.DB.prepare(`
-            CREATE TABLE IF NOT EXISTS audit_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                action_type TEXT NOT NULL,
-                details TEXT NOT NULL,
-                ip_address TEXT,
-                created_at TEXT DEFAULT (datetime('now'))
-            )
-        `).run().catch(() => {});
-        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)").run().catch(() => {});
+
 
         await env.DB.prepare(`
             CREATE TABLE IF NOT EXISTS notification_settings (
@@ -163,10 +158,7 @@ function getCorsHeaders(request, env) {
     };
 }
 
-async function logAction(env, actionType, details, request) {
-    // DB logging disabled to conserve D1 storage space
-    console.log(`[AUDIT LOG] ${actionType}: ${details}`);
-}
+
 
 function verifySignature(request, path) {
     const timestampStr = request.headers.get("X-Spicy-Timestamp");
@@ -231,7 +223,7 @@ export default {
             else if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") response = await handleAdminScrapeUser(request, env);
             else if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") response = await handleAdminScrapeAll(request, env, ctx);
             else if (url.pathname === "/api/admin/populate-metadata" && request.method === "POST") response = await handleAdminPopulateMetadata(request, env, ctx);
-            else if (url.pathname === "/api/admin/logs" && request.method === "POST") response = await handleAdminLogs(request, env);
+
             else if (url.pathname === "/api/admin/merge-users" && request.method === "POST") response = await handleAdminMergeUsers(request, env);
             else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") response = await handleAdminDeleteUser(request, env);
             else if (url.pathname === "/api/admin/export-user" && request.method === "POST") response = await handleAdminExportUser(request, env);
@@ -252,8 +244,7 @@ export default {
     // КРОН (PRODUCER)
     async scheduled(event, env, ctx) {
         await triggerGlobalScrape(env);
-        // Delete logs older than 3 days
-        ctx.waitUntil(env.DB.prepare("DELETE FROM audit_logs WHERE created_at < datetime('now', '-3 days')").run().catch(() => {}));
+
     },
 
     // ОБРАБОТЧИК ОЧЕРЕДИ (CONSUMER)
@@ -316,7 +307,7 @@ async function handleAddUser(request, env, ctx) {
         .bind(cleanName, data.discord_id || null, data.discord_avatar || null)
         .run();
 
-    await logAction(env, "user_add", `Added new creator: @${cleanName}`, request);
+
 
     const savedUser = await env.DB.prepare("SELECT id, username, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
 
@@ -331,7 +322,7 @@ async function handleAddUser(request, env, ctx) {
 
 async function handleDashboardAPI(request, env) {
     const globalQuery = await env.DB.prepare("SELECT COUNT(id) as total_users FROM users").first();
-    await logAction(env, "visit_dashboard", "Loaded main dashboard", request);
+
 
     const totalViewsQuery = await env.DB.prepare(`
     SELECT SUM(total_views) as global_views FROM (
@@ -392,7 +383,7 @@ async function handleUserDetailAPI(username, request, env) {
     const user = await env.DB.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
-    await logAction(env, "visit_profile", `Viewed profile for @${user.username}`, request);
+
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
     const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
@@ -414,19 +405,21 @@ async function handleUserDetailAPI(username, request, env) {
             SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
             FROM (
                 SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                       ROW_NUMBER() OVER(
+                           PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+                           ORDER BY s.id DESC
+                       ) as rn
                 FROM snapshot_songs ss
                 JOIN snapshots s ON ss.snapshot_id = s.id
                 LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                 WHERE s.user_id = ? AND s.id <= ?
-            ) WHERE rn = 1
+            ) ss WHERE rn = 1
         `).bind(user.id, latestSnapshot.id).all();
         let latestRaw = dbLatestSongs || [];
 
         totalViews = latestSnapshot.total_views;
 
         let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
-        growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
         let pastRaw = [];
         if (has24h) {
@@ -434,33 +427,54 @@ async function handleUserDetailAPI(username, request, env) {
                 SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
                 FROM (
                     SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                           ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                           ROW_NUMBER() OVER(
+                               PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+                               ORDER BY s.id DESC
+                           ) as rn
                     FROM snapshot_songs ss
                     JOIN snapshots s ON ss.snapshot_id = s.id
                     LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                     WHERE s.user_id = ? AND s.id <= ?
-                ) WHERE rn = 1
+                ) ss WHERE rn = 1
             `).bind(user.id, pastSnapshot.id).all();
             if (pSongs) pastRaw = pSongs;
         }
 
-        const latestSongs = aggregateSongs(latestRaw);
-        const pastSongs = aggregateSongs(pastRaw);
-        totalSongs = latestSongs.length;
+        const pastMapBySpotifyId = new Map();
+        const pastMapByTextKey = new Map();
 
-        const findPastViews = (ls, pastSongsList) => {
-            for (const ps of pastSongsList) {
-                if (ls.isrc && ps.isrc && ls.isrc === ps.isrc) return ps.views;
-                if (ls.normTitle === ps.normTitle && ls.primaryArtist === ps.primaryArtist) return ps.views;
+        for (const ps of pastRaw) {
+            if (ps.spotify_id) {
+                pastMapBySpotifyId.set(ps.spotify_id, ps.views || 0);
             }
-            return null;
-        };
+            const normT = normalizeTitle(ps.meta_title || ps.title || "");
+            const primA = getPrimaryArtist(ps.meta_artist || ps.artist || "");
+            const textKey = `${normT}|||${primA}`;
+            if (!pastMapByTextKey.has(textKey)) {
+                pastMapByTextKey.set(textKey, ps.views || 0);
+            }
+        }
 
-        finalSongs = latestSongs.map(s => {
-            const prev = findPastViews(s, pastSongs) ?? s.views;
-            const g = s.views - prev;
-            return { ...s, growth: g, pct: prev > 0 ? (g / prev) * 100 : 0 };
-        }).sort((a, b) => b.growth - a.growth);
+        const latestWithPrev = latestRaw.map(s => {
+            const normT = normalizeTitle(s.meta_title || s.title || "");
+            const primA = getPrimaryArtist(s.meta_artist || s.artist || "");
+            const textKey = `${normT}|||${primA}`;
+
+            let prevViews = null;
+            if (s.spotify_id && pastMapBySpotifyId.has(s.spotify_id)) {
+                prevViews = pastMapBySpotifyId.get(s.spotify_id);
+            } else if (pastMapByTextKey.has(textKey)) {
+                prevViews = pastMapByTextKey.get(textKey);
+            } else {
+                prevViews = s.views || 0;
+            }
+
+            return { ...s, prevViews };
+        });
+
+        finalSongs = aggregateSongs(latestWithPrev).sort((a, b) => b.growth - a.growth);
+        totalSongs = finalSongs.length;
+        growth24h = has24h ? finalSongs.reduce((sum, s) => sum + (s.growth || 0), 0) : null;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
         chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
@@ -493,54 +507,56 @@ async function handleTrackHistoryAPI(request, env) {
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
-    await logAction(env, "visit_history", `Viewed track history for @${username}: "${title}" by "${artist}"`, request);
-
-    const allMeta = await env.DB.prepare("SELECT isrc, title, artist FROM track_metadata").all();
     const queryNormTitle = normalizeTitle(title);
     const queryCleanArtist = getPrimaryArtist(artist);
 
-    const isrcs = (allMeta.results || [])
-        .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
-        .map(r => r.isrc).filter(Boolean);
+    const allMeta = await env.DB.prepare("SELECT spotify_id, isrc, title, artist FROM track_metadata").all();
+    const targetIsrcs = new Set(
+        (allMeta.results || [])
+            .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
+            .map(r => r.isrc)
+            .filter(Boolean)
+    );
 
-    // With delta compression, we need to join every snapshot against the latest song data up to that snapshot
     const { results: allSnaps } = await env.DB.prepare("SELECT id, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
-    const historyData = [];
+    
+    const { results: allUserSongs } = await env.DB.prepare(`
+        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+        FROM snapshot_songs ss
+        JOIN snapshots s ON ss.snapshot_id = s.id
+        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+        WHERE s.user_id = ?
+        ORDER BY s.id ASC
+    `).bind(user.id).all();
 
-    const isrcList = isrcs.map(i => `'${i}'`).join(',');
-    const isrcClause = isrcs.length > 0 ? `OR (tm.isrc IN (${isrcList}))` : '';
-    
-    let sqlAllChanges = `
-        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
-        FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
-        WHERE s.user_id = ? AND (
-            (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
-            ${isrcClause}
-        ) ORDER BY s.id ASC
-    `;
-    const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
-    
+    const matchingChanges = (allUserSongs || []).filter(s => {
+        if (s.isrc && targetIsrcs.has(s.isrc)) return true;
+        const normT = normalizeTitle(s.meta_title || s.title);
+        const primA = getPrimaryArtist(s.meta_artist || s.artist);
+        return normT === queryNormTitle && primA === queryCleanArtist;
+    });
+
+    const historyData = [];
     let trackState = new Map();
     let historyIndex = 0;
-    
+
     for (const snap of (allSnaps || [])) {
-        while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
-            const m = allMatches[historyIndex];
-            const key = `${m.title}||${m.artist}||${m.spotify_id}`;
+        while (historyIndex < matchingChanges.length && matchingChanges[historyIndex].snapshot_id <= snap.id) {
+            const m = matchingChanges[historyIndex];
+            const key = m.spotify_id || `${normalizeTitle(m.meta_title || m.title)}||${getPrimaryArtist(m.meta_artist || m.artist)}`;
             trackState.set(key, m.views);
             historyIndex++;
         }
-        
+
         let sumViews = 0;
         for (const v of trackState.values()) sumViews += v;
-        
+
         if (sumViews > 0) {
             historyData.push({ views: sumViews, timestamp: snap.timestamp });
         }
     }
-    
-    const results = historyData;
-    return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+
+    return new Response(JSON.stringify({ history: historyData || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleActivityFeedAPI(request, env) {
@@ -560,13 +576,12 @@ async function handleActivityFeedAPI(request, env) {
 
 async function handleAdminStats(request, env) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
     const songCount = await env.DB.prepare("SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) as cnt FROM snapshot_songs").first();
     const metadataCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM track_metadata").first();
-    const logCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM audit_logs").first();
 
     let dbSize = 0;
     try {
@@ -577,7 +592,6 @@ async function handleAdminStats(request, env) {
 
     const scraperRunRes = await env.DB.prepare("SELECT MAX(last_scraped_at) as last_run FROM users").first();
     const scraped24h = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users WHERE last_scraped_at >= datetime('now', '-24 hours')").first();
-    const errors24h = await env.DB.prepare("SELECT COUNT(*) as cnt FROM audit_logs WHERE action_type = 'scrape_error' AND created_at >= datetime('now', '-24 hours')").first();
 
     const { results: usersList } = await env.DB.prepare(`
         SELECT u.id, u.username, u.last_scraped_at,
@@ -601,8 +615,8 @@ async function handleAdminStats(request, env) {
 
     const data = {
         total_users: userCount.cnt || 0, total_snapshots: snapshotCount.cnt || 0, total_songs: songCount.cnt || 0,
-        total_metadata: metadataCount.cnt || 0, total_logs: logCount.cnt || 0, db_size_bytes: dbSize,
-        last_scraper_run: scraperRunRes ? scraperRunRes.last_run : null, scraped_24h: scraped24h ? scraped24h.cnt : 0, errors_24h: errors24h ? errors24h.cnt : 0,
+        total_metadata: metadataCount.cnt || 0, db_size_bytes: dbSize,
+        last_scraper_run: scraperRunRes ? scraperRunRes.last_run : null, scraped_24h: scraped24h ? scraped24h.cnt : 0,
         users: usersList.map(u => ({
             id: u.id, username: u.username, last_scraped_at: u.last_scraped_at || null, snap_count: u.snap_count || 0, last_updated: u.last_updated || null,
             views: u.current_views || 0, song_count: userLatestSnapMap.has(u.id) ? (songCountMap.get(userLatestSnapMap.get(u.id)) || 0) : 0
@@ -613,7 +627,7 @@ async function handleAdminStats(request, env) {
 
 async function handleAdminExportUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...getCorsHeaders(request, env) } });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...getCorsHeaders(request, env) } });
     if (!username) return new Response(JSON.stringify({ error: "Username required" }), { status: 400, headers: { ...getCorsHeaders(request, env) } });
 
     const cleanName = username.trim().replace(/^@/, "");
@@ -653,7 +667,7 @@ async function handleAdminExportUser(request, env) {
 
 async function handleAdminSyncProdDb(request, env) {
     const { secret, table, lastRowid } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
     if (!table) return new Response(JSON.stringify({ error: "Table parameter required." }), { status: 400, headers: getCorsHeaders(request, env) });
 
@@ -719,7 +733,7 @@ async function handleAdminSyncProdDb(request, env) {
 
 async function handleAdminScrapeUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -728,17 +742,17 @@ async function handleAdminScrapeUser(request, env) {
     try {
         if (env.SCRAPE_QUEUE) await env.SCRAPE_QUEUE.send({ id: user.id, username: cleanName, discord_id: user.discord_id });
         else await scrapeAndSave(user.id, cleanName, user.discord_id, env);
-        await logAction(env, "manual_scrape", `Manual scrape triggered for: @${cleanName}`, request);
+
         return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminScrapeAll(request, env, ctx) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     ctx.waitUntil(triggerGlobalScrape(env));
-    await logAction(env, "global_scrape", "Global scraper run triggered manually", request);
+
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
@@ -788,23 +802,17 @@ async function triggerGlobalScrape(env) {
     }
 }
 
-async function handleAdminLogs(request, env) {
-    const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
-    return new Response(JSON.stringify({ logs: [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
-}
+
 
 async function handleAdminPopulateMetadata(request, env, ctx) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         if (username) {
             await populateMetadataCache(env, username);
-            await logAction(env, "cache_rebuild", `Rebuilt metadata cache for: @${username}`, request);
             return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
         } else {
             ctx.waitUntil(populateMetadataCache(env));
-            await logAction(env, "cache_rebuild", "Rebuilt metadata cache for all creators", request);
             return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
         }
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
@@ -866,21 +874,21 @@ async function populateMetadataCache(env, targetUsername = null) {
 
 async function handleAdminDeleteUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: getCorsHeaders(request, env) });
 
     try {
         await deleteUserFromDB(user.id, env);
-        await logAction(env, "user_delete", `Deleted creator: @${cleanName}`, request);
+
         return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminMergeUsers(request, env) {
     const { secret, sourceUsername, targetUsername } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const sourceClean = sourceUsername.trim().replace(/^@/, "");
     const targetClean = targetUsername.trim().replace(/^@/, "");
@@ -894,14 +902,14 @@ async function handleAdminMergeUsers(request, env) {
     try {
         await env.DB.prepare("UPDATE snapshots SET user_id = ? WHERE user_id = ?").bind(targetUser.id, sourceUser.id).run();
         await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(sourceUser.id).run();
-        await logAction(env, "profile_merge", `Merged @${sourceClean} into @${targetClean}`, request);
+
         return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminSearchMetadata(request, env) {
     const { secret, query } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const searchQuery = `%${(query || "").trim()}%`;
         const { results } = await env.DB.prepare(`SELECT spotify_id, title, artist, isrc, created_at FROM track_metadata WHERE title LIKE ? OR artist LIKE ? OR isrc LIKE ? OR spotify_id LIKE ? LIMIT 50`).bind(searchQuery, searchQuery, searchQuery, searchQuery).all();
@@ -911,21 +919,21 @@ async function handleAdminSearchMetadata(request, env) {
 
 async function handleAdminUpdateMetadata(request, env) {
     const { secret, spotify_id, title, artist, isrc } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     if (!spotify_id) return new Response(JSON.stringify({ error: "Spotify ID required" }), { status: 400, headers: getCorsHeaders(request, env) });
     try {
         const cleanTitle = (title || "").trim();
         const cleanArtist = (artist || "").trim();
         const cleanIsrc = isrc ? isrc.trim() : null;
         await env.DB.prepare("UPDATE track_metadata SET title = ?, artist = ?, isrc = ? WHERE spotify_id = ?").bind(cleanTitle, cleanArtist, cleanIsrc, spotify_id).run();
-        await logAction(env, "metadata_update", `Updated metadata for Spotify ID ${spotify_id}: "${cleanTitle}" by "${cleanArtist}" (ISRC: ${cleanIsrc || "none"})`, request);
+
         return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
 async function handleAdminPruneSnapshots(request, env) {
     const { secret, count, userId } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const pruneCount = count || 3;
         let totalPruned = 0;
@@ -939,7 +947,7 @@ async function handleAdminPruneSnapshots(request, env) {
             }
         }
 
-        await logAction(env, "admin_prune_snapshots", `Pruned up to ${pruneCount} oldest snapshots per user (Total pruned: ${totalPruned})`, request).catch(() => {});
+
         return new Response(JSON.stringify({ success: true, prunedCount: totalPruned }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) });
@@ -949,7 +957,7 @@ async function handleAdminPruneSnapshots(request, env) {
 async function handleImport(request, env) {
     try {
         const { secret, username, history } = await request.json();
-        if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: getCorsHeaders(request, env) });
+        if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: getCorsHeaders(request, env) });
 
         const cleanName = username.trim().replace(/^@/, "");
         let user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -1020,24 +1028,42 @@ function aggregateSongs(rawList) {
         if (isrcKey && groupsMap.has(isrcKey)) foundGroup = groupsMap.get(isrcKey);
         else if (groupsMap.has(textKey)) foundGroup = groupsMap.get(textKey);
 
-        const songInfo = { spotify_id: s.spotify_id, title, artist, normTitle, primaryArtist, cleanArtist: artist.toLowerCase(), isrc, views: s.views || 0 };
+        const views = s.views || 0;
+        const prevViews = s.prevViews !== undefined && s.prevViews !== null ? s.prevViews : views;
+
+        const songInfo = { spotify_id: s.spotify_id, title, artist, normTitle, primaryArtist, cleanArtist: artist.toLowerCase(), isrc, views, prevViews };
 
         if (foundGroup) {
             foundGroup.songs.push(songInfo);
             foundGroup.views += songInfo.views;
+            foundGroup.prevViews += songInfo.prevViews;
             if (title.length < foundGroup.title.length) foundGroup.title = title;
             if (artist.length < foundGroup.artist.length) foundGroup.artist = artist;
             if (isrcKey && !groupsMap.has(isrcKey)) groupsMap.set(isrcKey, foundGroup);
             if (!groupsMap.has(textKey)) groupsMap.set(textKey, foundGroup);
         } else {
-            const newGroup = { songs: [songInfo], views: songInfo.views, title, artist };
+            const newGroup = { songs: [songInfo], views: songInfo.views, prevViews: songInfo.prevViews, title, artist };
             groups.push(newGroup);
             if (isrcKey) groupsMap.set(isrcKey, newGroup);
             groupsMap.set(textKey, newGroup);
         }
     }
 
-    return groups.map(g => ({ title: g.title, artist: g.artist, views: g.views, spotify_id: g.songs[0].spotify_id, isrc: g.songs.find(x => x.isrc)?.isrc || null, normTitle: g.songs[0].normTitle, primaryArtist: g.songs[0].primaryArtist }));
+    return groups.map(g => {
+        const growth = g.views - g.prevViews;
+        const pct = g.prevViews > 0 ? (growth / g.prevViews) * 100 : 0;
+        return {
+            title: g.title,
+            artist: g.artist,
+            views: g.views,
+            growth: growth,
+            pct: pct,
+            spotify_id: g.songs[0].spotify_id,
+            isrc: g.songs.find(x => x.isrc)?.isrc || null,
+            normTitle: g.songs[0].normTitle,
+            primaryArtist: g.songs[0].primaryArtist
+        };
+    });
 }
 
 async function deleteUserFromDB(userId, env) {
@@ -1155,9 +1181,18 @@ async function fetchUserDataFromAPI(username, discordId = null) {
 
     let total_views = 0, songs = [];
     for (const item of (perUser?.makes || [])) {
-        total_views += (item.view_count || 0);
+        const views = item.view_count || 0;
+        total_views += views;
         const detail = tracksMap.get(item.id);
-        if (detail) songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, isrc: detail.isrc, views: item.view_count || 0 });
+        const title = detail?.title || item.title || item.name || item.track_name || "Hidden";
+        const artist = detail?.artist || item.artist || item.artist_name || "SpicyLyrics";
+        songs.push({
+            spotify_id: item.id || "",
+            title,
+            artist,
+            isrc: detail?.isrc || null,
+            views
+        });
     }
 
     return { total_views, songs, tracksDetails, discord_id: userId, discord_avatar };
@@ -1171,7 +1206,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
         if (err.message === "USER_NOT_FOUND" || err.message === "USER_NOT_CREATOR") {
             const hasSnapshots = await env.DB.prepare("SELECT 1 FROM snapshots WHERE user_id = ? LIMIT 1").bind(userId).first();
             if (!hasSnapshots) await deleteUserFromDB(userId, env);
-            await logAction(env, "scrape_error", `❌ Failed: @${username} not found.`, null);
+
             return;
         }
         throw err;
@@ -1235,14 +1270,14 @@ async function scrapeAndSave(userId, username, discordId, env) {
         await saveSnapshotWithRetry(userId, data.total_views, totalSongsCount, changedSongs, env);
     } catch (saveErr) {
         console.error(`Failed to save snapshot for user ${userId} (@${username}):`, saveErr.message);
-        await logAction(env, "scrape_error", `❌ DB Write Error for @${username}: ${saveErr.message}`, null).catch(() => {});
+
         return;
     }
 
     // Уведомление о майлстоунах
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
         const ms = Math.floor(data.total_views / 50000) * 50000;
-        await logAction(env, "milestone_reached", `🎉 @${username} reached ${ms >= 1000000 ? ms/1000000+'M' : ms/1000+'K'} views!`, null).catch(() => {});
+
     }
 
     if (data.discord_id) {
@@ -1290,7 +1325,7 @@ async function handleGetNotificationSettings(request, env) {
 async function handleSaveNotificationSettings(request, env) {
     try {
         const { secret, enabled, type, title, message, style_template } = await request.json().catch(() => ({}));
-        if (secret !== IMPORT_SECRET) {
+        if (!verifyAdminSecret(secret, env)) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
@@ -1340,7 +1375,7 @@ async function handleSaveNotificationSettings(request, env) {
             }
         }
 
-        await logAction(env, "settings_update", `Notification settings updated: enabled=${enabled}, type=${type}`, request);
+
 
         return new Response(JSON.stringify({ success: true }), {
             headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
