@@ -514,7 +514,7 @@
                             <div id="stat-db-size-bar" style="height: 100%; width: 0%; background: var(--blue); transition: width 0.8s;"></div>
                         </div>
                         <div style="font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                            Cache: <span id="stat-metadata-count">0</span> tracks | Logs: <span id="stat-logs-count">0</span> entries
+                            Cache: <span id="stat-metadata-count">0</span> tracks
                         </div>
                     </div>
 
@@ -543,7 +543,6 @@
                 <button class="tab-btn" id="tab-btn-database" onclick="switchTab('database')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--blue); cursor: pointer; padding: 6px 12px; border-bottom: 2px solid var(--blue); margin-bottom: -14px;">👥 Database</button>
                 <button class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
                 <button class="tab-btn" id="tab-btn-metadata" onclick="switchTab('metadata')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔗 Metadata</button>
-                <button class="tab-btn" id="tab-btn-logs" onclick="switchTab('logs')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">📋 Audit Logs</button>
                 <button class="tab-btn" id="tab-btn-notifications" onclick="switchTab('notifications')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔔 Notifications</button>
             </nav>
 
@@ -647,57 +646,7 @@
                 </section>
             </div>
 
-            <!-- Tab 3: Logs -->
-            <div id="tab-content-logs" class="tab-content" style="display: none;">
-                <!-- System Action Logs -->
-                <section class="panel">
-                    <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
-                        <div>
-                            <h2 class="panel-title">System Action Logs</h2>
-                            <div class="panel-meta">Audit trail of actions, visits, and system events</div>
-                        </div>
-                        <button class="admin-btn secondary" style="padding: 6px 12px; font-size: 11px;" onclick="loadLogs()">
-                            🔄 Refresh Logs
-                        </button>
-                    </div>
-                    
-                    <!-- Filters and Search Bar -->
-                    <div style="margin: 0 24px 16px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                        <div style="flex-grow: 1; min-width: 200px;">
-                            <input type="text" id="log-search" placeholder="Search logs by keyword, username, or IP..." class="admin-input" style="height: 34px; width: 100%; font-size: 12px;" oninput="filterLogs()">
-                        </div>
-                        <div style="width: 180px;">
-                            <select id="log-type-filter" class="admin-input" style="height: 34px; width: 100%; font-size: 12px; padding: 0 8px; background: var(--white); cursor: pointer;" onchange="filterLogs()">
-                                <option value="all">All Events</option>
-                                <option value="admin">Admin Actions Only</option>
-                                <option value="visits">Visitor Activity Only</option>
-                                <option value="milestone">Milestones Only</option>
-                                <option value="new_track">New Tracks Only</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div style="overflow-x: auto; max-height: 500px;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 140px;">Timestamp</th>
-                                    <th style="width: 120px;">Event</th>
-                                    <th>Details</th>
-                                    <th style="width: 120px;">IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-tbody">
-                                <tr>
-                                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                                        Logs will load after unlocking...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
 
             <!-- Tab 4: Metadata Editor -->
             <div id="tab-content-metadata" class="tab-content" style="display: none;">
@@ -1163,7 +1112,6 @@
                 sizeBar.style.background = dbPct > 85 ? 'var(--coral)' : 'var(--blue)';
             }
             document.getElementById('stat-metadata-count').textContent = formatFullNumber(systemData.total_metadata || 0);
-            document.getElementById('stat-logs-count').textContent = formatFullNumber(systemData.total_logs || 0);
 
             // Scraper Coverage
             const coverageEl = document.getElementById('stat-scraper-coverage');
@@ -1183,7 +1131,7 @@
                 errorsEl.textContent = count;
                 if (count > 0) {
                     errorsEl.style.color = 'var(--coral)';
-                    if (errorsSubEl) errorsSubEl.innerHTML = `<span style="color: var(--coral); font-weight: bold;">⚠️ Scraper errors detected! Check logs.</span>`;
+                    if (errorsSubEl) errorsSubEl.innerHTML = `<span style="color: var(--coral); font-weight: bold;">⚠️ Scraper errors detected!</span>`;
                 } else {
                     errorsEl.style.color = 'var(--positive-text)';
                     if (errorsSubEl) errorsSubEl.textContent = 'Scraper is running healthy.';
@@ -1323,7 +1271,7 @@
             btn.disabled = true;
             statusMsg.style.color = 'var(--blue)';
 
-            const tables = ["users", "snapshots", "snapshot_songs", "track_metadata", "audit_logs"];
+            const tables = ["users", "snapshots", "snapshot_songs", "track_metadata"];
 
             try {
                 for (const table of tables) {
@@ -1392,10 +1340,8 @@
                 activeBtn.style.backgroundColor = 'var(--ink)';
             }
 
-            // Load logs or metadata if switching
-            if (tabId === 'logs') {
-                loadLogs();
-            } else if (tabId === 'metadata') {
+            // Load metadata if switching
+            if (tabId === 'metadata') {
                 searchMetadata('');
             } else if (tabId === 'notifications') {
                 loadNotificationSettings();
@@ -1554,175 +1500,9 @@
             }
         }
 
-        // Fetch and render System Audit Logs
-        let allLogsList = [];
-        async function loadLogs() {
-            const tbody = document.getElementById('logs-tbody');
-            if (!tbody) return;
-            
-            try {
-                const res = await spicyFetch(`${API_BASE}/admin/logs`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret: adminSecret, limit: 150 })
-                });
 
-                if (!res.ok) throw new Error('Failed to load logs');
 
-                const data = await res.json();
-                allLogsList = data.logs || [];
-                filterLogs(); // Render with current filters applied
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 20px; color: var(--coral); font-family: 'DM Mono', monospace;">
-                            Error loading logs: ${err.message}
-                        </td>
-                    </tr>
-                `;
-            }
-        }
 
-        function filterLogs() {
-            const search = document.getElementById('log-search').value.toLowerCase().trim();
-            const typeFilter = document.getElementById('log-type-filter').value;
-            
-            const filtered = allLogsList.filter(log => {
-                // Search filter (matches details, IP or type)
-                const matchesSearch = !search || 
-                    log.details.toLowerCase().includes(search) || 
-                    (log.ip_address && log.ip_address.toLowerCase().includes(search)) ||
-                    log.action_type.toLowerCase().includes(search);
-
-                // Type filter
-                let matchesType = true;
-                if (typeFilter === 'admin') {
-                    matchesType = ['user_add', 'user_delete', 'cache_rebuild', 'profile_merge', 'global_scrape', 'manual_scrape', 'history_import', 'username_change'].includes(log.action_type);
-                } else if (typeFilter === 'visits') {
-                    matchesType = ['visit_dashboard', 'visit_profile', 'visit_history'].includes(log.action_type);
-                } else if (typeFilter === 'milestone') {
-                    matchesType = log.action_type === 'milestone_reached';
-                } else if (typeFilter === 'new_track') {
-                    matchesType = log.action_type === 'new_track';
-                }
-
-                return matchesSearch && matchesType;
-            });
-
-            renderLogsTable(filtered);
-        }
-
-        function renderLogsTable(logs) {
-            const tbody = document.getElementById('logs-tbody');
-            tbody.innerHTML = '';
-
-            if (logs.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
-                            No matching logs found.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            logs.forEach(log => {
-                const row = document.createElement('tr');
-                
-                let rowStyle = '';
-                if (log.action_type === 'milestone_reached') {
-                    rowStyle = 'background: rgba(255, 0, 127, 0.04); font-weight: 500;';
-                } else if (log.action_type === 'user_delete') {
-                    rowStyle = 'background: rgba(255, 0, 76, 0.02);';
-                }
-
-                row.innerHTML = `
-                    <td style="font-family: 'DM Mono', monospace; font-size: 11px; white-space: nowrap; ${rowStyle}">${timeAgo(log.created_at)}</td>
-                    <td style="${rowStyle}">${getEventBadge(log.action_type)}</td>
-                    <td style="font-size: 12px; line-height: 1.4; ${rowStyle}">${log.details}</td>
-                    <td style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); ${rowStyle}">${log.ip_address || 'System'}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function getEventBadge(type) {
-            let color = 'var(--muted)';
-            let background = 'rgba(128, 128, 128, 0.1)';
-            let text = type;
-
-            switch (type) {
-                case 'user_add':
-                    color = 'var(--blue)';
-                    background = 'rgba(0, 112, 243, 0.1)';
-                    text = 'User Add';
-                    break;
-                case 'user_delete':
-                    color = 'var(--coral)';
-                    background = 'rgba(255, 0, 76, 0.1)';
-                    text = 'User Del';
-                    break;
-                case 'manual_scrape':
-                    color = '#f5a623';
-                    background = 'rgba(245, 166, 35, 0.1)';
-                    text = 'Scrape User';
-                    break;
-                case 'global_scrape':
-                    color = '#7928ca';
-                    background = 'rgba(121, 40, 202, 0.1)';
-                    text = 'Scrape All';
-                    break;
-                case 'cache_rebuild':
-                    color = '#00dfd8';
-                    background = 'rgba(0, 223, 216, 0.1)';
-                    text = 'Rebuild Cache';
-                    break;
-                case 'history_import':
-                    color = 'var(--green)';
-                    background = 'rgba(0, 223, 150, 0.1)';
-                    text = 'Import';
-                    break;
-                case 'milestone_reached':
-                    color = '#ff007f';
-                    background = 'rgba(255, 0, 127, 0.1)';
-                    text = 'Milestone';
-                    break;
-                case 'new_track':
-                    color = '#7f8c8d';
-                    background = 'rgba(127, 140, 141, 0.1)';
-                    text = 'New Track';
-                    break;
-                case 'username_change':
-                    color = '#f8e71c';
-                    background = 'rgba(248, 231, 28, 0.1)';
-                    text = 'User Rename';
-                    break;
-                case 'profile_merge':
-                    color = '#e056fd';
-                    background = 'rgba(224, 86, 253, 0.1)';
-                    text = 'Merge Prof';
-                    break;
-                case 'visit_dashboard':
-                    color = '#2ecc71';
-                    background = 'rgba(46, 204, 113, 0.1)';
-                    text = 'Vis Home';
-                    break;
-                case 'visit_profile':
-                    color = '#3498db';
-                    background = 'rgba(52, 152, 219, 0.1)';
-                    text = 'Vis Profile';
-                    break;
-                case 'visit_history':
-                    color = '#e67e22';
-                    background = 'rgba(230, 126, 34, 0.1)';
-                    text = 'Vis History';
-                    break;
-            }
-
-            return `<span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; color: ${color}; background: ${background}; border: 1px solid ${color}44; font-family: 'DM Mono', monospace; text-transform: uppercase; white-space: nowrap;">${text}</span>`;
-        }
 
         // Instant Single Scrape Form
         async function triggerSingleScrape(event) {

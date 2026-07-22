@@ -59,7 +59,7 @@ Spicy Monitor uses a structured SQLite relational schema in Cloudflare D1.
 | **`snapshots`** | `id` (INTEGER) | Stores daily/hourly statistics checkpoints containing `total_views` (total streams) and `total_songs`. |
 | **`snapshot_songs`** | `(snapshot_id, spotify_id)` | Maps track plays inside a specific snapshot. Contains `views` (play count), `title`, and `artist`. |
 | **`track_metadata`** | `spotify_id` (TEXT) | Global cache mapping Spotify IDs to ISRCs, clean titles, and normalized artists to assist deduplication. |
-| **`audit_logs`** | `id` (INTEGER) | Secure logging of administrative and analytical operations, logging IP addresses and action types. |
+
 
 ---
 
