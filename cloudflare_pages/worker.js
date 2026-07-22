@@ -239,6 +239,7 @@ export default {
             else if (url.pathname === "/api/admin/delete-user" && request.method === "POST") response = await handleAdminDeleteUser(request, env);
             else if (url.pathname === "/api/admin/export-user" && request.method === "POST") response = await handleAdminExportUser(request, env);
             else if (url.pathname === "/api/admin/sync-prod-db" && request.method === "POST") response = await handleAdminSyncProdDb(request, env);
+            else if (url.pathname === "/api/admin/prune-snapshots" && request.method === "POST") response = await handleAdminPruneSnapshots(request, env);
             else if (url.pathname === "/api/notification-settings" && request.method === "GET") response = await handleGetNotificationSettings(request, env);
             else if (url.pathname === "/api/admin/notification-settings" && request.method === "POST") response = await handleSaveNotificationSettings(request, env);
             else response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
@@ -930,6 +931,29 @@ async function handleAdminUpdateMetadata(request, env) {
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
+async function handleAdminPruneSnapshots(request, env) {
+    const { secret, count, userId } = await request.json().catch(() => ({}));
+    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    try {
+        const pruneCount = count || 3;
+        let totalPruned = 0;
+
+        if (userId) {
+            totalPruned = await deleteOldestSnapshotsForUser(userId, pruneCount, env);
+        } else {
+            const { results: users } = await env.DB.prepare("SELECT id FROM users").all();
+            for (const u of (users || [])) {
+                totalPruned += await deleteOldestSnapshotsForUser(u.id, pruneCount, env);
+            }
+        }
+
+        await logAction(env, "admin_prune_snapshots", `Pruned up to ${pruneCount} oldest snapshots per user (Total pruned: ${totalPruned})`, request).catch(() => {});
+        return new Response(JSON.stringify({ success: true, prunedCount: totalPruned }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) });
+    }
+}
+
 async function handleImport(request, env) {
     try {
         const { secret, username, history } = await request.json();
@@ -954,12 +978,15 @@ async function handleImport(request, env) {
                 totalSongsCount = aggregateSongs(rawList).length;
             }
 
-            const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?)").bind(user.id, totalViews, totalSongsCount, timestamp).run();
-            if (songs && Object.keys(songs).length > 0) {
-                const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-                const batch = Object.entries(songs).map(([songKey, sData]) => stmt.bind(info.meta.last_row_id || info.meta.lastInsertedRowId, songKey.length < 30 ? songKey : "", sData.title, sData.artist, sData.views));
-                await env.DB.batch(batch);
-            }
+            const songEntries = (songs && Object.keys(songs).length > 0)
+                ? Object.entries(songs).map(([songKey, sData]) => ({
+                    spotify_id: songKey.length < 30 ? songKey : "",
+                    title: sData.title,
+                    artist: sData.artist,
+                    views: sData.views || 0
+                }))
+                : [];
+            await saveSnapshotWithRetry(user.id, totalViews, totalSongsCount, songEntries, env, timestamp);
             snapshotCount++;
         }
         return new Response(JSON.stringify({ success: true, imported: snapshotCount }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
@@ -1027,6 +1054,81 @@ async function deleteUserFromDB(userId, env) {
         env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId),
         env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId)
     ]);
+}
+
+async function deleteOldestSnapshotsForUser(userId, count, env) {
+    try {
+        const { results: oldSnaps } = await env.DB.prepare(
+            "SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?"
+        ).bind(userId, count).all();
+
+        if (!oldSnaps || oldSnaps.length === 0) return 0;
+
+        const ids = oldSnaps.map(s => s.id);
+        const batchOps = [];
+        for (const snapId of ids) {
+            batchOps.push(env.DB.prepare("DELETE FROM snapshot_songs WHERE snapshot_id = ?").bind(snapId));
+            batchOps.push(env.DB.prepare("DELETE FROM snapshots WHERE id = ?").bind(snapId));
+        }
+
+        if (batchOps.length > 0) {
+            await env.DB.batch(batchOps);
+        }
+
+        return ids.length;
+    } catch (err) {
+        console.error(`Failed to prune old snapshots for user ${userId}:`, err);
+        return 0;
+    }
+}
+
+async function saveSnapshotWithRetry(userId, totalViews, totalSongsCount, songEntries, env, customTimestamp = null, maxAttempts = 3) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        let createdSnapshotId = null;
+        try {
+            const query = customTimestamp
+                ? "INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, ?)"
+                : "INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))";
+
+            const bindArgs = customTimestamp
+                ? [userId, totalViews, totalSongsCount, customTimestamp]
+                : [userId, totalViews, totalSongsCount];
+
+            const info = await env.DB.prepare(query).bind(...bindArgs).run();
+            createdSnapshotId = info.meta?.last_row_id || info.meta?.lastInsertedRowId;
+
+            if (songEntries && songEntries.length > 0 && createdSnapshotId) {
+                const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
+                const batch = songEntries.map(song => stmt.bind(
+                    createdSnapshotId,
+                    song.spotify_id || "",
+                    song.title || "Hidden",
+                    song.artist || "SpicyLyrics",
+                    song.views || 0
+                ));
+                await env.DB.batch(batch);
+            }
+
+            return createdSnapshotId;
+        } catch (err) {
+            console.error(`DB Write attempt ${attempt}/${maxAttempts} failed for user ${userId}:`, err.message);
+
+            if (createdSnapshotId) {
+                await env.DB.prepare("DELETE FROM snapshot_songs WHERE snapshot_id = ?").bind(createdSnapshotId).run().catch(() => {});
+                await env.DB.prepare("DELETE FROM snapshots WHERE id = ?").bind(createdSnapshotId).run().catch(() => {});
+            }
+
+            if (attempt < maxAttempts) {
+                const deletedCount = await deleteOldestSnapshotsForUser(userId, 3, env);
+                if (deletedCount === 0) {
+                    throw err;
+                }
+                await logAction(env, "db_quota_cleanup", `⚠️ Storage quota full. Pruned ${deletedCount} oldest snapshot(s) for user ID ${userId} to free space. Retry ${attempt}/${maxAttempts - 1}.`, null).catch(() => {});
+            } else {
+                throw err;
+            }
+        }
+    }
 }
 
 async function fetchUserDataFromAPI(username, discordId = null) {
@@ -1146,22 +1248,23 @@ async function scrapeAndSave(userId, username, discordId, env) {
         }
     }
 
-    const info = await env.DB.prepare("INSERT INTO snapshots (user_id, total_views, total_songs, timestamp) VALUES (?, ?, ?, datetime('now'))").bind(userId, data.total_views, totalSongsCount).run();
-    const snapshotId = info.meta.last_row_id || info.meta.lastInsertedRowId;
-
-    if (changedSongs.length > 0) {
-        const stmt = env.DB.prepare("INSERT INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views) VALUES (?, ?, ?, ?, ?)");
-        const batch = changedSongs.map(song => stmt.bind(snapshotId, song.spotify_id, song.title, song.artist, song.views));
-        await env.DB.batch(batch);
+    try {
+        await saveSnapshotWithRetry(userId, data.total_views, totalSongsCount, changedSongs, env);
+    } catch (saveErr) {
+        console.error(`Failed to save snapshot for user ${userId} (@${username}):`, saveErr.message);
+        await logAction(env, "scrape_error", `❌ DB Write Error for @${username}: ${saveErr.message}`, null).catch(() => {});
+        return;
     }
 
     // Уведомление о майлстоунах
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
         const ms = Math.floor(data.total_views / 50000) * 50000;
-        await logAction(env, "milestone_reached", `🎉 @${username} reached ${ms >= 1000000 ? ms/1000000+'M' : ms/1000+'K'} views!`, null);
+        await logAction(env, "milestone_reached", `🎉 @${username} reached ${ms >= 1000000 ? ms/1000000+'M' : ms/1000+'K'} views!`, null).catch(() => {});
     }
 
-    if (data.discord_id) await env.DB.prepare("UPDATE users SET discord_id = ?, discord_avatar = ? WHERE id = ?").bind(data.discord_id, data.discord_avatar || null, userId).run();
+    if (data.discord_id) {
+        await env.DB.prepare("UPDATE users SET discord_id = ?, discord_avatar = ? WHERE id = ?").bind(data.discord_id, data.discord_avatar || null, userId).run().catch(() => {});
+    }
 }
 
 async function handleGetNotificationSettings(request, env) {
