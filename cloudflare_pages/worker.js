@@ -164,11 +164,8 @@ function getCorsHeaders(request, env) {
 }
 
 async function logAction(env, actionType, details, request) {
-    let ipAddress = null;
-    if (request) ipAddress = request.headers.get("CF-Connecting-IP") || request.headers.get("x-real-ip") || "Unknown IP";
-    try {
-        await env.DB.prepare("INSERT INTO audit_logs (action_type, details, ip_address) VALUES (?, ?, ?)").bind(actionType, details, ipAddress).run();
-    } catch (err) {}
+    // DB logging disabled to conserve D1 storage space
+    console.log(`[AUDIT LOG] ${actionType}: ${details}`);
 }
 
 function verifySignature(request, path) {
@@ -794,12 +791,9 @@ async function triggerGlobalScrape(env) {
 }
 
 async function handleAdminLogs(request, env) {
-    const { secret, limit = 50, offset = 0 } = await request.json().catch(() => ({}));
+    const { secret } = await request.json().catch(() => ({}));
     if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
-    try {
-        const { results } = await env.DB.prepare("SELECT id, action_type, details, ip_address, created_at FROM audit_logs ORDER BY id DESC LIMIT ? OFFSET ?").bind(limit, offset).all();
-        return new Response(JSON.stringify({ logs: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
-    } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
+    return new Response(JSON.stringify({ logs: [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleAdminPopulateMetadata(request, env, ctx) {
@@ -1058,24 +1052,15 @@ async function deleteUserFromDB(userId, env) {
 
 async function deleteOldestSnapshotsForUser(userId, count, env) {
     try {
-        const { results: oldSnaps } = await env.DB.prepare(
-            "SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?"
-        ).bind(userId, count).all();
+        await env.DB.prepare(
+            "DELETE FROM snapshot_songs WHERE snapshot_id IN (SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?)"
+        ).bind(userId, count).run().catch(() => {});
 
-        if (!oldSnaps || oldSnaps.length === 0) return 0;
+        const res = await env.DB.prepare(
+            "DELETE FROM snapshots WHERE id IN (SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?)"
+        ).bind(userId, count).run().catch(() => {});
 
-        const ids = oldSnaps.map(s => s.id);
-        const batchOps = [];
-        for (const snapId of ids) {
-            batchOps.push(env.DB.prepare("DELETE FROM snapshot_songs WHERE snapshot_id = ?").bind(snapId));
-            batchOps.push(env.DB.prepare("DELETE FROM snapshots WHERE id = ?").bind(snapId));
-        }
-
-        if (batchOps.length > 0) {
-            await env.DB.batch(batchOps);
-        }
-
-        return ids.length;
+        return res?.meta?.changes || count;
     } catch (err) {
         console.error(`Failed to prune old snapshots for user ${userId}:`, err);
         return 0;
@@ -1119,11 +1104,11 @@ async function saveSnapshotWithRetry(userId, totalViews, totalSongsCount, songEn
             }
 
             if (attempt < maxAttempts) {
-                const deletedCount = await deleteOldestSnapshotsForUser(userId, 3, env);
+                // Delete 5 oldest snapshots of THIS user to free up plenty of space
+                const deletedCount = await deleteOldestSnapshotsForUser(userId, 5, env);
                 if (deletedCount === 0) {
                     throw err;
                 }
-                await logAction(env, "db_quota_cleanup", `⚠️ Storage quota full. Pruned ${deletedCount} oldest snapshot(s) for user ID ${userId} to free space. Retry ${attempt}/${maxAttempts - 1}.`, null).catch(() => {});
             } else {
                 throw err;
             }
