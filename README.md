@@ -85,7 +85,7 @@ All backend routes are prefixed with `/api`. Public endpoints require a valid si
 - **`POST /api/admin/populate-metadata`**: Backfill missing track metadata and ISRCs.
 - **`POST /api/admin/merge-users`**: Merge duplicate user entities and consolidate history.
 - **`POST /api/admin/delete-user`**: Permanently remove a creator and all associated statistical snapshots.
-- **`POST /api/admin/logs`**: Review administrative audit trails.
+
 
 ### Migration Routes
 
