@@ -507,54 +507,56 @@ async function handleTrackHistoryAPI(request, env) {
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
-
-
-    const allMeta = await env.DB.prepare("SELECT isrc, title, artist FROM track_metadata").all();
     const queryNormTitle = normalizeTitle(title);
     const queryCleanArtist = getPrimaryArtist(artist);
 
-    const isrcs = (allMeta.results || [])
-        .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
-        .map(r => r.isrc).filter(Boolean);
+    const allMeta = await env.DB.prepare("SELECT spotify_id, isrc, title, artist FROM track_metadata").all();
+    const targetIsrcs = new Set(
+        (allMeta.results || [])
+            .filter(r => normalizeTitle(r.title) === queryNormTitle && getPrimaryArtist(r.artist) === queryCleanArtist)
+            .map(r => r.isrc)
+            .filter(Boolean)
+    );
 
-    // With delta compression, we need to join every snapshot against the latest song data up to that snapshot
     const { results: allSnaps } = await env.DB.prepare("SELECT id, timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC").bind(user.id).all();
-    const historyData = [];
+    
+    const { results: allUserSongs } = await env.DB.prepare(`
+        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+        FROM snapshot_songs ss
+        JOIN snapshots s ON ss.snapshot_id = s.id
+        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+        WHERE s.user_id = ?
+        ORDER BY s.id ASC
+    `).bind(user.id).all();
 
-    const isrcList = isrcs.map(i => `'${i}'`).join(',');
-    const isrcClause = isrcs.length > 0 ? `OR (tm.isrc IN (${isrcList}))` : '';
-    
-    let sqlAllChanges = `
-        SELECT ss.title, ss.artist, ss.spotify_id, ss.views, s.id as snapshot_id, s.timestamp
-        FROM snapshot_songs ss JOIN snapshots s ON ss.snapshot_id = s.id LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
-        WHERE s.user_id = ? AND (
-            (LOWER(ss.title) = LOWER(?) AND LOWER(ss.artist) = LOWER(?))
-            ${isrcClause}
-        ) ORDER BY s.id ASC
-    `;
-    const { results: allMatches } = await env.DB.prepare(sqlAllChanges).bind(user.id, title.trim(), artist.trim()).all();
-    
+    const matchingChanges = (allUserSongs || []).filter(s => {
+        if (s.isrc && targetIsrcs.has(s.isrc)) return true;
+        const normT = normalizeTitle(s.meta_title || s.title);
+        const primA = getPrimaryArtist(s.meta_artist || s.artist);
+        return normT === queryNormTitle && primA === queryCleanArtist;
+    });
+
+    const historyData = [];
     let trackState = new Map();
     let historyIndex = 0;
-    
+
     for (const snap of (allSnaps || [])) {
-        while (historyIndex < (allMatches || []).length && allMatches[historyIndex].snapshot_id <= snap.id) {
-            const m = allMatches[historyIndex];
-            const key = `${m.title}||${m.artist}||${m.spotify_id}`;
+        while (historyIndex < matchingChanges.length && matchingChanges[historyIndex].snapshot_id <= snap.id) {
+            const m = matchingChanges[historyIndex];
+            const key = m.spotify_id || `${normalizeTitle(m.meta_title || m.title)}||${getPrimaryArtist(m.meta_artist || m.artist)}`;
             trackState.set(key, m.views);
             historyIndex++;
         }
-        
+
         let sumViews = 0;
         for (const v of trackState.values()) sumViews += v;
-        
+
         if (sumViews > 0) {
             historyData.push({ views: sumViews, timestamp: snap.timestamp });
         }
     }
-    
-    const results = historyData;
-    return new Response(JSON.stringify({ history: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+
+    return new Response(JSON.stringify({ history: historyData || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleActivityFeedAPI(request, env) {
@@ -1179,9 +1181,18 @@ async function fetchUserDataFromAPI(username, discordId = null) {
 
     let total_views = 0, songs = [];
     for (const item of (perUser?.makes || [])) {
-        total_views += (item.view_count || 0);
+        const views = item.view_count || 0;
+        total_views += views;
         const detail = tracksMap.get(item.id);
-        if (detail) songs.push({ spotify_id: item.id, title: detail.title, artist: detail.artist, isrc: detail.isrc, views: item.view_count || 0 });
+        const title = detail?.title || item.title || item.name || item.track_name || "Hidden";
+        const artist = detail?.artist || item.artist || item.artist_name || "SpicyLyrics";
+        songs.push({
+            spotify_id: item.id || "",
+            title,
+            artist,
+            isrc: detail?.isrc || null,
+            views
+        });
     }
 
     return { total_views, songs, tracksDetails, discord_id: userId, discord_avatar };
