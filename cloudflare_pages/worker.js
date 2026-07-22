@@ -414,19 +414,21 @@ async function handleUserDetailAPI(username, request, env) {
             SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
             FROM (
                 SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                       ROW_NUMBER() OVER(
+                           PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+                           ORDER BY s.id DESC
+                       ) as rn
                 FROM snapshot_songs ss
                 JOIN snapshots s ON ss.snapshot_id = s.id
                 LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                 WHERE s.user_id = ? AND s.id <= ?
-            ) WHERE rn = 1
+            ) ss WHERE rn = 1
         `).bind(user.id, latestSnapshot.id).all();
         let latestRaw = dbLatestSongs || [];
 
         totalViews = latestSnapshot.total_views;
 
         let has24h = pastSnapshot !== undefined && pastSnapshot !== null;
-        growth24h = has24h ? totalViews - pastSnapshot.total_views : null;
 
         let pastRaw = [];
         if (has24h) {
@@ -434,33 +436,54 @@ async function handleUserDetailAPI(username, request, env) {
                 SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
                 FROM (
                     SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                           ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                           ROW_NUMBER() OVER(
+                               PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+                               ORDER BY s.id DESC
+                           ) as rn
                     FROM snapshot_songs ss
                     JOIN snapshots s ON ss.snapshot_id = s.id
                     LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                     WHERE s.user_id = ? AND s.id <= ?
-                ) WHERE rn = 1
+                ) ss WHERE rn = 1
             `).bind(user.id, pastSnapshot.id).all();
             if (pSongs) pastRaw = pSongs;
         }
 
-        const latestSongs = aggregateSongs(latestRaw);
-        const pastSongs = aggregateSongs(pastRaw);
-        totalSongs = latestSongs.length;
+        const pastMapBySpotifyId = new Map();
+        const pastMapByTextKey = new Map();
 
-        const findPastViews = (ls, pastSongsList) => {
-            for (const ps of pastSongsList) {
-                if (ls.isrc && ps.isrc && ls.isrc === ps.isrc) return ps.views;
-                if (ls.normTitle === ps.normTitle && ls.primaryArtist === ps.primaryArtist) return ps.views;
+        for (const ps of pastRaw) {
+            if (ps.spotify_id) {
+                pastMapBySpotifyId.set(ps.spotify_id, ps.views || 0);
             }
-            return null;
-        };
+            const normT = normalizeTitle(ps.meta_title || ps.title || "");
+            const primA = getPrimaryArtist(ps.meta_artist || ps.artist || "");
+            const textKey = `${normT}|||${primA}`;
+            if (!pastMapByTextKey.has(textKey)) {
+                pastMapByTextKey.set(textKey, ps.views || 0);
+            }
+        }
 
-        finalSongs = latestSongs.map(s => {
-            const prev = findPastViews(s, pastSongs) ?? s.views;
-            const g = s.views - prev;
-            return { ...s, growth: g, pct: prev > 0 ? (g / prev) * 100 : 0 };
-        }).sort((a, b) => b.growth - a.growth);
+        const latestWithPrev = latestRaw.map(s => {
+            const normT = normalizeTitle(s.meta_title || s.title || "");
+            const primA = getPrimaryArtist(s.meta_artist || s.artist || "");
+            const textKey = `${normT}|||${primA}`;
+
+            let prevViews = null;
+            if (s.spotify_id && pastMapBySpotifyId.has(s.spotify_id)) {
+                prevViews = pastMapBySpotifyId.get(s.spotify_id);
+            } else if (pastMapByTextKey.has(textKey)) {
+                prevViews = pastMapByTextKey.get(textKey);
+            } else {
+                prevViews = s.views || 0;
+            }
+
+            return { ...s, prevViews };
+        });
+
+        finalSongs = aggregateSongs(latestWithPrev).sort((a, b) => b.growth - a.growth);
+        totalSongs = finalSongs.length;
+        growth24h = has24h ? finalSongs.reduce((sum, s) => sum + (s.growth || 0), 0) : null;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
         chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
@@ -1020,24 +1043,42 @@ function aggregateSongs(rawList) {
         if (isrcKey && groupsMap.has(isrcKey)) foundGroup = groupsMap.get(isrcKey);
         else if (groupsMap.has(textKey)) foundGroup = groupsMap.get(textKey);
 
-        const songInfo = { spotify_id: s.spotify_id, title, artist, normTitle, primaryArtist, cleanArtist: artist.toLowerCase(), isrc, views: s.views || 0 };
+        const views = s.views || 0;
+        const prevViews = s.prevViews !== undefined && s.prevViews !== null ? s.prevViews : views;
+
+        const songInfo = { spotify_id: s.spotify_id, title, artist, normTitle, primaryArtist, cleanArtist: artist.toLowerCase(), isrc, views, prevViews };
 
         if (foundGroup) {
             foundGroup.songs.push(songInfo);
             foundGroup.views += songInfo.views;
+            foundGroup.prevViews += songInfo.prevViews;
             if (title.length < foundGroup.title.length) foundGroup.title = title;
             if (artist.length < foundGroup.artist.length) foundGroup.artist = artist;
             if (isrcKey && !groupsMap.has(isrcKey)) groupsMap.set(isrcKey, foundGroup);
             if (!groupsMap.has(textKey)) groupsMap.set(textKey, foundGroup);
         } else {
-            const newGroup = { songs: [songInfo], views: songInfo.views, title, artist };
+            const newGroup = { songs: [songInfo], views: songInfo.views, prevViews: songInfo.prevViews, title, artist };
             groups.push(newGroup);
             if (isrcKey) groupsMap.set(isrcKey, newGroup);
             groupsMap.set(textKey, newGroup);
         }
     }
 
-    return groups.map(g => ({ title: g.title, artist: g.artist, views: g.views, spotify_id: g.songs[0].spotify_id, isrc: g.songs.find(x => x.isrc)?.isrc || null, normTitle: g.songs[0].normTitle, primaryArtist: g.songs[0].primaryArtist }));
+    return groups.map(g => {
+        const growth = g.views - g.prevViews;
+        const pct = g.prevViews > 0 ? (growth / g.prevViews) * 100 : 0;
+        return {
+            title: g.title,
+            artist: g.artist,
+            views: g.views,
+            growth: growth,
+            pct: pct,
+            spotify_id: g.songs[0].spotify_id,
+            isrc: g.songs.find(x => x.isrc)?.isrc || null,
+            normTitle: g.songs[0].normTitle,
+            primaryArtist: g.songs[0].primaryArtist
+        };
+    });
 }
 
 async function deleteUserFromDB(userId, env) {
