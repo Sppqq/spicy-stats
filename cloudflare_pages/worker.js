@@ -1,5 +1,9 @@
 // Build trigger: v1.0.1 - Notifications Update
-const IMPORT_SECRET = "Spicy_Admin_#7f8c9b2d4e1a0673f8b9d07c01a2f3e4";
+function verifyAdminSecret(secret, env) {
+    const expectedSecret = env?.ADMIN_SECRET || env?.IMPORT_SECRET;
+    if (!expectedSecret || !secret) return false;
+    return secret === expectedSecret;
+}
 
 // ==========================================
 // ГЛОБАЛЬНЫЙ КЭШ ДЛЯ CPU-ОПТИМИЗАЦИИ (МЕМОИЗАЦИЯ)
@@ -583,7 +587,7 @@ async function handleActivityFeedAPI(request, env) {
 
 async function handleAdminStats(request, env) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 
     const userCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM users").first();
     const snapshotCount = await env.DB.prepare("SELECT COUNT(*) as cnt FROM snapshots").first();
@@ -636,7 +640,7 @@ async function handleAdminStats(request, env) {
 
 async function handleAdminExportUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...getCorsHeaders(request, env) } });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...getCorsHeaders(request, env) } });
     if (!username) return new Response(JSON.stringify({ error: "Username required" }), { status: 400, headers: { ...getCorsHeaders(request, env) } });
 
     const cleanName = username.trim().replace(/^@/, "");
@@ -676,7 +680,7 @@ async function handleAdminExportUser(request, env) {
 
 async function handleAdminSyncProdDb(request, env) {
     const { secret, table, lastRowid } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
     if (!table) return new Response(JSON.stringify({ error: "Table parameter required." }), { status: 400, headers: getCorsHeaders(request, env) });
 
@@ -742,7 +746,7 @@ async function handleAdminSyncProdDb(request, env) {
 
 async function handleAdminScrapeUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -758,7 +762,7 @@ async function handleAdminScrapeUser(request, env) {
 
 async function handleAdminScrapeAll(request, env, ctx) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     ctx.waitUntil(triggerGlobalScrape(env));
     await logAction(env, "global_scrape", "Global scraper run triggered manually", request);
@@ -813,13 +817,13 @@ async function triggerGlobalScrape(env) {
 
 async function handleAdminLogs(request, env) {
     const { secret } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     return new Response(JSON.stringify({ logs: [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 async function handleAdminPopulateMetadata(request, env, ctx) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         if (username) {
             await populateMetadataCache(env, username);
@@ -889,7 +893,7 @@ async function populateMetadataCache(env, targetUsername = null) {
 
 async function handleAdminDeleteUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
     if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: getCorsHeaders(request, env) });
@@ -903,7 +907,7 @@ async function handleAdminDeleteUser(request, env) {
 
 async function handleAdminMergeUsers(request, env) {
     const { secret, sourceUsername, targetUsername } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
 
     const sourceClean = sourceUsername.trim().replace(/^@/, "");
     const targetClean = targetUsername.trim().replace(/^@/, "");
@@ -924,7 +928,7 @@ async function handleAdminMergeUsers(request, env) {
 
 async function handleAdminSearchMetadata(request, env) {
     const { secret, query } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const searchQuery = `%${(query || "").trim()}%`;
         const { results } = await env.DB.prepare(`SELECT spotify_id, title, artist, isrc, created_at FROM track_metadata WHERE title LIKE ? OR artist LIKE ? OR isrc LIKE ? OR spotify_id LIKE ? LIMIT 50`).bind(searchQuery, searchQuery, searchQuery, searchQuery).all();
@@ -934,7 +938,7 @@ async function handleAdminSearchMetadata(request, env) {
 
 async function handleAdminUpdateMetadata(request, env) {
     const { secret, spotify_id, title, artist, isrc } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     if (!spotify_id) return new Response(JSON.stringify({ error: "Spotify ID required" }), { status: 400, headers: getCorsHeaders(request, env) });
     try {
         const cleanTitle = (title || "").trim();
@@ -948,7 +952,7 @@ async function handleAdminUpdateMetadata(request, env) {
 
 async function handleAdminPruneSnapshots(request, env) {
     const { secret, count, userId } = await request.json().catch(() => ({}));
-    if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
     try {
         const pruneCount = count || 3;
         let totalPruned = 0;
@@ -972,7 +976,7 @@ async function handleAdminPruneSnapshots(request, env) {
 async function handleImport(request, env) {
     try {
         const { secret, username, history } = await request.json();
-        if (secret !== IMPORT_SECRET) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: getCorsHeaders(request, env) });
+        if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Access Denied" }), { status: 401, headers: getCorsHeaders(request, env) });
 
         const cleanName = username.trim().replace(/^@/, "");
         let user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -1331,7 +1335,7 @@ async function handleGetNotificationSettings(request, env) {
 async function handleSaveNotificationSettings(request, env) {
     try {
         const { secret, enabled, type, title, message, style_template } = await request.json().catch(() => ({}));
-        if (secret !== IMPORT_SECRET) {
+        if (!verifyAdminSecret(secret, env)) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
