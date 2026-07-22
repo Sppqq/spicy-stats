@@ -1320,9 +1320,10 @@
     </div>
 
     <script>
-        const API_BASE = (window.location.hostname.includes('dev') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))
-            ? 'https://dev-api.glyph-labs.site/api'
-            : 'https://spicy-api.glyph-labs.site/api';
+        const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
+        const API_BASE = isDevEnv
+             ? 'https://dev-api.glyph-labs.site/api'
+             : 'https://spicy-api.glyph-labs.site/api';
 
         function generateSignature(path, timestamp) {
             const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
