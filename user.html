@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Spicy Monitor — Real-time performance tracking and audience growth analytics for your favorite creators, tracks, and audio catalogs.">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/png" href="/icon.png">
     <title>Spicy Monitor — Profile</title>
 
@@ -1326,6 +1328,16 @@
     </div>
 
     <script>
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
         const API_BASE = isDevEnv
              ? 'https://dev-api.glyph-labs.site/api'
@@ -2550,7 +2562,7 @@
                     const trackRow = document.createElement('div');
                     trackRow.innerHTML = `
                         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${track.title}">${track.title}</span>
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</span>
                             <strong style="font-family: 'DM Mono', monospace; font-size: 10px;">${pct}%</strong>
                         </div>
                         <div style="width: 100%; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden;">
