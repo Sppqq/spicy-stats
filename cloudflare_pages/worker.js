@@ -254,7 +254,7 @@ export default {
             else if (url.pathname === "/api/admin/notification-settings" && request.method === "POST") response = await handleSaveNotificationSettings(request, env);
             else response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
         } catch (err) {
-            response = new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+            response = new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { "Content-Type": "application/json" } });
         }
 
         const finalHeaders = new Headers(response.headers);
@@ -1023,7 +1023,7 @@ async function handleImport(request, env) {
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
-function handleExport() {
+function handleExport(request, env) {
     return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: getCorsHeaders(request, env) });
 }
 

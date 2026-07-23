@@ -2636,7 +2636,7 @@
 
             const items = events.map(ev => {
                 let timeStr = timeAgo(ev.created_at);
-                let txt = formatTickerText(localizeTickerText(ev));
+                let txt = formatTickerText(escapeHtml(localizeTickerText(ev)));
                 if (ev.action_type === 'milestone_reached') {
                     return `<span style="color: var(--green); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
                 } else if (ev.action_type === 'new_track') {
@@ -2905,7 +2905,7 @@
                 legendItem.className = 'legend-item';
                 legendItem.innerHTML = `
                     <span class="legend-color" style="background: ${color}"></span>
-                    <span style="font-weight: bold; color: var(--ink);">@${u.username}</span>
+                    <span style="font-weight: bold; color: var(--ink);">@${escapeHtml(u.username)}</span>
                     <span style="color: var(--muted);">(${formatViews(u.views)})</span>
                 `;
                 legend.appendChild(legendItem);
@@ -2985,7 +2985,7 @@
                 row.innerHTML = `
                     <span class="rank" style="font-size: 14px; font-weight: 800; color: var(--green);">🏆</span>
                     <span>
-                        <div class="author-name">@${u.username}</div>
+                        <div class="author-name">@${escapeHtml(u.username)}</div>
                         <div class="milestone-progress-container">
                             <div class="milestone-progress-bar" style="width: ${item.pct.toFixed(1)}%"></div>
                         </div>
@@ -3054,7 +3054,7 @@
                 row.innerHTML = `
                     <span class="rank">${rank}</span>
                     <span>
-                        <div class="author-name">@${u.username}</div>
+                        <div class="author-name">@${escapeHtml(u.username)}</div>
                         <div class="author-subtitle">
                             ${u.total_songs === null || u.total_songs === undefined
                                 ? 'Track count unavailable'
@@ -3251,12 +3251,12 @@
                 row.innerHTML = `
                     <td class="cell-number">${u.rank || (idx + 1)}</td>
                     <td class="cell-actions" onclick="event.stopPropagation();">
-                        <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')">★</span>
-                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)">
+                        <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${escapeHtml(u.username)}')">★</span>
+                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${escapeHtml(u.username)}', this.checked)">
                     </td>
                     <td class="table-user">
-                        <div>@${u.username}</div>
-                        ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${u._matchedTrack}</div>` : ''}
+                        <div>@${escapeHtml(u.username)}</div>
+                        ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${escapeHtml(u._matchedTrack)}</div>` : ''}
                     </td>
                     <td>${formatFullNumber(Number(u.views || 0))}</td>
                     <td class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">
@@ -3508,8 +3508,8 @@
                     overlay.innerHTML = `
                         <div style="max-width: 500px; width: 100%; background: var(--white); border: 1px solid var(--line); border-top: 4px solid ${accentColor}; padding: 40px 32px; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 50px ${glowColor}; animation: fadeIn 0.4s ease-out;">
                             <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 0 10px ${accentColor}44);">${icon}</div>
-                            <h1 style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;">${title}</h1>
-                            <p style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;">${message}</p>
+                            <h1 style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;">${escapeHtml(title)}</h1>
+                            <p style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;">${escapeHtml(message)}</p>
                             <div style="display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: ${accentColor}; border: 1px solid ${accentColor}33; padding: 6px 14px; border-radius: 4px; background: ${accentColor}0a;">
                                 <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${accentColor}; animation: pulse 1.5s infinite;"></span>
                                 Временные технические работы
@@ -3550,8 +3550,8 @@
                     toast.innerHTML = `
                         <div style="font-size: 20px; flex-shrink: 0; margin-top: 2px;">${icon}</div>
                         <div style="flex-grow: 1; padding-right: 12px;">
-                            <h4 style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">${title}</h4>
-                            <p style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;">${message}</p>
+                            <h4 style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">${escapeHtml(title)}</h4>
+                            <p style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;">${escapeHtml(message)}</p>
                         </div>
                         <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">✕</button>
                         <style>

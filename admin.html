@@ -1028,7 +1028,7 @@
 
         // Authentication Handlers
         function checkAuth() {
-            const savedSecret = localStorage.getItem('spicy-admin-secret');
+            const savedSecret = sessionStorage.getItem('spicy-admin-secret');
             if (savedSecret) {
                 adminSecret = savedSecret;
                 document.getElementById('auth-overlay').style.display = 'none';
@@ -1058,7 +1058,7 @@
                 });
 
                 if (res.ok) {
-                    localStorage.setItem('spicy-admin-secret', secret);
+                    sessionStorage.setItem('spicy-admin-secret', secret);
                     adminSecret = secret;
                     document.getElementById('auth-overlay').style.display = 'none';
                     document.getElementById('admin-page').style.display = 'block';
@@ -1176,19 +1176,19 @@
             systemData.users.forEach(u => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="table-user">@${u.username}</td>
+                    <td class="table-user">@${escapeHtml(u.username)}</td>
                     <td>${formatFullNumber(u.views)}</td>
                     <td style="font-family: 'DM Mono', monospace;">${u.snap_count}</td>
                     <td style="font-family: 'DM Mono', monospace;">${u.song_count}</td>
                     <td class="table-muted">${timeAgo(u.last_updated)}</td>
                     <td style="text-align: right; white-space: nowrap;">
-                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${u.username}')">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${escapeHtml(u.username)}')">
                             Export
                         </button>
-                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${u.username}')">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${escapeHtml(u.username)}')">
                             Scrape Now
                         </button>
-                        <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${u.username}')">
+                        <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${escapeHtml(u.username)}')">
                             Delete
                         </button>
                     </td>
@@ -1776,7 +1776,7 @@
         }
 
         function lockPanel() {
-            localStorage.removeItem('spicy-admin-secret');
+            sessionStorage.removeItem('spicy-admin-secret');
             adminSecret = '';
             checkAuth();
         }
