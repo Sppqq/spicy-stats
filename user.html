@@ -3324,8 +3324,8 @@
                     overlay.innerHTML = `
                         <div style="max-width: 500px; width: 100%; background: var(--white); border: 1px solid var(--line); border-top: 4px solid ${accentColor}; padding: 40px 32px; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 50px ${glowColor}; animation: fadeIn 0.4s ease-out;">
                             <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 0 10px ${accentColor}44);">${icon}</div>
-                            <h1 style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;">${title}</h1>
-                            <p style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;">${message}</p>
+                            <h1 id="maintenance-title" style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;"></h1>
+                            <p id="maintenance-message" style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;"></p>
                             <div style="display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: ${accentColor}; border: 1px solid ${accentColor}33; padding: 6px 14px; border-radius: 4px; background: ${accentColor}0a;">
                                 <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${accentColor}; animation: pulse 1.5s infinite;"></span>
                                 Временные технические работы
@@ -3336,6 +3336,8 @@
                             @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
                         </style>
                     `;
+                    overlay.querySelector('#maintenance-title').textContent = title;
+                    overlay.querySelector('#maintenance-message').textContent = message;
                     document.body.appendChild(overlay);
                     document.body.style.overflow = 'hidden';
                 } else if (type === 'banner') {
@@ -3366,14 +3368,16 @@
                     toast.innerHTML = `
                         <div style="font-size: 20px; flex-shrink: 0; margin-top: 2px;">${icon}</div>
                         <div style="flex-grow: 1; padding-right: 12px;">
-                            <h4 style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">${title}</h4>
-                            <p style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;">${message}</p>
+                            <h4 id="toast-title" style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;"></h4>
+                            <p id="toast-message" style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;"></p>
                         </div>
                         <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">✕</button>
                         <style>
                             @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
                         </style>
                     `;
+                    toast.querySelector('#toast-title').textContent = title;
+                    toast.querySelector('#toast-message').textContent = message;
                     document.body.appendChild(toast);
                     
                     window.dismissSpicyNotification = function(key) {
