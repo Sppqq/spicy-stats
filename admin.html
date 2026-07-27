@@ -859,7 +859,7 @@
     <!-- Confirm Delete Modal -->
     <div id="delete-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeDeleteModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeDeleteModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--coral);">Warning</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Delete Profile?</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
@@ -875,7 +875,7 @@
     <!-- Edit Metadata Modal -->
     <div id="metadata-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeMetadataModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeMetadataModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--blue);">Metadata Editor</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Edit Track Details</h2>
             
@@ -909,7 +909,7 @@
     <!-- Confirm Merge Modal -->
     <div id="merge-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeMergeModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeMergeModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--coral);">Warning</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Merge Profiles?</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
@@ -1896,7 +1896,7 @@
             } else {
                 innerHTML = `
                     <div style="background: var(--paper-dark); border-left: 4px solid ${accentColor}; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 4px; padding: 14px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 100%;">
-                        <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;">✕</button>
+                        <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;" aria-label="Close" title="Close">✕</button>
                         <div style="display: flex; gap: 10px; align-items: flex-start;">
                             <span style="font-size: 16px; margin-top: 2px;">${icon}</span>
                             <div style="padding-right: 14px;">
