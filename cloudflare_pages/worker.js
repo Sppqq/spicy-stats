@@ -2,7 +2,20 @@
 function verifyAdminSecret(secret, env) {
     const expectedSecret = env?.ADMIN_SECRET || env?.IMPORT_SECRET;
     if (!expectedSecret || !secret) return false;
-    return secret === expectedSecret;
+
+    const a = String(secret);
+    const b = String(expectedSecret);
+
+    // Constant-time string comparison to prevent timing attacks
+    let mismatch = a.length === b.length ? 0 : 1;
+    // Iterate over the length of the expected secret to avoid leaking the secret's length
+    for (let i = 0; i < b.length; i++) {
+        const charA = i < a.length ? a.charCodeAt(i) : 0;
+        const charB = b.charCodeAt(i);
+        mismatch |= charA ^ charB;
+    }
+
+    return mismatch === 0;
 }
 
 // ==========================================
