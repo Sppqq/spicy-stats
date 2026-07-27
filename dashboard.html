@@ -1537,7 +1537,7 @@
     <!-- Add Author Modal -->
     <div id="add-author-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button id="close-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button id="close-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="modal_eyebrow">Add New Profile</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="modal_title">Track new author</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;" data-i18n="modal_desc">
@@ -1567,7 +1567,7 @@
     <!-- Compare Modal -->
     <div id="compare-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
         <div class="compare-modal-content">
-            <button id="close-compare-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button id="close-compare-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="compare_title">Compare Authors</div>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 8px;" data-i18n="compare_desc">
                 Comparing daily view counts over the last 30 days.
@@ -3510,7 +3510,7 @@
                             <h4 id="toast-title" style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;"></h4>
                             <p id="toast-message" style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;"></p>
                         </div>
-                        <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+                        <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'" aria-label="Close" title="Close">✕</button>
                         <style>
                             @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
                         </style>
