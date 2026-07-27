@@ -3248,6 +3248,13 @@
                 toast.offsetHeight; // force reflow
                 toast.style.transform = 'translateY(0)';
                 toast.style.opacity = '1';
+
+                const hideToast = (t) => {
+                    t.style.opacity = '0';
+                    t.style.transform = 'translateY(100px)';
+                    setTimeout(() => { t.style.display = 'none'; }, 300);
+                };
+
                 yesBtn.addEventListener('click', () => {
                     localStorage.setItem('spicy-lang-suggested', 'true');
                     applyLanguage(browserLang);
@@ -3451,6 +3458,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.7 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed issue where the auto language suggestion toast would not dismiss correctly.</li>
+                        <li>Fixed the author comparison selection window appearing partially on mobile devices even when closed.</li>
+                    </ul>
+                </div>
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.6 (2026-07-27)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
