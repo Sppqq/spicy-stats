@@ -829,52 +829,90 @@ async function populateMetadataCache(env, targetUsername = null) {
     let bindParams = [];
     if (targetUsername) { query += " WHERE LOWER(username) = LOWER(?)"; bindParams.push(targetUsername); }
     const { results: users } = await env.DB.prepare(query).bind(...bindParams).all();
+    if (!users || users.length === 0) return;
+
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" };
 
-    for (const user of users) {
+    const processUser = async (user) => {
         try {
             let userId = user.discord_id;
             if (!userId) {
                 const response = await fetch(`https://spicylyrics.org/${user.username}`, { headers });
-                if (!response.ok) continue;
+                if (!response.ok) return { user, tracksDetails: [] };
                 const html = await response.text();
-                // Легкий поиск
                 const match = html.match(/avatars\/(\d{17,21})\//) || html.match(/"userId"\s*:\s*"?(\d{17,21})"?/);
                 if (match) userId = match[1];
             }
-            if (!userId) continue;
+            if (!userId) return { user, tracksDetails: [] };
 
             const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
-            if (!tracksRes.ok) continue;
-            const tracksDetails = (await tracksRes.json()).result?.data?.json?.data || [];
+            if (!tracksRes.ok) return { user, tracksDetails: [] };
 
-            if (tracksDetails.length > 0) {
-                const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
-                const batch = tracksDetails.map(track => {
-                    if (!track) return null;
-                    const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-                    return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
-                }).filter(Boolean);
-                if (batch.length > 0) await env.DB.batch(batch);
-            }
+            const jsonRes = await tracksRes.json();
+            const tracksDetails = jsonRes.result?.data?.json?.data || [];
+            return { user, tracksDetails };
+        } catch (err) {
+            return { user, tracksDetails: [] };
+        }
+    };
 
-            const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
-            if (latestSnap) {
-                const { results: snapSongs } = await env.DB.prepare(`
-                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                    FROM (
-                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                               ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
-                        FROM snapshot_songs ss
-                        JOIN snapshots s ON ss.snapshot_id = s.id
-                        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
-                        WHERE s.user_id = ?
-                    ) ss WHERE rn = 1
-                `).bind(user.id).all();
-                const uniqueSongs = aggregateSongs(snapSongs);
-                await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
+    // Chunk size 20 to prevent hitting API limits and exhausting D1 concurrent connections
+    const CHUNK_SIZE = 20;
+    const D1_MAX_BATCH = 100;
+
+    for (let i = 0; i < users.length; i += CHUNK_SIZE) {
+        const chunk = users.slice(i, i + CHUNK_SIZE);
+
+        // 1. Fetch external data concurrently
+        const fetchedData = await Promise.all(chunk.map(processUser));
+
+        // 2. Batch track_metadata insertions
+        let allBatches = [];
+        const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
+
+        for (const data of fetchedData) {
+            if (!data || !data.tracksDetails || data.tracksDetails.length === 0) continue;
+
+            const userBatch = data.tracksDetails.map(track => {
+                if (!track) return null;
+                const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
+                return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
+            }).filter(Boolean);
+
+            allBatches.push(...userBatch);
+        }
+
+        if (allBatches.length > 0) {
+            for (let j = 0; j < allBatches.length; j += D1_MAX_BATCH) {
+                await env.DB.batch(allBatches.slice(j, j + D1_MAX_BATCH)).catch(() => {});
             }
-        } catch (err) {}
+        }
+
+        // 3. Update snapshots concurrently
+        const snapshotPromises = fetchedData.map(async (data) => {
+            try {
+                if (!data || !data.user) return;
+                const user = data.user;
+                const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
+                if (latestSnap) {
+                    const { results: snapSongs } = await env.DB.prepare(`
+                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                        FROM (
+                            SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                                   ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                            FROM snapshot_songs ss
+                            JOIN snapshots s ON ss.snapshot_id = s.id
+                            LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                            WHERE s.user_id = ?
+                        ) ss WHERE rn = 1
+                    `).bind(user.id).all();
+                    const uniqueSongs = aggregateSongs(snapSongs);
+                    await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
+                }
+            } catch (err) {}
+        });
+
+        await Promise.all(snapshotPromises);
     }
 }
 
