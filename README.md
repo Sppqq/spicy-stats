@@ -160,4 +160,4 @@ Open `http://localhost:3000` to access the application.
 
 ## 📄 License
 
-This repository is proprietary. Unauthorized redistribution or scraping is strictly prohibited.
+This is an open-source project. Contributions are welcome! Pull requests are preferred, but clones are also welcome.
