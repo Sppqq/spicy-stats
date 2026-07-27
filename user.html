@@ -946,6 +946,8 @@
             .panel-heading { flex-direction: column; align-items: flex-start !important; gap: 10px; }
             .timeframe-selector { width: 100%; justify-content: space-between; }
             .timeframe-btn { flex: 1; text-align: center; padding: 6px; }
+
+            .mini-stats-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 440px) {
@@ -1189,26 +1191,11 @@
                         <path id="profile-chart-line-path"
                             d=""
                             fill="none" stroke="var(--blue)" stroke-width="4" vector-effect="non-scaling-stroke" />
-
-                        <path id="profile-chart-tracks-path"
-                            d=""
-                            fill="none" stroke="var(--green)" stroke-width="2" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" style="display: none;" />
                     </svg>
 
                     <div class="chart-labels" id="profile-chart-labels">
                         <span></span>
                     </div>
-                </div>
-                <div style="display: flex; justify-content: center; gap: 8px; margin-top: 12px; font-family: 'DM Mono', monospace; font-size: 10px;">
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: var(--ink);">
-                        <input type="radio" name="chart-mode" value="views" checked style="accent-color: var(--blue);" onchange="renderChart()"> <span data-i18n="views">Views</span>
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: var(--ink);">
-                        <input type="radio" name="chart-mode" value="tracks" style="accent-color: var(--green);" onchange="renderChart()"> <span data-i18n="tracks">Tracks</span>
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: var(--ink);">
-                        <input type="radio" name="chart-mode" value="both" style="accent-color: var(--ink);" onchange="renderChart()"> <span data-i18n="both_chart">Both</span>
-                    </label>
                 </div>
             </section>
 
@@ -1460,7 +1447,6 @@
                 avg_views: "Avg views / track",
                 active_tracks: "Active tracks (24h)",
                 total_growth: "Total growth",
-                both_chart: "Both",
                 next_milestone: "Next Milestone",
                 to_go: "to go for",
                 estimated: "Estimated:",
@@ -1582,7 +1568,6 @@
                 avg_views: "Ср. просмотров на трек",
                 active_tracks: "Активные треки (24ч)",
                 total_growth: "Общий рост",
-                both_chart: "Оба",
                 next_milestone: "Следующий юбилей",
                 to_go: "осталось до",
                 estimated: "Оценка:",
@@ -1704,7 +1689,6 @@
                 avg_views: "Сер. переглядів на трек",
                 active_tracks: "Активні треки (24г)",
                 total_growth: "Загальне зростання",
-                both_chart: "Обидва",
                 next_milestone: "Наступний ювілей",
                 to_go: "залишилося до",
                 estimated: "Оцінка:",
@@ -1826,7 +1810,6 @@
                 avg_views: "Durchschn. Aufrufe / Track",
                 active_tracks: "Aktive Tracks (24h)",
                 total_growth: "Gesamtwachstum",
-                both_chart: "Beide",
                 next_milestone: "Nächster Meilenstein",
                 to_go: "verbleibend bis",
                 estimated: "Geschätzt:",
@@ -1948,7 +1931,6 @@
                 avg_views: "Visualizzazioni medie / brano",
                 active_tracks: "Brani attivi (24h)",
                 total_growth: "Crescita totale",
-                both_chart: "Entrambi",
                 next_milestone: "Prossimo traguardo",
                 to_go: "mancanti per",
                 estimated: "Stimato:",
@@ -2070,7 +2052,6 @@
                 avg_views: "Śr. wyświetleń / utwór",
                 active_tracks: "Aktywne utwory (24h)",
                 total_growth: "Całkowity wzrost",
-                both_chart: "Oba",
                 next_milestone: "Kolejny cel",
                 to_go: "do",
                 estimated: "Szacowano:",
@@ -2885,44 +2866,16 @@
                 return { x, y, date: p.x, views: p.y };
             });
 
-            const chartMode = document.querySelector('input[name="chart-mode"]:checked')?.value || 'views';
+            let linePathStr = '';
+            scaledPoints.forEach((p, i) => {
+                const cmd = i === 0 ? 'M' : 'L';
+                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
+            });
 
-            const svgTracksLine = document.getElementById('profile-chart-tracks-path');
+            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
 
-            if (chartMode === 'views' || chartMode === 'both') {
-                let linePathStr = '';
-                scaledPoints.forEach((p, i) => {
-                    const cmd = i === 0 ? 'M' : 'L';
-                    linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
-                });
-                const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
-                svgArea.setAttribute('d', areaPathStr);
-                svgLine.setAttribute('d', linePathStr);
-                svgArea.style.display = 'block';
-                svgLine.style.display = 'block';
-            } else {
-                svgArea.style.display = 'none';
-                svgLine.style.display = 'none';
-            }
-
-            if (chartMode === 'tracks' || chartMode === 'both') {
-                const minTracks = Math.min(...points.map(p => p.tracks || 0));
-                const maxTracks = Math.max(...points.map(p => p.tracks || 0));
-                let tracksPathStr = '';
-                points.forEach((p, i) => {
-                    const timeVal = times[i];
-                    const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
-                    const y = height - paddingBottom - (((p.tracks || 0) - minTracks) / (maxTracks - minTracks || 1)) * chartHeight;
-                    const cmd = i === 0 ? 'M' : 'L';
-                    tracksPathStr += `${cmd} ${x.toFixed(1)} ${y.toFixed(1)} `;
-                    scaledPoints[i].trackY = y;
-                    scaledPoints[i].tracks = p.tracks;
-                });
-                svgTracksLine.setAttribute('d', tracksPathStr);
-                svgTracksLine.style.display = 'block';
-            } else {
-                svgTracksLine.style.display = 'none';
-            }
+            svgArea.setAttribute('d', areaPathStr);
+            svgLine.setAttribute('d', linePathStr);
 
             labelsContainer.innerHTML = '';
             const steps = 5;
@@ -2982,18 +2935,11 @@
                 const dateObj = parseUTCDate(closestPt.date);
                 const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
 
-                const chartMode = document.querySelector('input[name="chart-mode"]:checked')?.value || 'views';
-
                 tooltip.style.display = 'block';
-                let tooltipContent = `<div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>`;
-
-                if (chartMode === 'views' || chartMode === 'both') {
-                    tooltipContent += `<div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>`;
-                }
-                if (chartMode === 'tracks' || chartMode === 'both') {
-                    tooltipContent += `<div style="color: var(--green);">${dict.tracks}: ${closestPt.tracks || 0}</div>`;
-                }
-                tooltip.innerHTML = tooltipContent;
+                tooltip.innerHTML = `
+                    <div style="color: var(--green); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
+                    <div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>
+                `;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
                 const posX = ((closestPt.x / 800) * rect.width);
@@ -3767,8 +3713,8 @@
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.9 (2026-07-27)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
-                        <li>Added a toggle to the profile chart to view either Total Views, Tracks count, or both.</li>
-                        <li>Improved mobile layout and made the changelog button more obvious.</li>
+                        <li>Improved mobile layout across all pages.</li>
+                        <li>Made the changelog button more obvious in the footer.</li>
                     </ul>
                 </div>
                 <div style="margin-bottom: 16px;">

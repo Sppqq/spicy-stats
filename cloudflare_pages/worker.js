@@ -399,7 +399,7 @@ async function handleUserDetailAPI(username, request, env) {
 
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
-    const { results: history } = await env.DB.prepare("SELECT id, total_views, total_songs, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
+    const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
 
     // ИСПРАВЛЕНИЕ 1: Ищем снапшот, ближайший к 24 часам назад
     const pastSnapshot = await env.DB.prepare(`
@@ -496,7 +496,7 @@ async function handleUserDetailAPI(username, request, env) {
         totalSongs = finalSongs.length;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
-        chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views, tracks: h.total_songs }));
+        chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
     }
 
     // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)
