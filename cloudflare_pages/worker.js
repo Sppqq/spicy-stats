@@ -145,6 +145,15 @@ async function checkSchema(env) {
             VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
         `).run().catch(() => {});
 
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS missing_tracks_tracker (
+                user_id INTEGER,
+                song_key TEXT,
+                missing_count INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, song_key)
+            )
+        `).run().catch(() => {});
+
         schemaChecked = true;
     } catch (e) {}
 }
@@ -353,8 +362,8 @@ async function handleDashboardAPI(request, env) {
         u.username, ls.latest_views AS current_views, u.last_scraped_at AS last_updated, s_past.total_views AS past_views,
         (SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1) AS first_snapshot,
         s_past_7d.id AS past_7d_id,
-        COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id), 0) AS total_songs,
-        COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id), 0) AS total_songs_7d
+        COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id AND views >= 0), 0) AS total_songs,
+        COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id AND views >= 0), 0) AS total_songs_7d
     FROM users u
     LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
@@ -426,7 +435,7 @@ async function handleUserDetailAPI(username, request, env) {
                 JOIN snapshots s ON ss.snapshot_id = s.id
                 LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                 WHERE s.user_id = ? AND s.id <= ?
-            ) ss WHERE rn = 1
+            ) ss WHERE rn = 1 AND views >= 0
         `).bind(user.id, latestSnapshot.id).all();
         let latestRaw = dbLatestSongs || [];
 
@@ -451,7 +460,7 @@ async function handleUserDetailAPI(username, request, env) {
                     JOIN snapshots s ON ss.snapshot_id = s.id
                     LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                     WHERE s.user_id = ? AND s.id <= ?
-                ) ss WHERE rn = 1
+                ) ss WHERE rn = 1 AND views >= 0
             `).bind(user.id, pastSnapshot.id).all();
             if (pSongs) pastRaw = pSongs;
         }
@@ -563,7 +572,11 @@ async function handleTrackHistoryAPI(request, env) {
         while (historyIndex < matchingChanges.length && matchingChanges[historyIndex].snapshot_id <= snap.id) {
             const m = matchingChanges[historyIndex];
             const key = m.spotify_id || `${normalizeTitle(m.meta_title || m.title)}||${getPrimaryArtist(m.meta_artist || m.artist)}`;
-            trackState.set(key, m.views);
+            if (m.views < 0) {
+                trackState.delete(key);
+            } else {
+                trackState.set(key, m.views);
+            }
             historyIndex++;
         }
 
@@ -621,7 +634,7 @@ async function handleAdminStats(request, env) {
     `).all();
 
     const { results: songCounts } = await env.DB.prepare(`
-        SELECT id as snapshot_id, COALESCE(total_songs, (SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) FROM snapshot_songs WHERE snapshot_id = s.id)) as cnt
+        SELECT id as snapshot_id, COALESCE(total_songs, (SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) FROM snapshot_songs WHERE snapshot_id = s.id AND views >= 0)) as cnt
         FROM snapshots s WHERE id IN (SELECT MAX(id) FROM snapshots GROUP BY user_id)
     `).all();
 
@@ -666,7 +679,11 @@ async function handleAdminExportUser(request, env) {
         while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
             const s = songsList[songIdx];
             const key = `${s.title}||${s.artist}||${s.spotify_id}`;
-            state.set(key, s);
+            if (s.views < 0) {
+                state.delete(key);
+            } else {
+                state.set(key, s);
+            }
             songIdx++;
         }
         
@@ -917,7 +934,7 @@ async function populateMetadataCache(env, targetUsername = null) {
                             JOIN snapshots s ON ss.snapshot_id = s.id
                             LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                             WHERE s.user_id = ?
-                        ) ss WHERE rn = 1
+                        ) ss WHERE rn = 1 AND views >= 0
                     `).bind(user.id).all();
                     const uniqueSongs = aggregateSongs(snapSongs);
                     await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
@@ -1271,11 +1288,14 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     if (!data) return;
 
-    const prevSnap = await env.DB.prepare("SELECT id, total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
-    const oldViews = prevSnap ? prevSnap.total_views : 0;
+    const totalSongsCount = data.songs ? aggregateSongs(data.songs).length : 0;
 
-    // EARLY EXIT: Если просмотры не поменялись, просто выходим
-    if (prevSnap && oldViews === data.total_views) {
+    const prevSnap = await env.DB.prepare("SELECT id, total_views, total_songs FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
+    const oldViews = prevSnap ? prevSnap.total_views : 0;
+    const oldSongsCount = prevSnap ? prevSnap.total_songs : 0;
+
+    // EARLY EXIT: Если просмотры и количество треков не поменялись, просто выходим
+    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount) {
         return;
     }
 
@@ -1291,39 +1311,93 @@ async function scrapeAndSave(userId, username, discordId, env) {
         if (batch.length > 0) await env.DB.batch(batch);
     }
 
-    const totalSongsCount = aggregateSongs(data.songs).length;
-
     // Fetch latest known views for all songs for delta compression
     let latestSongsMap = new Map();
     if (prevSnap) {
         const { results: latestSongs } = await env.DB.prepare(`
-            SELECT title, artist, views
+            SELECT spotify_id, title, artist, views
             FROM (
-                SELECT ss.title, ss.artist, ss.views,
+                SELECT ss.spotify_id, ss.title, ss.artist, ss.views,
                        ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
                 FROM snapshot_songs ss
                 JOIN snapshots s ON ss.snapshot_id = s.id
                 WHERE s.user_id = ?
             )
-            WHERE rn = 1
+            WHERE rn = 1 AND views >= 0
         `).bind(userId).all();
         
         for (const ls of (latestSongs || [])) {
             const key = `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
-            latestSongsMap.set(key, ls.views);
+            latestSongsMap.set(key, ls);
         }
     }
 
+    const { results: trackerResults } = await env.DB.prepare("SELECT song_key, missing_count FROM missing_tracks_tracker WHERE user_id = ?").bind(userId).all();
+    const missingTracker = new Map((trackerResults || []).map(r => [r.song_key, r.missing_count]));
+
     const changedSongs = [];
+    const currentSongsMap = new Map();
+
     for (const song of data.songs) {
         const key = `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
-        const prevViews = latestSongsMap.get(key);
-        if (prevViews === undefined || prevViews !== song.views) {
+        currentSongsMap.set(key, song);
+
+        const prevSong = latestSongsMap.get(key);
+        if (prevSong === undefined || prevSong.views !== song.views) {
             changedSongs.push(song);
         }
     }
 
+    const trackerUpdates = [];
+    const trackerDeletes = [];
+
+    // Check for missing tracks
+    for (const [key, prevSong] of latestSongsMap.entries()) {
+        if (!currentSongsMap.has(key)) {
+            const currentMissingCount = missingTracker.get(key) || 0;
+            const newMissingCount = currentMissingCount + 1;
+
+            if (newMissingCount >= 2) {
+                // Track missing for 2 consecutive scrapes, mark as deleted
+                changedSongs.push({
+                    spotify_id: prevSong.spotify_id,
+                    title: prevSong.title,
+                    artist: prevSong.artist,
+                    views: -1
+                });
+                trackerDeletes.push(key);
+            } else {
+                trackerUpdates.push({ key, count: newMissingCount });
+            }
+        }
+    }
+
+    // Tracks that reappeared or were successfully deleted should be removed from tracker
+    for (const key of missingTracker.keys()) {
+        if (currentSongsMap.has(key)) {
+            trackerDeletes.push(key);
+        }
+    }
+
     try {
+        // Execute tracker updates/deletes in batches
+        const batches = [];
+        const deleteStmt = env.DB.prepare("DELETE FROM missing_tracks_tracker WHERE user_id = ? AND song_key = ?");
+        const upsertStmt = env.DB.prepare("INSERT OR REPLACE INTO missing_tracks_tracker (user_id, song_key, missing_count) VALUES (?, ?, ?)");
+
+        for (const key of trackerDeletes) {
+            batches.push(deleteStmt.bind(userId, key));
+        }
+        for (const update of trackerUpdates) {
+            batches.push(upsertStmt.bind(userId, update.key, update.count));
+        }
+
+        if (batches.length > 0) {
+            for (let i = 0; i < batches.length; i += 100) {
+                await env.DB.batch(batches.slice(i, i + 100)).catch(e => console.error("Tracker batch error:", e.message));
+            }
+        }
+
         await saveSnapshotWithRetry(userId, data.total_views, totalSongsCount, changedSongs, env);
     } catch (saveErr) {
         console.error(`Failed to save snapshot for user ${userId} (@${username}):`, saveErr.message);
