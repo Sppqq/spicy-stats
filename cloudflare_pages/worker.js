@@ -1294,8 +1294,11 @@ async function scrapeAndSave(userId, username, discordId, env) {
     const oldViews = prevSnap ? prevSnap.total_views : 0;
     const oldSongsCount = prevSnap ? prevSnap.total_songs : 0;
 
-    // EARLY EXIT: Если просмотры и количество треков не поменялись, просто выходим
-    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount) {
+    const pendingTracker = await env.DB.prepare("SELECT 1 FROM missing_tracks_tracker WHERE user_id = ? LIMIT 1").bind(userId).first();
+    const hasPending = !!pendingTracker;
+
+    // EARLY EXIT: Если просмотры и количество треков не поменялись и нет треков ожидающих удаления, просто выходим
+    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending) {
         return;
     }
 
