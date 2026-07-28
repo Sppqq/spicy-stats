@@ -1294,11 +1294,62 @@ async function scrapeAndSave(userId, username, discordId, env) {
     const oldViews = prevSnap ? prevSnap.total_views : 0;
     const oldSongsCount = prevSnap ? prevSnap.total_songs : 0;
 
-    const pendingTracker = await env.DB.prepare("SELECT 1 FROM missing_tracks_tracker WHERE user_id = ? LIMIT 1").bind(userId).first();
-    const hasPending = !!pendingTracker;
+    // Fetch latest known views for all songs for delta compression and tracking
+    let latestSongsMap = new Map();
+    if (prevSnap) {
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT spotify_id, title, artist, views
+            FROM (
+                SELECT ss.spotify_id, ss.title, ss.artist, ss.views,
+                       ROW_NUMBER() OVER(PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist))) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                WHERE s.user_id = ?
+            )
+            WHERE rn = 1 AND views >= 0
+        `).bind(userId).all();
 
-    // EARLY EXIT: Если просмотры и количество треков не поменялись и нет треков ожидающих удаления, просто выходим
-    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending) {
+        for (const ls of (latestSongs || [])) {
+            const key = ls.spotify_id || `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
+            latestSongsMap.set(key, ls);
+        }
+    }
+
+    const { results: trackerResults } = await env.DB.prepare("SELECT song_key, missing_count FROM missing_tracks_tracker WHERE user_id = ?").bind(userId).all();
+    const missingTracker = new Map((trackerResults || []).map(r => [r.song_key, r.missing_count]));
+
+    const changedSongs = [];
+    const currentSongsMap = new Map();
+
+    let hasNewTracks = false;
+
+    if (data.songs) {
+        for (const song of data.songs) {
+            const key = song.spotify_id || `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
+            currentSongsMap.set(key, song);
+
+            const prevSong = latestSongsMap.get(key);
+            if (prevSong === undefined || prevSong.views !== song.views) {
+                changedSongs.push(song);
+                if (prevSong === undefined) {
+                    hasNewTracks = true;
+                }
+            }
+        }
+    }
+
+    let hasMissingTracks = false;
+    for (const key of latestSongsMap.keys()) {
+        if (!currentSongsMap.has(key)) {
+            hasMissingTracks = true;
+            break;
+        }
+    }
+
+    const hasPending = missingTracker.size > 0;
+
+    // EARLY EXIT: Check if absolutely nothing changed (views, counts, no pending tracks, no missing tracks, no new tracks)
+    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending && !hasMissingTracks && !hasNewTracks) {
         return;
     }
 
@@ -1312,43 +1363,6 @@ async function scrapeAndSave(userId, username, discordId, env) {
             batch.push(stmt.bind(track.id, track.isrc || null, track.name || "Hidden", (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ")));
         }
         if (batch.length > 0) await env.DB.batch(batch);
-    }
-
-    // Fetch latest known views for all songs for delta compression
-    let latestSongsMap = new Map();
-    if (prevSnap) {
-        const { results: latestSongs } = await env.DB.prepare(`
-            SELECT spotify_id, title, artist, views
-            FROM (
-                SELECT ss.spotify_id, ss.title, ss.artist, ss.views,
-                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
-                FROM snapshot_songs ss
-                JOIN snapshots s ON ss.snapshot_id = s.id
-                WHERE s.user_id = ?
-            )
-            WHERE rn = 1 AND views >= 0
-        `).bind(userId).all();
-
-        for (const ls of (latestSongs || [])) {
-            const key = `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
-            latestSongsMap.set(key, ls);
-        }
-    }
-
-    const { results: trackerResults } = await env.DB.prepare("SELECT song_key, missing_count FROM missing_tracks_tracker WHERE user_id = ?").bind(userId).all();
-    const missingTracker = new Map((trackerResults || []).map(r => [r.song_key, r.missing_count]));
-
-    const changedSongs = [];
-    const currentSongsMap = new Map();
-
-    for (const song of data.songs) {
-        const key = `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
-        currentSongsMap.set(key, song);
-
-        const prevSong = latestSongsMap.get(key);
-        if (prevSong === undefined || prevSong.views !== song.views) {
-            changedSongs.push(song);
-        }
     }
 
     const trackerUpdates = [];
