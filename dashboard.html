@@ -333,6 +333,9 @@
             user-select: none;
             display: inline-block;
             vertical-align: middle;
+            background: transparent;
+            border: none;
+            padding: 0;
         }
 
         .star-btn.active {
@@ -3474,8 +3477,8 @@
                 row.innerHTML = `
                     <td class="cell-number">${u.rank || (idx + 1)}</td>
                     <td class="cell-actions" onclick="event.stopPropagation();">
-                        <span class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')">★</span>
-                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)">
+                        <button type="button" class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')" aria-label="Toggle favorite" aria-pressed="${isFavorite(u.username)}">★</button>
+                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)" aria-label="Compare @${u.username}">
                     </td>
                     <td class="table-user">
                         <div>@${u.username}</div>
