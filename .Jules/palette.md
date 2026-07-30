@@ -4,3 +4,6 @@
 ## 2024-05-14 - Semantic Buttons for Interactive Icons
 **Learning:** Interactive icons implemented as `<span>` with `onclick` handlers are invisible to screen readers and keyboard navigation. Using a semantic `<button>` provides built-in accessibility benefits.
 **Action:** When adding interactivity to icons, always use a semantic `<button type="button">` element with appropriate `aria-label` and `aria-pressed` (if applicable) attributes. Apply CSS resets (`background: transparent; border: none; padding: 0;`) to maintain visual appearance while gaining accessibility.
+## 2026-07-30 - Accessible Interactive Rows
+**Learning:** Interactive list items/rows implemented as `<div>` or `<tr>` with `onclick` handlers are inaccessible to keyboard users and screen readers.
+**Action:** Add `tabindex="0"`, `role="link"` (or `role="button"`), and a `keydown` event listener for Enter/Space to ensure full accessibility for these interactive elements, rather than converting them to buttons which might break or require custom CSS.
