@@ -1211,6 +1211,10 @@
                                 <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
                                 <span data-i18n="metric_tracks">Tracks</span>
                             </button>
+                            <button type="button" class="metric-btn" data-metric="delta" style="background: transparent; border: 1px solid transparent; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
+                                <span data-i18n="metric_delta">24h Growth</span>
+                            </button>
                         </div>
 
                         <div class="timeframe-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
@@ -1263,6 +1267,9 @@
                         <path id="profile-chart-tracks-line-path"
                             d=""
                             fill="none" stroke="var(--coral)" stroke-width="3" stroke-dasharray="6 3" vector-effect="non-scaling-stroke" />
+
+                        <!-- 24h Growth Delta Bars -->
+                        <g id="profile-chart-delta-bars"></g>
 
                         <!-- Milestone Markers -->
                         <g id="profile-chart-milestones"></g>
@@ -1395,7 +1402,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.18 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.19 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -1414,13 +1421,15 @@
         let profileData = null;
         let username = null;
         let chartTimeframe = 30;
-        let chartMetrics = { views: true, tracks: false };
+        let chartMetrics = { views: true, tracks: false, delta: false };
         try {
             const savedMetrics = localStorage.getItem('spicy-chart-metrics');
             if (savedMetrics) {
                 const parsed = JSON.parse(savedMetrics);
                 if (typeof parsed.views === 'boolean' && typeof parsed.tracks === 'boolean') {
-                    chartMetrics = parsed;
+                    chartMetrics.views = parsed.views;
+                    chartMetrics.tracks = parsed.tracks;
+                    if (typeof parsed.delta === 'boolean') chartMetrics.delta = parsed.delta;
                 }
             }
         } catch (e) {}
@@ -1457,7 +1466,7 @@
                 if (isActive) {
                     btn.classList.add('active');
                     btn.style.background = 'var(--line)';
-                    btn.style.color = m === 'views' ? 'var(--blue)' : 'var(--coral)';
+                    btn.style.color = m === 'views' ? 'var(--blue)' : (m === 'tracks' ? 'var(--coral)' : 'var(--green)');
                     btn.style.borderColor = 'var(--line)';
                     btn.style.fontWeight = '700';
                 } else {
@@ -1506,19 +1515,14 @@
                 btn.addEventListener('click', () => {
                     const metric = btn.dataset.metric;
                     if (metric === 'views') {
-                        if (chartMetrics.views && !chartMetrics.tracks) {
-                            chartMetrics.views = false;
-                            chartMetrics.tracks = true;
-                        } else {
-                            chartMetrics.views = !chartMetrics.views;
-                        }
+                        chartMetrics.views = !chartMetrics.views;
                     } else if (metric === 'tracks') {
-                        if (chartMetrics.tracks && !chartMetrics.views) {
-                            chartMetrics.tracks = false;
-                            chartMetrics.views = true;
-                        } else {
-                            chartMetrics.tracks = !chartMetrics.tracks;
-                        }
+                        chartMetrics.tracks = !chartMetrics.tracks;
+                    } else if (metric === 'delta') {
+                        chartMetrics.delta = !chartMetrics.delta;
+                    }
+                    if (!chartMetrics.views && !chartMetrics.tracks && !chartMetrics.delta) {
+                        chartMetrics[metric] = true;
                     }
                     try {
                         localStorage.setItem('spicy-chart-metrics', JSON.stringify(chartMetrics));
@@ -1687,6 +1691,7 @@
                 chart_sub_days: "Total views over the last {days} days",
                 metric_views: "Views",
                 metric_tracks: "Tracks",
+                metric_delta: "24h Growth",
                 toggle_milestones: "Milestones",
                 chart_sub_views: "Total views over the last {days} days",
                 chart_sub_tracks: "Total track count over the last {days} days",
@@ -1817,6 +1822,7 @@
                 chart_sub_days: "Общие просмотры за последние {days} дней",
                 metric_views: "Просмотры",
                 metric_tracks: "Кол-во треков",
+                metric_delta: "Рост 24ч",
                 toggle_milestones: "Отметки",
                 chart_sub_views: "Общее число просмотров за последние {days} дней",
                 chart_sub_tracks: "Количество треков за последние {days} дней",
@@ -3153,8 +3159,35 @@
                         : (showViews ? height - paddingBottom - 25 : paddingTop + chartHeight / 2);
                 }
 
-                return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks };
+                const prevViews = i > 0 ? normalizedPoints[i - 1].views : p.views;
+                const delta = Math.max(0, p.views - prevViews);
+
+                return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks, delta };
             });
+
+            const deltaContainer = document.getElementById('profile-chart-delta-bars');
+            if (deltaContainer) deltaContainer.innerHTML = '';
+
+            if (chartMetrics.delta && deltaContainer && scaledPoints.length >= 2) {
+                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
+                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.65);
+
+                scaledPoints.forEach(p => {
+                    if (p.delta <= 0) return;
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.45);
+                    const barY = height - paddingBottom - barHeight;
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
+                    rect.setAttribute('y', barY.toFixed(1));
+                    rect.setAttribute('width', barWidth.toFixed(1));
+                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
+                    rect.setAttribute('fill', 'var(--green)');
+                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('rx', '1.5');
+                    deltaContainer.appendChild(rect);
+                });
+            }
 
             if (showViews && svgViewsArea && svgViewsLine) {
                 let lineStr = '';
@@ -3531,9 +3564,15 @@
                     </div>`;
                 }
                 if (chartMetrics.tracks) {
-                    content += `<div style="display: flex; align-items: center; gap: 6px;">
+                    content += `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
                         <span>${dict.tracks || 'Tracks'}: <strong>${formatFullNumber(closestPt.tracks)}</strong></span>
+                    </div>`;
+                }
+                if (chartMetrics.delta) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
+                        <span>${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></span>
                     </div>`;
                 }
 
@@ -3867,8 +3906,33 @@
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
-                return { x, y, date: p.timestamp, views: p.views };
+                const prevViews = i > 0 ? points[i - 1].views : p.views;
+                const delta = Math.max(0, p.views - prevViews);
+                return { x, y, date: p.timestamp, views: p.views, delta };
             });
+
+            const deltaContainer = document.getElementById('track-chart-delta-bars');
+            if (deltaContainer) {
+                deltaContainer.innerHTML = '';
+                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
+                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+
+                scaledPoints.forEach(p => {
+                    if (p.delta <= 0) return;
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const barY = height - paddingBottom - barHeight;
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
+                    rect.setAttribute('y', barY.toFixed(1));
+                    rect.setAttribute('width', barWidth.toFixed(1));
+                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
+                    rect.setAttribute('fill', 'var(--green)');
+                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('rx', '1');
+                    deltaContainer.appendChild(rect);
+                });
+            }
 
             let linePathStr = '';
             scaledPoints.forEach((p, i) => {
@@ -3942,11 +4006,16 @@
                 const dateObj = parseUTCDate(closestPt.date);
                 const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
 
-                tooltip.style.display = 'block';
-                tooltip.innerHTML = `
+                let tooltipHtml = `
                     <div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
-                    <div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>
+                    <div>${dict.views}: <strong>${formatFullNumber(closestPt.views)}</strong></div>
                 `;
+                if (closestPt.delta !== undefined && closestPt.delta > 0) {
+                    tooltipHtml += `<div style="color: var(--green); margin-top: 2px;">${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></div>`;
+                }
+
+                tooltip.style.display = 'block';
+                tooltip.innerHTML = tooltipHtml;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
                 const posX = ((closestPt.x / 600) * rect.width);
@@ -4299,6 +4368,7 @@
                             <stop offset="100%" stop-color="var(--blue)" stop-opacity="0" />
                         </linearGradient>
                     </defs>
+                    <g id="track-chart-delta-bars"></g>
                     <path id="track-chart-area-path" d="" fill="url(#trackArea)" />
                     <path id="track-chart-line-path" d="" fill="none" stroke="var(--blue)" stroke-width="3" vector-effect="non-scaling-stroke" />
                 </svg>
@@ -4327,6 +4397,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.19 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added optional 24h Growth histogram bars overlay on user activity chart and track history charts.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.18 (2026-07-31)</strong>
