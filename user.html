@@ -1219,6 +1219,11 @@
                             <button type="button" class="timeframe-btn" data-val="90" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">90D</button>
                             <button type="button" class="timeframe-btn" data-val="all" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">ALL</button>
                         </div>
+
+                        <button type="button" id="milestone-toggle-btn" style="background: transparent; border: 1px solid var(--line); padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 4px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                            <span>⭐</span>
+                            <span data-i18n="toggle_milestones">Milestones</span>
+                        </button>
                         <div class="panel-meta" id="profile-chart-growth-header" style="font-weight: 700; font-family: 'DM Mono', monospace;">+0.0%</div>
                     </div>
                 </div>
@@ -1420,6 +1425,31 @@
             }
         } catch (e) {}
 
+        let chartShowMilestones = false;
+        try {
+            if (localStorage.getItem('spicy-chart-show-milestones') === 'true') {
+                chartShowMilestones = true;
+            }
+        } catch (e) {}
+
+        function updateMilestoneBtnUI() {
+            const btn = document.getElementById('milestone-toggle-btn');
+            if (!btn) return;
+            if (chartShowMilestones) {
+                btn.classList.add('active');
+                btn.style.background = 'var(--line)';
+                btn.style.color = 'var(--ink)';
+                btn.style.borderColor = 'var(--blue)';
+                btn.style.fontWeight = '700';
+            } else {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--muted)';
+                btn.style.borderColor = 'var(--line)';
+                btn.style.fontWeight = '400';
+            }
+        }
+
         function updateMetricBtnUI() {
             document.querySelectorAll('.metric-btn').forEach(btn => {
                 const m = btn.dataset.metric;
@@ -1517,6 +1547,20 @@
                     renderChart();
                 });
             });
+
+            // Milestone Toggle Binding
+            const milestoneBtn = document.getElementById('milestone-toggle-btn');
+            if (milestoneBtn) {
+                milestoneBtn.addEventListener('click', () => {
+                    chartShowMilestones = !chartShowMilestones;
+                    try {
+                        localStorage.setItem('spicy-chart-show-milestones', chartShowMilestones ? 'true' : 'false');
+                    } catch (e) {}
+                    updateMilestoneBtnUI();
+                    renderChart();
+                });
+            }
+            updateMilestoneBtnUI();
 
             // Register Service Worker for offline support / speed caching
             if ('serviceWorker' in navigator) {
@@ -1643,6 +1687,7 @@
                 chart_sub_days: "Total views over the last {days} days",
                 metric_views: "Views",
                 metric_tracks: "Tracks",
+                toggle_milestones: "Milestones",
                 chart_sub_views: "Total views over the last {days} days",
                 chart_sub_tracks: "Total track count over the last {days} days",
                 chart_sub_both: "Views & track count over the last {days} days",
@@ -1772,6 +1817,7 @@
                 chart_sub_days: "Общие просмотры за последние {days} дней",
                 metric_views: "Просмотры",
                 metric_tracks: "Кол-во треков",
+                toggle_milestones: "Отметки",
                 chart_sub_views: "Общее число просмотров за последние {days} дней",
                 chart_sub_tracks: "Количество треков за последние {days} дней",
                 chart_sub_both: "Просмотры и количество треков за последние {days} дней",
@@ -3297,6 +3343,8 @@
                                     y: curr.yViews,
                                     type: 'views',
                                     color: '#10b981',
+                                    icon: '⭐',
+                                    label: `${formatViews(threshold)}`,
                                     fullNote: `⭐ Milestone: Passed ${formatViews(threshold)} views!`
                                 });
                                 break;
@@ -3319,6 +3367,8 @@
                                     y: curr.yTracks,
                                     type: 'tracks',
                                     color: 'var(--coral)',
+                                    icon: '🎵',
+                                    label: `${threshold} ${trkSuffix}`,
                                     fullNote: `🎵 Milestone: Reached ${threshold} tracks!`
                                 });
                                 break;
@@ -3329,10 +3379,10 @@
 
                 // 3. Tracking Time Anniversaries ("Юбилеи отслеживания")
                 const anniversaries = [
-                    { days: 30, full: '1 Month Tracking Anniversary' },
-                    { days: 90, full: '3 Months Tracking Anniversary' },
-                    { days: 180, full: '6 Months Tracking Anniversary' },
-                    { days: 365, full: '1 Year Tracking Anniversary' }
+                    { days: 30, label: '1 Mo', full: '1 Month Tracking Anniversary' },
+                    { days: 90, label: '3 Mo', full: '3 Months Tracking Anniversary' },
+                    { days: 180, label: '6 Mo', full: '6 Months Tracking Anniversary' },
+                    { days: 365, label: '1 Yr', full: '1 Year Tracking Anniversary' }
                 ];
                 const dayMs = 86400000;
 
@@ -3356,6 +3406,8 @@
                             y: showViews ? pt.yViews : pt.yTracks,
                             type: 'anniversary',
                             color: '#8b5cf6',
+                            icon: '🎂',
+                            label: anniv.label,
                             fullNote: `🎂 ${anniv.full}`
                         });
                     }
@@ -3394,6 +3446,19 @@
                     circle.setAttribute('stroke', 'var(--paper)');
                     circle.setAttribute('stroke-width', '1.2');
                     milestoneContainer.appendChild(circle);
+
+                    // Render text label ONLY if user explicitly enabled milestone labels toggle
+                    if (chartShowMilestones) {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', evt.x.toFixed(1));
+                        text.setAttribute('y', Math.max(16, evt.y - 9).toFixed(1));
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('fill', evt.color);
+                        text.setAttribute('font-family', 'DM Mono');
+                        text.setAttribute('font-size', '9');
+                        text.setAttribute('font-weight', '700');
+                        text.textContent = `${evt.icon} ${evt.label}`;
+                        milestoneContainer.appendChild(text);
                 });
             }
 
