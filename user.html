@@ -3212,23 +3212,48 @@
             const rawPoints = profileData.chart_data;
             let points = rawPoints;
 
-            // 1. Адаптивная фильтрация по реальному времени
+            // 1. Адаптивная фильтрация по реальному времени со сниппет-интерполяцией на границе
+            let timeframeCutoff = null;
             if (chartTimeframe !== 'all' && rawPoints.length > 0) {
                 const lastPointDate = parseUTCDate(rawPoints[rawPoints.length - 1].x);
                 const lastTime = lastPointDate ? lastPointDate.getTime() : Date.now();
-                const cutoffTime = lastTime - (chartTimeframe * 24 * 60 * 60 * 1000);
+                timeframeCutoff = lastTime - (chartTimeframe * 24 * 60 * 60 * 1000);
 
-                points = rawPoints.filter(p => {
+                const firstAfterIdx = rawPoints.findIndex(p => {
                     const d = parseUTCDate(p.x);
-                    return d && d.getTime() >= cutoffTime;
+                    return d && d.getTime() >= timeframeCutoff;
                 });
 
-                // Захватываем одну точку до начала периода для красивого старта линии
-                if (points.length > 0 && points[0] !== rawPoints[0]) {
-                    const firstIncludedIndex = rawPoints.indexOf(points[0]);
-                    if (firstIncludedIndex > 0) {
-                        points.unshift(rawPoints[firstIncludedIndex - 1]);
+                if (firstAfterIdx > 0) {
+                    const prevPt = rawPoints[firstAfterIdx - 1];
+                    const nextPt = rawPoints[firstAfterIdx];
+                    const tPrev = parseUTCDate(prevPt.x).getTime();
+                    const tNext = parseUTCDate(nextPt.x).getTime();
+
+                    let interpViews = nextPt.views !== undefined ? nextPt.views : (nextPt.y || 0);
+                    let interpTracks = nextPt.tracks;
+
+                    if (tNext > tPrev) {
+                        const ratio = (timeframeCutoff - tPrev) / (tNext - tPrev);
+                        const vPrev = prevPt.views !== undefined ? prevPt.views : (prevPt.y || 0);
+                        const vNext = interpViews;
+                        interpViews = Math.round(vPrev + ratio * (vNext - vPrev));
+
+                        if (prevPt.tracks !== undefined && nextPt.tracks !== undefined) {
+                            interpTracks = Math.round(prevPt.tracks + ratio * (nextPt.tracks - prevPt.tracks));
+                        }
                     }
+
+                    const startPt = {
+                        x: new Date(timeframeCutoff).toISOString(),
+                        views: interpViews,
+                        tracks: interpTracks
+                    };
+                    points = [startPt, ...rawPoints.slice(firstAfterIdx)];
+                } else if (firstAfterIdx === 0) {
+                    points = [...rawPoints];
+                } else {
+                    points = [];
                 }
             }
 
@@ -3293,7 +3318,7 @@
                 const dateObj = parseUTCDate(p.x);
                 return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
             });
-            const minTime = Math.min(...times);
+            const minTime = (chartTimeframe !== 'all' && timeframeCutoff) ? timeframeCutoff : Math.min(...times);
             const maxTime = Math.max(...times);
             const timeRange = maxTime - minTime || 1;
 
