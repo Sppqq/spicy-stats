@@ -1512,12 +1512,12 @@
                             <tr>
                                 <th>#</th>
                                 <th>⚙</th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('username')"><span data-i18n="th_author">Author</span> <span id="sort-username"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('views')"><span data-i18n="th_views">Views</span> <span id="sort-views"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')"><span data-i18n="th_tracks">Tracks</span> <span id="sort-tracks"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')"><span data-i18n="th_7d">7d tracks</span> <span id="sort-tracks_growth_7d"></span></th>
-                                <th style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')"><span data-i18n="th_updated">Updated</span> <span id="sort-last_updated"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('username')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('username'); }"><span data-i18n="th_author">Author</span> <span id="sort-username"></span></th>
+                                <th role="columnheader" aria-sort="descending" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('views')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('views'); }"><span data-i18n="th_views">Views</span> <span id="sort-views"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('growth'); }"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks'); }"><span data-i18n="th_tracks">Tracks</span> <span id="sort-tracks"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks_growth_7d'); }"><span data-i18n="th_7d">7d tracks</span> <span id="sort-tracks_growth_7d"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('last_updated'); }"><span data-i18n="th_updated">Updated</span> <span id="sort-last_updated"></span></th>
                             </tr>
                         </thead>
 
@@ -3526,13 +3526,16 @@
             columns.forEach(col => {
                 const indicator = document.getElementById(`sort-${col}`);
                 if (indicator) {
+                    const thElement = indicator.closest('th');
                     if (sortColumn === col) {
                         indicator.textContent = sortDirection === 'asc' ? ' ▲' : ' ▼';
                         indicator.style.opacity = '1';
                         indicator.style.color = 'var(--blue)';
+                        if (thElement) thElement.setAttribute('aria-sort', sortDirection === 'asc' ? 'ascending' : 'descending');
                     } else {
                         indicator.textContent = '';
                         indicator.style.opacity = '0.3';
+                        if (thElement) thElement.setAttribute('aria-sort', 'none');
                     }
                 }
             });
