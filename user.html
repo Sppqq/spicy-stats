@@ -337,27 +337,32 @@
             margin-top: 4px;
         }
 
-        .tracks { padding: 7px 12px 12px; }
+        .tracks { padding: 7px 12px 12px; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
 
         .track {
             display: grid;
-            grid-template-columns: 32px 1fr auto;
+            grid-template-columns: 32px minmax(0, 1fr) auto;
             gap: 12px;
             align-items: center;
             padding: 15px 8px;
             border-bottom: 1px solid var(--paper-dark);
             transition: 140ms ease;
             cursor: pointer;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .track:hover { background: var(--paper-dark); }
         .track:last-child { border-bottom: 0; }
 
-        .track-number { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; }
-        .track-title { font-weight: 800; font-size: 13px; }
-        .track-artist { color: var(--muted); font-size: 11px; margin-top: 3px; }
-        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; }
-        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 3px; text-align: right; }
+        .track-info { min-width: 0; overflow: hidden; }
+        .track-number { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; flex-shrink: 0; }
+        .track-title { font-weight: 800; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .track-artist { color: var(--muted); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .track-stats-right { text-align: right; flex-shrink: 0; margin-left: 4px; }
+        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; white-space: nowrap; }
+        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 3px; text-align: right; white-space: nowrap; }
 
         .mini-card {
             padding: 24px;
@@ -934,7 +939,7 @@
         }
 
         @media (max-width: 620px) {
-            .page { padding: 17px; }
+            .page { padding: 12px; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
             .profile-title { align-items: flex-start; flex-direction: column; }
             .topbar .live-status { display: none; }
             .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
@@ -945,10 +950,21 @@
             [data-theme] .theme-option .theme-check { width: 18px; height: 18px; }
             [data-theme] .theme-dropdown { position: fixed; top: 68px; right: 12px; left: 12px; width: auto; max-height: calc(100dvh - 80px); overflow-y: auto; transform-origin: top center; }
 
+            .panel { overflow-x: hidden; max-width: 100%; box-sizing: border-box; }
+            .tracks { padding: 4px 6px 8px; }
+            .track { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; padding: 11px 4px; }
+            .track-number { font-size: 10px; }
+            .track-title { font-size: 12px; }
+            .track-artist { font-size: 10px; }
+            .track-views { font-size: 10px; }
+            .track-growth { font-size: 9px; }
+
             .chart-wrap { padding: 12px 10px 10px; }
             .chart { height: 140px; }
 
             .panel-heading { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            .metric-selector { width: 100%; justify-content: space-between; }
+            .metric-btn { flex: 1; justify-content: center; }
             .timeframe-selector { width: 100%; justify-content: space-between; }
             .timeframe-btn { flex: 1; text-align: center; padding: 6px; }
 
@@ -1358,7 +1374,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.15 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.16 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3163,6 +3179,8 @@
             if (gridContainer) gridContainer.innerHTML = '';
             if (milestoneContainer) milestoneContainer.innerHTML = '';
 
+            const activeMilestoneNotes = {};
+
             const gridPoints = [];
             const startDate = new Date(minTime);
             const endDate = new Date(maxTime);
@@ -3211,11 +3229,32 @@
                     line.setAttribute('y1', '0');
                     line.setAttribute('x2', gp.x.toFixed(1));
                     line.setAttribute('y2', height.toString());
-                    line.setAttribute('stroke', gp.isFirstOfMonth ? 'var(--blue)' : 'var(--line)');
-                    line.setAttribute('stroke-opacity', gp.isFirstOfMonth ? '0.45' : '0.2');
-                    line.setAttribute('stroke-dasharray', gp.isFirstOfMonth ? '4 2' : '2 4');
-                    line.setAttribute('vector-effect', 'non-scaling-stroke');
-                    gridContainer.appendChild(line);
+
+                    if (gp.isFirstOfMonth) {
+                        line.setAttribute('stroke', 'var(--blue)');
+                        line.setAttribute('stroke-opacity', '0.55');
+                        line.setAttribute('stroke-width', '1.5');
+                        line.setAttribute('vector-effect', 'non-scaling-stroke');
+                        gridContainer.appendChild(line);
+
+                        const monthBadge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        monthBadge.setAttribute('x', gp.x.toFixed(1));
+                        monthBadge.setAttribute('y', '12');
+                        monthBadge.setAttribute('text-anchor', 'middle');
+                        monthBadge.setAttribute('fill', 'var(--blue)');
+                        monthBadge.setAttribute('font-family', 'DM Mono');
+                        monthBadge.setAttribute('font-size', '8');
+                        monthBadge.setAttribute('font-weight', '700');
+                        monthBadge.textContent = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
+                        gridContainer.appendChild(monthBadge);
+                    } else {
+                        line.setAttribute('stroke', 'var(--line)');
+                        line.setAttribute('stroke-opacity', '0.35');
+                        line.setAttribute('stroke-width', '1');
+                        line.setAttribute('stroke-dasharray', '3 3');
+                        line.setAttribute('vector-effect', 'non-scaling-stroke');
+                        gridContainer.appendChild(line);
+                    }
                 });
             }
 
@@ -3233,43 +3272,146 @@
                 });
             }
 
-            // Render Views Milestone Markers (e.g. ⭐ 100K, 250K, 500K, 1M...)
-            if (showViews && milestoneContainer && scaledPoints.length >= 2) {
-                const milestoneThresholds = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
-                for (const threshold of milestoneThresholds) {
-                    for (let i = 1; i < scaledPoints.length; i++) {
-                        const prev = scaledPoints[i - 1];
-                        const curr = scaledPoints[i];
-                        if (prev.views < threshold && curr.views >= threshold) {
-                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                            circle.setAttribute('cx', curr.x.toFixed(1));
-                            circle.setAttribute('cy', curr.yViews.toFixed(1));
-                            circle.setAttribute('r', '4');
-                            circle.setAttribute('fill', '#10b981');
-                            circle.setAttribute('stroke', '#0f1419');
-                            circle.setAttribute('stroke-width', '2');
-                            milestoneContainer.appendChild(circle);
+            // Render Views & Tracks Milestone Markers & Anniversaries ("Юбилеи")
+            if (milestoneContainer && scaledPoints.length >= 2) {
+                // 1. Views Milestones
+                if (showViews) {
+                    const viewThresholds = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
+                    for (const threshold of viewThresholds) {
+                        for (let i = 1; i < scaledPoints.length; i++) {
+                            const prev = scaledPoints[i - 1];
+                            const curr = scaledPoints[i];
+                            if (prev.views < threshold && curr.views >= threshold) {
+                                const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                vLine.setAttribute('x1', curr.x.toFixed(1));
+                                vLine.setAttribute('y1', '0');
+                                vLine.setAttribute('x2', curr.x.toFixed(1));
+                                vLine.setAttribute('y2', height.toString());
+                                vLine.setAttribute('stroke', '#10b981');
+                                vLine.setAttribute('stroke-opacity', '0.35');
+                                vLine.setAttribute('stroke-dasharray', '2 2');
+                                vLine.setAttribute('vector-effect', 'non-scaling-stroke');
+                                milestoneContainer.appendChild(vLine);
 
-                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                            text.setAttribute('x', curr.x.toFixed(1));
-                            text.setAttribute('y', Math.max(14, curr.yViews - 8).toFixed(1));
-                            text.setAttribute('text-anchor', 'middle');
-                            text.setAttribute('fill', '#10b981');
-                            text.setAttribute('font-family', 'DM Mono');
-                            text.setAttribute('font-size', '9');
-                            text.setAttribute('font-weight', '700');
-                            text.textContent = `⭐ ${formatViews(threshold)}`;
-                            milestoneContainer.appendChild(text);
-                            break;
+                                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                                circle.setAttribute('cx', curr.x.toFixed(1));
+                                circle.setAttribute('cy', curr.yViews.toFixed(1));
+                                circle.setAttribute('r', '4');
+                                circle.setAttribute('fill', '#10b981');
+                                circle.setAttribute('stroke', 'var(--paper)');
+                                circle.setAttribute('stroke-width', '1.5');
+                                milestoneContainer.appendChild(circle);
+
+                                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                text.setAttribute('x', curr.x.toFixed(1));
+                                text.setAttribute('y', Math.max(16, curr.yViews - 8).toFixed(1));
+                                text.setAttribute('text-anchor', 'middle');
+                                text.setAttribute('fill', '#10b981');
+                                text.setAttribute('font-family', 'DM Mono');
+                                text.setAttribute('font-size', '9');
+                                text.setAttribute('font-weight', '700');
+                                text.textContent = `⭐ ${formatViews(threshold)}`;
+                                milestoneContainer.appendChild(text);
+
+                                if (!activeMilestoneNotes[i]) activeMilestoneNotes[i] = [];
+                                activeMilestoneNotes[i].push(`⭐ Milestone: Passed ${formatViews(threshold)} views!`);
+                                break;
+                            }
                         }
                     }
                 }
+
+                // 2. Track Catalog Milestones
+                if (showTracks) {
+                    const trackThresholds = [5, 10, 20, 25, 50, 75, 100, 150, 200];
+                    for (const threshold of trackThresholds) {
+                        for (let i = 1; i < scaledPoints.length; i++) {
+                            const prev = scaledPoints[i - 1];
+                            const curr = scaledPoints[i];
+                            if (prev.tracks < threshold && curr.tracks >= threshold) {
+                                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                                circle.setAttribute('cx', curr.x.toFixed(1));
+                                circle.setAttribute('cy', curr.yTracks.toFixed(1));
+                                circle.setAttribute('r', '4');
+                                circle.setAttribute('fill', 'var(--coral)');
+                                circle.setAttribute('stroke', 'var(--paper)');
+                                circle.setAttribute('stroke-width', '1.5');
+                                milestoneContainer.appendChild(circle);
+
+                                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                text.setAttribute('x', curr.x.toFixed(1));
+                                text.setAttribute('y', Math.max(16, curr.yTracks - 8).toFixed(1));
+                                text.setAttribute('text-anchor', 'middle');
+                                text.setAttribute('fill', 'var(--coral)');
+                                text.setAttribute('font-family', 'DM Mono');
+                                text.setAttribute('font-size', '9');
+                                text.setAttribute('font-weight', '700');
+                                text.textContent = `🎵 ${threshold} ${trkSuffix}`;
+                                milestoneContainer.appendChild(text);
+
+                                if (!activeMilestoneNotes[i]) activeMilestoneNotes[i] = [];
+                                activeMilestoneNotes[i].push(`🎵 Milestone: Reached ${threshold} tracks!`);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Tracking Time Anniversaries ("Юбилеи отслеживания")
+                const anniversaries = [
+                    { days: 30, label: '1 Mo', full: '1 Month Tracking Anniversary' },
+                    { days: 90, label: '3 Mo', full: '3 Months Tracking Anniversary' },
+                    { days: 180, label: '6 Mo', full: '6 Months Tracking Anniversary' },
+                    { days: 365, label: '1 Yr', full: '1 Year Tracking Anniversary' }
+                ];
+                const dayMs = 86400000;
+
+                anniversaries.forEach(anniv => {
+                    const annivTime = minTime + (anniv.days * dayMs);
+                    if (annivTime > minTime && annivTime < maxTime) {
+                        const annivX = paddingLeft + ((annivTime - minTime) / timeRange) * chartWidth;
+                        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        vLine.setAttribute('x1', annivX.toFixed(1));
+                        vLine.setAttribute('y1', '0');
+                        vLine.setAttribute('x2', annivX.toFixed(1));
+                        vLine.setAttribute('y2', height.toString());
+                        vLine.setAttribute('stroke', '#8b5cf6');
+                        vLine.setAttribute('stroke-opacity', '0.65');
+                        vLine.setAttribute('stroke-width', '1.5');
+                        vLine.setAttribute('stroke-dasharray', '4 2');
+                        vLine.setAttribute('vector-effect', 'non-scaling-stroke');
+                        milestoneContainer.appendChild(vLine);
+
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', annivX.toFixed(1));
+                        text.setAttribute('y', '24');
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('fill', '#8b5cf6');
+                        text.setAttribute('font-family', 'DM Mono');
+                        text.setAttribute('font-size', '9');
+                        text.setAttribute('font-weight', '700');
+                        text.textContent = `🎂 ${anniv.label}`;
+                        milestoneContainer.appendChild(text);
+
+                        let closestIdx = 0;
+                        let minDiff = Math.abs(times[0] - annivTime);
+                        for (let i = 1; i < times.length; i++) {
+                            const diff = Math.abs(times[i] - annivTime);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                closestIdx = i;
+                            }
+                        }
+                        if (!activeMilestoneNotes[closestIdx]) activeMilestoneNotes[closestIdx] = [];
+                        activeMilestoneNotes[closestIdx].push(`🎂 ${anniv.full}`);
+                    }
+                });
             }
 
-            setupProfileChartTooltip(scaledPoints);
+            setupProfileChartTooltip(scaledPoints, activeMilestoneNotes);
         }
 
-        function setupProfileChartTooltip(scaledPoints) {
+        function setupProfileChartTooltip(scaledPoints, activeMilestoneNotes = {}) {
             const chartWrap = document.querySelector('.profile-chart .chart-wrap');
             const svgElement = document.querySelector('.profile-chart .chart');
             let tooltip = document.getElementById('profile-chart-tooltip');
@@ -3299,6 +3441,7 @@
                 const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
 
                 let closestPt = scaledPoints[0];
+                let closestIdx = 0;
                 let minDist = Math.abs(closestPt.x - mouseX);
 
                 for (let i = 1; i < scaledPoints.length; i++) {
@@ -3306,6 +3449,7 @@
                     if (dist < minDist) {
                         minDist = dist;
                         closestPt = scaledPoints[i];
+                        closestIdx = i;
                     }
                 }
 
@@ -3326,6 +3470,12 @@
                         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
                         <span>${dict.tracks || 'Tracks'}: <strong>${formatFullNumber(closestPt.tracks)}</strong></span>
                     </div>`;
+                }
+
+                if (activeMilestoneNotes && activeMilestoneNotes[closestIdx]) {
+                    activeMilestoneNotes[closestIdx].forEach(note => {
+                        content += `<div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(255,255,255,0.25); color: #10b981; font-weight: bold;">${note}</div>`;
+                    });
                 }
 
                 tooltip.style.display = 'block';
@@ -3525,13 +3675,16 @@
                         openTrackStats(song.title, song.artist, song.views, song.growth);
                     }
                 };
+                const safeTitle = (song.title || '').replace(/"/g, '&quot;');
+                const safeArtist = (song.artist || '').replace(/"/g, '&quot;');
+
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
-                    <div>
-                        <div class="track-title">${song.title}</div>
-                        <div class="track-artist">${song.artist}</div>
+                    <div class="track-info">
+                        <div class="track-title" title="${safeTitle}">${song.title}</div>
+                        <div class="track-artist" title="${safeArtist}">${song.artist}</div>
                     </div>
-                    <div>
+                    <div class="track-stats-right">
                         <div class="track-views">${formatViews(song.views)}</div>
                         <div class="track-growth" style="color: ${growthColor};">${growthText}</div>
                     </div>
@@ -4109,6 +4262,14 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.16 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added vertical date gridlines (weeks & 1st of month) and milestone/anniversary markers (⭐ views, 🎵 tracks, 🎂 anniversaries) on activity charts.</li>
+                        <li>Fixed mobile track table overflow and layout cutoff on phone screens in creator profile.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.15 (2026-07-31)</strong>
