@@ -3157,7 +3157,7 @@
                 for (let i = 0; i <= steps; i++) {
                     const timeVal = minTime + (i / steps) * timeRange;
                     const dateObj = new Date(timeVal);
-                    const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                    const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
                     const label = document.createElement('span');
                     label.textContent = formattedDate;
                     labelsContainer.appendChild(label);
@@ -3210,7 +3210,7 @@
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                 const dateObj = parseUTCDate(closestPt.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
+                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
 
                 let content = `<div style="color: var(--green); font-weight: bold; margin-bottom: 4px;">${formattedDate}</div>`;
                 if (chartMetrics.views) {
