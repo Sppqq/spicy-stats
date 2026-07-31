@@ -341,10 +341,10 @@
 
         .track {
             display: grid;
-            grid-template-columns: 32px minmax(0, 1fr) auto;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
             gap: 12px;
             align-items: center;
-            padding: 15px 8px;
+            padding: 12px 8px;
             border-bottom: 1px solid var(--paper-dark);
             transition: 140ms ease;
             cursor: pointer;
@@ -356,13 +356,29 @@
         .track:hover { background: var(--paper-dark); }
         .track:last-child { border-bottom: 0; }
 
-        .track-info { min-width: 0; overflow: hidden; }
+        .track-info { min-width: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
         .track-number { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; flex-shrink: 0; }
-        .track-title { font-weight: 800; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .track-artist { color: var(--muted); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .track-stats-right { text-align: right; flex-shrink: 0; margin-left: 4px; }
-        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; white-space: nowrap; }
-        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 3px; text-align: right; white-space: nowrap; }
+        .track-title {
+            font-weight: 800;
+            font-size: 13px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+        .track-artist {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .track-stats-right { text-align: right; flex-shrink: 0; margin-left: 8px; min-width: 65px; }
+        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; text-align: right; white-space: nowrap; }
+        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 2px; text-align: right; white-space: nowrap; }
 
         .mini-card {
             padding: 24px;
@@ -3232,48 +3248,41 @@
 
                     if (gp.isFirstOfMonth) {
                         line.setAttribute('stroke', 'var(--blue)');
-                        line.setAttribute('stroke-opacity', '0.55');
-                        line.setAttribute('stroke-width', '1.5');
+                        line.setAttribute('stroke-opacity', '0.35');
+                        line.setAttribute('stroke-width', '1.2');
                         line.setAttribute('vector-effect', 'non-scaling-stroke');
-                        gridContainer.appendChild(line);
-
-                        const monthBadge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        monthBadge.setAttribute('x', gp.x.toFixed(1));
-                        monthBadge.setAttribute('y', '12');
-                        monthBadge.setAttribute('text-anchor', 'middle');
-                        monthBadge.setAttribute('fill', 'var(--blue)');
-                        monthBadge.setAttribute('font-family', 'DM Mono');
-                        monthBadge.setAttribute('font-size', '8');
-                        monthBadge.setAttribute('font-weight', '700');
-                        monthBadge.textContent = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
-                        gridContainer.appendChild(monthBadge);
                     } else {
                         line.setAttribute('stroke', 'var(--line)');
-                        line.setAttribute('stroke-opacity', '0.35');
+                        line.setAttribute('stroke-opacity', '0.2');
                         line.setAttribute('stroke-width', '1');
-                        line.setAttribute('stroke-dasharray', '3 3');
+                        line.setAttribute('stroke-dasharray', '2 3');
                         line.setAttribute('vector-effect', 'non-scaling-stroke');
-                        gridContainer.appendChild(line);
                     }
+                    gridContainer.appendChild(line);
                 });
             }
 
             if (labelsContainer) {
                 labelsContainer.innerHTML = '';
                 gridPoints.forEach(gp => {
-                    const formattedDate = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
+                    const formattedDate = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: gp.isFirstOfMonth ? 'numeric' : '2-digit' });
                     const label = document.createElement('span');
                     label.textContent = formattedDate;
                     if (gp.isFirstOfMonth) {
-                        label.style.fontWeight = '700';
+                        label.style.fontWeight = '800';
                         label.style.color = 'var(--blue)';
+                        label.style.padding = '1px 4px';
+                        label.style.background = 'rgba(112, 128, 255, 0.12)';
+                        label.style.borderRadius = '3px';
                     }
                     labelsContainer.appendChild(label);
                 });
             }
 
-            // Render Views & Tracks Milestone Markers & Anniversaries ("Юбилеи")
+            // Render Views & Tracks Milestones & Anniversaries ("Юбилеи")
             if (milestoneContainer && scaledPoints.length >= 2) {
+                const milestoneEvents = [];
+
                 // 1. Views Milestones
                 if (showViews) {
                     const viewThresholds = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
@@ -3282,39 +3291,14 @@
                             const prev = scaledPoints[i - 1];
                             const curr = scaledPoints[i];
                             if (prev.views < threshold && curr.views >= threshold) {
-                                const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                                vLine.setAttribute('x1', curr.x.toFixed(1));
-                                vLine.setAttribute('y1', '0');
-                                vLine.setAttribute('x2', curr.x.toFixed(1));
-                                vLine.setAttribute('y2', height.toString());
-                                vLine.setAttribute('stroke', '#10b981');
-                                vLine.setAttribute('stroke-opacity', '0.35');
-                                vLine.setAttribute('stroke-dasharray', '2 2');
-                                vLine.setAttribute('vector-effect', 'non-scaling-stroke');
-                                milestoneContainer.appendChild(vLine);
-
-                                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                                circle.setAttribute('cx', curr.x.toFixed(1));
-                                circle.setAttribute('cy', curr.yViews.toFixed(1));
-                                circle.setAttribute('r', '4');
-                                circle.setAttribute('fill', '#10b981');
-                                circle.setAttribute('stroke', 'var(--paper)');
-                                circle.setAttribute('stroke-width', '1.5');
-                                milestoneContainer.appendChild(circle);
-
-                                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                                text.setAttribute('x', curr.x.toFixed(1));
-                                text.setAttribute('y', Math.max(16, curr.yViews - 8).toFixed(1));
-                                text.setAttribute('text-anchor', 'middle');
-                                text.setAttribute('fill', '#10b981');
-                                text.setAttribute('font-family', 'DM Mono');
-                                text.setAttribute('font-size', '9');
-                                text.setAttribute('font-weight', '700');
-                                text.textContent = `⭐ ${formatViews(threshold)}`;
-                                milestoneContainer.appendChild(text);
-
-                                if (!activeMilestoneNotes[i]) activeMilestoneNotes[i] = [];
-                                activeMilestoneNotes[i].push(`⭐ Milestone: Passed ${formatViews(threshold)} views!`);
+                                milestoneEvents.push({
+                                    index: i,
+                                    x: curr.x,
+                                    y: curr.yViews,
+                                    type: 'views',
+                                    color: '#10b981',
+                                    fullNote: `⭐ Milestone: Passed ${formatViews(threshold)} views!`
+                                });
                                 break;
                             }
                         }
@@ -3329,28 +3313,14 @@
                             const prev = scaledPoints[i - 1];
                             const curr = scaledPoints[i];
                             if (prev.tracks < threshold && curr.tracks >= threshold) {
-                                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                                circle.setAttribute('cx', curr.x.toFixed(1));
-                                circle.setAttribute('cy', curr.yTracks.toFixed(1));
-                                circle.setAttribute('r', '4');
-                                circle.setAttribute('fill', 'var(--coral)');
-                                circle.setAttribute('stroke', 'var(--paper)');
-                                circle.setAttribute('stroke-width', '1.5');
-                                milestoneContainer.appendChild(circle);
-
-                                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                                text.setAttribute('x', curr.x.toFixed(1));
-                                text.setAttribute('y', Math.max(16, curr.yTracks - 8).toFixed(1));
-                                text.setAttribute('text-anchor', 'middle');
-                                text.setAttribute('fill', 'var(--coral)');
-                                text.setAttribute('font-family', 'DM Mono');
-                                text.setAttribute('font-size', '9');
-                                text.setAttribute('font-weight', '700');
-                                text.textContent = `🎵 ${threshold} ${trkSuffix}`;
-                                milestoneContainer.appendChild(text);
-
-                                if (!activeMilestoneNotes[i]) activeMilestoneNotes[i] = [];
-                                activeMilestoneNotes[i].push(`🎵 Milestone: Reached ${threshold} tracks!`);
+                                milestoneEvents.push({
+                                    index: i,
+                                    x: curr.x,
+                                    y: curr.yTracks,
+                                    type: 'tracks',
+                                    color: 'var(--coral)',
+                                    fullNote: `🎵 Milestone: Reached ${threshold} tracks!`
+                                });
                                 break;
                             }
                         }
@@ -3359,10 +3329,10 @@
 
                 // 3. Tracking Time Anniversaries ("Юбилеи отслеживания")
                 const anniversaries = [
-                    { days: 30, label: '1 Mo', full: '1 Month Tracking Anniversary' },
-                    { days: 90, label: '3 Mo', full: '3 Months Tracking Anniversary' },
-                    { days: 180, label: '6 Mo', full: '6 Months Tracking Anniversary' },
-                    { days: 365, label: '1 Yr', full: '1 Year Tracking Anniversary' }
+                    { days: 30, full: '1 Month Tracking Anniversary' },
+                    { days: 90, full: '3 Months Tracking Anniversary' },
+                    { days: 180, full: '6 Months Tracking Anniversary' },
+                    { days: 365, full: '1 Year Tracking Anniversary' }
                 ];
                 const dayMs = 86400000;
 
@@ -3370,29 +3340,6 @@
                     const annivTime = minTime + (anniv.days * dayMs);
                     if (annivTime > minTime && annivTime < maxTime) {
                         const annivX = paddingLeft + ((annivTime - minTime) / timeRange) * chartWidth;
-                        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                        vLine.setAttribute('x1', annivX.toFixed(1));
-                        vLine.setAttribute('y1', '0');
-                        vLine.setAttribute('x2', annivX.toFixed(1));
-                        vLine.setAttribute('y2', height.toString());
-                        vLine.setAttribute('stroke', '#8b5cf6');
-                        vLine.setAttribute('stroke-opacity', '0.65');
-                        vLine.setAttribute('stroke-width', '1.5');
-                        vLine.setAttribute('stroke-dasharray', '4 2');
-                        vLine.setAttribute('vector-effect', 'non-scaling-stroke');
-                        milestoneContainer.appendChild(vLine);
-
-                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        text.setAttribute('x', annivX.toFixed(1));
-                        text.setAttribute('y', '24');
-                        text.setAttribute('text-anchor', 'middle');
-                        text.setAttribute('fill', '#8b5cf6');
-                        text.setAttribute('font-family', 'DM Mono');
-                        text.setAttribute('font-size', '9');
-                        text.setAttribute('font-weight', '700');
-                        text.textContent = `🎂 ${anniv.label}`;
-                        milestoneContainer.appendChild(text);
-
                         let closestIdx = 0;
                         let minDiff = Math.abs(times[0] - annivTime);
                         for (let i = 1; i < times.length; i++) {
@@ -3402,9 +3349,43 @@
                                 closestIdx = i;
                             }
                         }
-                        if (!activeMilestoneNotes[closestIdx]) activeMilestoneNotes[closestIdx] = [];
-                        activeMilestoneNotes[closestIdx].push(`🎂 ${anniv.full}`);
+                        const pt = scaledPoints[closestIdx];
+                        milestoneEvents.push({
+                            index: closestIdx,
+                            x: annivX,
+                            y: showViews ? pt.yViews : pt.yTracks,
+                            type: 'anniversary',
+                            color: '#8b5cf6',
+                            fullNote: `🎂 ${anniv.full}`
+                        });
                     }
+                });
+
+                // Render sleek milestone dots + tooltip notes
+                milestoneEvents.forEach(evt => {
+                    if (!activeMilestoneNotes[evt.index]) activeMilestoneNotes[evt.index] = [];
+                    activeMilestoneNotes[evt.index].push(evt.fullNote);
+
+                    // Outer pulse ring
+                    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    ring.setAttribute('cx', evt.x.toFixed(1));
+                    ring.setAttribute('cy', evt.y.toFixed(1));
+                    ring.setAttribute('r', '5.5');
+                    ring.setAttribute('fill', 'none');
+                    ring.setAttribute('stroke', evt.color);
+                    ring.setAttribute('stroke-width', '1.5');
+                    ring.setAttribute('stroke-opacity', '0.6');
+                    milestoneContainer.appendChild(ring);
+
+                    // Glowing core dot
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', evt.x.toFixed(1));
+                    circle.setAttribute('cy', evt.y.toFixed(1));
+                    circle.setAttribute('r', '3.5');
+                    circle.setAttribute('fill', evt.color);
+                    circle.setAttribute('stroke', 'var(--paper)');
+                    circle.setAttribute('stroke-width', '1.2');
+                    milestoneContainer.appendChild(circle);
                 });
             }
 
