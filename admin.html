@@ -428,6 +428,68 @@
             max-width: 400px;
             box-shadow: 6px 6px 0 var(--ink);
         }
+
+        /* Animated GitHub Stars Badge */
+        .github-stars-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 10px;
+            height: 34px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--ink);
+            text-decoration: none;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 2px 2px 0 var(--line);
+            transition: all 0.15s ease;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .github-stars-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 3px 3px 0 var(--ink);
+            background: var(--paper-dark);
+            border-color: var(--ink);
+        }
+        .github-stars-btn:active {
+            transform: translateY(1px);
+            box-shadow: 1px 1px 0 var(--ink);
+        }
+        .github-star-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #f59e0b;
+            font-size: 13px;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .github-stars-btn:hover .github-star-icon {
+            transform: scale(1.35) rotate(24deg);
+            color: #fbbf24;
+        }
+        .github-stars-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--line);
+            color: var(--ink);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            min-width: 16px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .github-stars-btn:hover .github-stars-count {
+            background: var(--ink);
+            color: var(--paper);
+        }
     </style>
 </head>
 
@@ -460,6 +522,12 @@
             </div>
 
             <div class="topbar-right">
+                <a href="https://github.com/Sppqq/spicy-stats" target="_blank" rel="noopener noreferrer" class="github-stars-btn" id="github-stars-btn" title="Star Spicy Stats on GitHub">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>Star</span>
+                    <span class="github-star-icon" aria-hidden="true">★</span>
+                    <span class="github-stars-count" id="github-stars-count">...</span>
+                </a>
                 <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
                     <span id="theme-toggle-icon">☾</span>
                     <span id="theme-toggle-label">Dark</span>
@@ -855,7 +923,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.19 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.20 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</div>
                 <div style="margin-top: 8px;">
@@ -949,6 +1017,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkAuth();
+            initGitHubStars();
             showEasterEgg();
 
             // Show sync button only on dev environments
@@ -966,6 +1035,59 @@
                 });
             }
         });
+
+        async function initGitHubStars() {
+            const countEl = document.getElementById('github-stars-count');
+            if (!countEl) return;
+
+            let cachedCount = 0;
+            try {
+                const cached = localStorage.getItem('spicy-gh-stars');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data.count !== undefined && Date.now() - data.time < 3600000) {
+                        cachedCount = data.count;
+                        countEl.textContent = cachedCount;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const res = await fetch('https://api.github.com/repos/Sppqq/spicy-stats');
+                if (res.ok) {
+                    const repo = await res.json();
+                    const stars = repo.stargazers_count !== undefined ? repo.stargazers_count : 0;
+                    try {
+                        localStorage.setItem('spicy-gh-stars', JSON.stringify({ count: stars, time: Date.now() }));
+                    } catch (e) {}
+                    animateStarCounter(countEl, cachedCount, stars);
+                } else if (!cachedCount) {
+                    countEl.textContent = '★';
+                }
+            } catch (e) {
+                if (!cachedCount) countEl.textContent = '★';
+            }
+        }
+
+        function animateStarCounter(el, start, end) {
+            if (start === end) {
+                el.textContent = end;
+                return;
+            }
+            const duration = 800;
+            const startTime = performance.now();
+            function step(now) {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const current = Math.floor(start + (end - start) * progress);
+                el.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = end;
+                }
+            }
+            requestAnimationFrame(step);
+        }
 
         // Theme Setup
         function initTheme() {
@@ -2131,6 +2253,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.20 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added Animate UI style GitHub Stars button badge in top header with live stargazers counter and spring animation.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.19 (2026-07-31)</strong>
