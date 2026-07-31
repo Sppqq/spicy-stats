@@ -3318,7 +3318,8 @@
                 const dateObj = parseUTCDate(p.x);
                 return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
             });
-            const minTime = (chartTimeframe !== 'all' && timeframeCutoff) ? timeframeCutoff : Math.min(...times);
+            const realMinTime = Math.min(...times);
+            const minTime = (chartTimeframe !== 'all' && timeframeCutoff && realMinTime <= timeframeCutoff) ? timeframeCutoff : realMinTime;
             const maxTime = Math.max(...times);
             const timeRange = maxTime - minTime || 1;
 
