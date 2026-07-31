@@ -3268,8 +3268,19 @@
                         : (showViews ? height - paddingBottom - 25 : paddingTop + chartHeight / 2);
                 }
 
-                const prevViews = i > 0 ? normalizedPoints[i - 1].views : p.views;
-                const delta = Math.max(0, p.views - prevViews);
+                // True 24h delta: find closest point ~24h before each entry
+                const MS_24H_PROFILE = 24 * 60 * 60 * 1000;
+                let delta = 0;
+                if (i > 0) {
+                    const target24h = timeVal - MS_24H_PROFILE;
+                    let bestIdx = 0;
+                    let bestDiff = Infinity;
+                    for (let j = 0; j < i; j++) {
+                        const diff = Math.abs(times[j] - target24h);
+                        if (diff < bestDiff) { bestDiff = diff; bestIdx = j; }
+                    }
+                    delta = Math.max(0, p.views - normalizedPoints[bestIdx].views);
+                }
 
                 return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks, delta };
             });
@@ -3279,11 +3290,11 @@
 
             if (chartMetrics.delta && deltaContainer && scaledPoints.length >= 2) {
                 const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.65);
+                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.85);
 
                 scaledPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.45);
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.55);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -3292,7 +3303,7 @@
                     rect.setAttribute('width', barWidth.toFixed(1));
                     rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
                     rect.setAttribute('fill', 'var(--green)');
-                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('opacity', '0.7');
                     rect.setAttribute('rx', '1.5');
                     deltaContainer.appendChild(rect);
                 });
@@ -3951,6 +3962,8 @@
             // Clear chart paths while loading
             document.getElementById('track-chart-area-path').setAttribute('d', '');
             document.getElementById('track-chart-line-path').setAttribute('d', '');
+            const _dbarsClear = document.getElementById('track-chart-delta-bars');
+            if (_dbarsClear) _dbarsClear.innerHTML = '';
             document.getElementById('track-chart-labels').innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).loading_history || 'Loading history...'}</span>`;
 
             modal.style.display = 'flex';
@@ -4011,12 +4024,25 @@
             const maxTime = Math.max(...times);
             const timeRange = maxTime - minTime || 1;
 
+            // Compute true 24h delta: compare each point to the closest point ~24h before it
+            const MS_24H = 24 * 60 * 60 * 1000;
             const scaledPoints = points.map((p, i) => {
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
-                const prevViews = i > 0 ? points[i - 1].views : p.views;
-                const delta = Math.max(0, p.views - prevViews);
+
+                // Find the point closest to 24h ago
+                let delta = 0;
+                if (i > 0) {
+                    const target24h = timeVal - MS_24H;
+                    let bestIdx = 0;
+                    let bestDiff = Infinity;
+                    for (let j = 0; j < i; j++) {
+                        const diff = Math.abs(times[j] - target24h);
+                        if (diff < bestDiff) { bestDiff = diff; bestIdx = j; }
+                    }
+                    delta = Math.max(0, p.views - points[bestIdx].views);
+                }
                 return { x, y, date: p.timestamp, views: p.views, delta };
             });
 
@@ -4024,11 +4050,11 @@
             if (deltaContainer) {
                 deltaContainer.innerHTML = '';
                 const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.85);
 
                 scaledPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.55);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -4037,7 +4063,7 @@
                     rect.setAttribute('width', barWidth.toFixed(1));
                     rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
                     rect.setAttribute('fill', 'var(--green)');
-                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('opacity', '0.7');
                     rect.setAttribute('rx', '1');
                     deltaContainer.appendChild(rect);
                 });
