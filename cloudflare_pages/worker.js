@@ -408,7 +408,14 @@ async function handleUserDetailAPI(username, request, env) {
 
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
-    const { results: history } = await env.DB.prepare("SELECT id, total_views, total_songs, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
+    const { results: history } = await env.DB.prepare(`
+        SELECT id, total_views, 
+               COALESCE(total_songs, (SELECT COUNT(DISTINCT COALESCE(NULLIF(TRIM(title), ''), 'Hidden') || '|||' || COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics')) FROM snapshot_songs WHERE snapshot_id = snapshots.id AND views >= 0)) AS total_songs, 
+               timestamp 
+        FROM snapshots 
+        WHERE user_id = ? 
+        ORDER BY id DESC LIMIT 10000
+    `).bind(user.id).all();
 
     // ИСПРАВЛЕНИЕ 1: Ищем снапшот, ближайший к 24 часам назад
     const pastSnapshot = await env.DB.prepare(`
@@ -505,12 +512,29 @@ async function handleUserDetailAPI(username, request, env) {
         totalSongs = finalSongs.length;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
-        chartDataRaw = [...history].reverse().map(h => ({
-            x: h.timestamp,
-            y: h.total_views,
-            views: h.total_views,
-            tracks: h.total_songs || 0
-        }));
+
+        // Smart track count propagation for historical snapshots
+        let knownTracks = totalSongs;
+        for (let i = 0; i < history.length; i++) {
+            if (history[i].total_songs && history[i].total_songs > 0) {
+                knownTracks = history[i].total_songs;
+                break;
+            }
+        }
+
+        const reversedHistory = [...history].reverse();
+        let runningTracks = knownTracks;
+        chartDataRaw = reversedHistory.map(h => {
+            if (h.total_songs && h.total_songs > 0) {
+                runningTracks = h.total_songs;
+            }
+            return {
+                x: h.timestamp,
+                y: h.total_views,
+                views: h.total_views,
+                tracks: runningTracks || totalSongs || 0
+            };
+        });
     }
 
     // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)

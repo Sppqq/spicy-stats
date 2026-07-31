@@ -3035,17 +3035,31 @@
 
             const minViews = Math.min(...normalizedPoints.map(p => p.views));
             const maxViews = Math.max(...normalizedPoints.map(p => p.views));
-            const viewsRange = maxViews - minViews || 1;
+            const viewsDiff = maxViews - minViews;
+            const viewsRange = viewsDiff || 1;
 
             const minTracks = Math.min(...normalizedPoints.map(p => p.tracks));
             const maxTracks = Math.max(...normalizedPoints.map(p => p.tracks));
-            const tracksRange = maxTracks - minTracks || 1;
+            const tracksDiff = maxTracks - minTracks;
+            const tracksRange = tracksDiff || 1;
 
             const scaledPoints = normalizedPoints.map((p, i) => {
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
-                const yViews = height - paddingBottom - ((p.views - minViews) / viewsRange) * chartHeight;
-                const yTracks = height - paddingBottom - ((p.tracks - minTracks) / tracksRange) * chartHeight;
+
+                let yViews = height - paddingBottom - ((p.views - minViews) / viewsRange) * chartHeight;
+                if (viewsDiff === 0) {
+                    yViews = paddingTop + chartHeight / 2;
+                }
+
+                let yTracks = height - paddingBottom - ((p.tracks - minTracks) / tracksRange) * chartHeight;
+                if (tracksDiff === 0) {
+                    // Position constant tracks line cleanly across middle (or slightly lower if views is also active and constant)
+                    yTracks = (showViews && viewsDiff === 0)
+                        ? paddingTop + chartHeight / 2 + 20
+                        : (showViews ? height - paddingBottom - 25 : paddingTop + chartHeight / 2);
+                }
+
                 return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks };
             });
 
