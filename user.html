@@ -1206,6 +1206,9 @@
                             </linearGradient>
                         </defs>
 
+                        <!-- Vertical Grid Lines -->
+                        <g id="profile-chart-grid-lines"></g>
+
                         <!-- Views paths -->
                         <path id="profile-chart-area-path"
                             d=""
@@ -1223,6 +1226,9 @@
                         <path id="profile-chart-tracks-line-path"
                             d=""
                             fill="none" stroke="var(--coral)" stroke-width="3" stroke-dasharray="6 3" vector-effect="non-scaling-stroke" />
+
+                        <!-- Milestone Markers -->
+                        <g id="profile-chart-milestones"></g>
                     </svg>
 
                     <div class="chart-labels" id="profile-chart-labels">
@@ -3151,16 +3157,112 @@
                 }
             }
 
+            // Render Vertical Grid Lines & Aligned Date Labels
+            const gridContainer = document.getElementById('profile-chart-grid-lines');
+            const milestoneContainer = document.getElementById('profile-chart-milestones');
+            if (gridContainer) gridContainer.innerHTML = '';
+            if (milestoneContainer) milestoneContainer.innerHTML = '';
+
+            const gridPoints = [];
+            const startDate = new Date(minTime);
+            const endDate = new Date(maxTime);
+
+            let cur = new Date(startDate);
+            cur.setUTCHours(0, 0, 0, 0);
+
+            while (cur <= endDate) {
+                const curTime = cur.getTime();
+                if (curTime >= minTime && curTime <= maxTime) {
+                    const isFirstOfMonth = cur.getUTCDate() === 1;
+                    const isMonday = cur.getUTCDay() === 1;
+
+                    if (isFirstOfMonth || isMonday) {
+                        const x = paddingLeft + ((curTime - minTime) / timeRange) * chartWidth;
+                        gridPoints.push({
+                            x,
+                            time: curTime,
+                            dateObj: new Date(cur),
+                            isFirstOfMonth
+                        });
+                    }
+                }
+                cur.setUTCDate(cur.getUTCDate() + 1);
+            }
+
+            if (gridPoints.length < 2) {
+                gridPoints.length = 0;
+                const steps = 4;
+                for (let i = 0; i <= steps; i++) {
+                    const t = minTime + (i / steps) * timeRange;
+                    const x = paddingLeft + (i / steps) * chartWidth;
+                    gridPoints.push({
+                        x,
+                        time: t,
+                        dateObj: new Date(t),
+                        isFirstOfMonth: false
+                    });
+                }
+            }
+
+            if (gridContainer) {
+                gridPoints.forEach(gp => {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', gp.x.toFixed(1));
+                    line.setAttribute('y1', '0');
+                    line.setAttribute('x2', gp.x.toFixed(1));
+                    line.setAttribute('y2', height.toString());
+                    line.setAttribute('stroke', gp.isFirstOfMonth ? 'var(--blue)' : 'var(--line)');
+                    line.setAttribute('stroke-opacity', gp.isFirstOfMonth ? '0.45' : '0.2');
+                    line.setAttribute('stroke-dasharray', gp.isFirstOfMonth ? '4 2' : '2 4');
+                    line.setAttribute('vector-effect', 'non-scaling-stroke');
+                    gridContainer.appendChild(line);
+                });
+            }
+
             if (labelsContainer) {
                 labelsContainer.innerHTML = '';
-                const steps = 5;
-                for (let i = 0; i <= steps; i++) {
-                    const timeVal = minTime + (i / steps) * timeRange;
-                    const dateObj = new Date(timeVal);
-                    const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
+                gridPoints.forEach(gp => {
+                    const formattedDate = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
                     const label = document.createElement('span');
                     label.textContent = formattedDate;
+                    if (gp.isFirstOfMonth) {
+                        label.style.fontWeight = '700';
+                        label.style.color = 'var(--blue)';
+                    }
                     labelsContainer.appendChild(label);
+                });
+            }
+
+            // Render Views Milestone Markers (e.g. ⭐ 100K, 250K, 500K, 1M...)
+            if (showViews && milestoneContainer && scaledPoints.length >= 2) {
+                const milestoneThresholds = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
+                for (const threshold of milestoneThresholds) {
+                    for (let i = 1; i < scaledPoints.length; i++) {
+                        const prev = scaledPoints[i - 1];
+                        const curr = scaledPoints[i];
+                        if (prev.views < threshold && curr.views >= threshold) {
+                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                            circle.setAttribute('cx', curr.x.toFixed(1));
+                            circle.setAttribute('cy', curr.yViews.toFixed(1));
+                            circle.setAttribute('r', '4');
+                            circle.setAttribute('fill', '#10b981');
+                            circle.setAttribute('stroke', '#0f1419');
+                            circle.setAttribute('stroke-width', '2');
+                            milestoneContainer.appendChild(circle);
+
+                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            text.setAttribute('x', curr.x.toFixed(1));
+                            text.setAttribute('y', Math.max(14, curr.yViews - 8).toFixed(1));
+                            text.setAttribute('text-anchor', 'middle');
+                            text.setAttribute('fill', '#10b981');
+                            text.setAttribute('font-family', 'DM Mono');
+                            text.setAttribute('font-size', '9');
+                            text.setAttribute('font-weight', '700');
+                            text.textContent = `⭐ ${formatViews(threshold)}`;
+                            milestoneContainer.appendChild(text);
+                            break;
+                        }
+                    }
                 }
             }
 
