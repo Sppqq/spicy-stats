@@ -3147,6 +3147,59 @@
             }
         }
 
+        /**
+         * Auto-detect and filter out statistical anomaly points from chart series data.
+         * Uses Median Absolute Deviation (MAD) on point-to-point deltas and cumulative sanity checks.
+         */
+        function removeChartAnomalies(pts, key = 'views') {
+            if (!pts || pts.length <= 3) return pts;
+
+            // Step 1: Remove single-point spike/dip outliers
+            const cleaned = [];
+            for (let i = 0; i < pts.length; i++) {
+                if (i > 0 && i < pts.length - 1) {
+                    const prev = pts[i - 1][key];
+                    const curr = pts[i][key];
+                    const next = pts[i + 1][key];
+
+                    // Single point drop to near zero when prev and next are high
+                    if (prev > 100 && curr < prev * 0.15 && next > prev * 0.7) {
+                        continue;
+                    }
+                    // Single point spike 3x higher than both neighbors
+                    if (curr > prev * 3 && curr > next * 3 && prev > 0) {
+                        continue;
+                    }
+                }
+                cleaned.push(pts[i]);
+            }
+
+            if (cleaned.length <= 3) return cleaned;
+
+            // Step 2: MAD (Median Absolute Deviation) on deltas
+            const deltas = [];
+            for (let i = 1; i < cleaned.length; i++) {
+                deltas.push(Math.abs(cleaned[i][key] - cleaned[i - 1][key]));
+            }
+
+            const sortedDeltas = [...deltas].sort((a, b) => a - b);
+            const median = sortedDeltas[Math.floor(sortedDeltas.length / 2)] || 0;
+            const absDevs = sortedDeltas.map(d => Math.abs(d - median)).sort((a, b) => a - b);
+            const mad = absDevs[Math.floor(absDevs.length / 2)] || 1;
+
+            const threshold = Math.max(median + 6 * mad, median * 3, 500);
+
+            const result = [cleaned[0]];
+            for (let i = 1; i < cleaned.length; i++) {
+                const delta = Math.abs(cleaned[i][key] - result[result.length - 1][key]);
+                if (delta <= threshold || i === cleaned.length - 1) {
+                    result.push(cleaned[i]);
+                }
+            }
+
+            return result;
+        }
+
         function renderChart() {
             const svgViewsArea = document.getElementById('profile-chart-area-path');
             const svgViewsLine = document.getElementById('profile-chart-line-path');
@@ -3197,7 +3250,7 @@
             }
 
             const maxAllowedSongs = profileData.total_songs || 0;
-            const normalizedPoints = points.map(p => {
+            let normalizedPoints = points.map(p => {
                 let rawTracks = p.tracks !== undefined ? p.tracks : maxAllowedSongs;
                 if (maxAllowedSongs > 0 && rawTracks > maxAllowedSongs) {
                     rawTracks = maxAllowedSongs;
@@ -3208,6 +3261,9 @@
                     tracks: rawTracks
                 };
             });
+
+            // Auto-detect and filter out statistical anomalies
+            normalizedPoints = removeChartAnomalies(normalizedPoints, 'views');
 
             const showViews = chartMetrics.views;
             const showTracks = chartMetrics.tracks;
@@ -3981,6 +4037,9 @@
                 const step = Math.ceil(points.length / 300);
                 points = points.filter((_, index) => index % step === 0 || index === points.length - 1);
             }
+
+            // Auto-detect and filter out track chart anomalies
+            points = removeChartAnomalies(points, 'views');
 
             if (!points || points.length < 2) {
                 svgArea.setAttribute('d', '');
