@@ -3143,7 +3143,7 @@
             for (let i = 0; i <= steps; i++) {
                 const timeVal = minTime + (i / steps) * timeRange;
                 const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                const formattedDate = dateObj.toLocaleDateString(getLocale ? getLocale() : 'en-US', { month: 'short', day: '2-digit' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
