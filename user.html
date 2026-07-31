@@ -3147,6 +3147,45 @@
             }
         }
 
+        // ─── Anomaly Detection ────────────────────────────────────────────
+        // Removes data points whose view-count delta is statistically extreme
+        // using the Median Absolute Deviation (MAD) method.
+        // sensitivity = multiplier; higher = less aggressive removal.
+        function removeChartAnomalies(pts, key = 'views', sensitivity = 6) {
+            if (!pts || pts.length < 5) return pts;
+
+            // Step 1: compute absolute deltas between consecutive points
+            const deltas = [];
+            for (let i = 1; i < pts.length; i++) {
+                deltas.push(Math.abs(pts[i][key] - pts[i - 1][key]));
+            }
+
+            // Step 2: median of deltas
+            const sorted = [...deltas].sort((a, b) => a - b);
+            const median = sorted[Math.floor(sorted.length / 2)];
+
+            // Step 3: MAD
+            const absDevs = deltas.map(d => Math.abs(d - median)).sort((a, b) => a - b);
+            const mad = absDevs[Math.floor(absDevs.length / 2)] || 1;
+
+            const threshold = median + sensitivity * mad;
+
+            // Step 4: walk through, skipping anomalous jumps
+            const clean = [pts[0]];
+            let removed = 0;
+            for (let i = 1; i < pts.length; i++) {
+                const delta = Math.abs(pts[i][key] - clean[clean.length - 1][key]);
+                if (delta <= threshold) {
+                    clean.push(pts[i]);
+                } else {
+                    removed++;
+                }
+            }
+            if (removed > 0) console.debug(`[spicy] anomaly filter removed ${removed}/${pts.length} points (threshold: ${threshold.toFixed(0)})`);
+            return clean;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         function renderChart() {
             const svgViewsArea = document.getElementById('profile-chart-area-path');
             const svgViewsLine = document.getElementById('profile-chart-line-path');
@@ -3197,7 +3236,7 @@
             }
 
             const maxAllowedSongs = profileData.total_songs || 0;
-            const normalizedPoints = points.map(p => {
+            let normalizedPoints = points.map(p => {
                 let rawTracks = p.tracks !== undefined ? p.tracks : maxAllowedSongs;
                 if (maxAllowedSongs > 0 && rawTracks > maxAllowedSongs) {
                     rawTracks = maxAllowedSongs;
@@ -3208,6 +3247,9 @@
                     tracks: rawTracks
                 };
             });
+
+            // 3. Remove statistical anomalies before rendering
+            normalizedPoints = removeChartAnomalies(normalizedPoints, 'views');
 
             const showViews = chartMetrics.views;
             const showTracks = chartMetrics.tracks;
@@ -4001,6 +4043,9 @@
                 labelsContainer.innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).no_history_data || 'No history data available yet'}</span>`;
                 return;
             }
+
+            // Remove statistical anomalies before rendering track chart
+            points = removeChartAnomalies(points, 'views');
 
             const minViews = Math.min(...points.map(p => p.views));
             const maxViews = Math.max(...points.map(p => p.views));
