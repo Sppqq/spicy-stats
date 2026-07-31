@@ -513,25 +513,63 @@ async function handleUserDetailAPI(username, request, env) {
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
 
-        // Calculate accurate historical track count at each snapshot timestamp based on earliest appearance
-        const { results: trackFirstSeen } = await env.DB.prepare(`
-            SELECT MIN(s.timestamp) as first_ts
+        // Deduplicated track appearance timestamps matching latestAgg (unique songs)
+        const { results: allSongsHistory } = await env.DB.prepare(`
+            SELECT ss.spotify_id, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist, s.timestamp
             FROM snapshot_songs ss
             JOIN snapshots s ON ss.snapshot_id = s.id
+            LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
             WHERE s.user_id = ? AND ss.views >= 0
-            GROUP BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+            ORDER BY s.id ASC
         `).bind(user.id).all();
 
-        const sortedFirstTs = (trackFirstSeen || [])
-            .map(t => t.first_ts)
-            .filter(Boolean)
-            .sort();
+        const songMinTimestamps = [];
 
-        function getCumulativeTracksAt(ts) {
-            if (!sortedFirstTs || sortedFirstTs.length === 0) return totalSongs;
+        if (allSongsHistory && allSongsHistory.length > 0) {
+            const minTsMap = new Map();
+            for (const item of allSongsHistory) {
+                const title = (item.meta_title || item.title || "Hidden").trim();
+                const artist = (item.meta_artist || item.artist || "SpicyLyrics").trim();
+                const normTitle = normalizeTitle(title);
+                const primaryArtist = getPrimaryArtist(artist);
+                const isrc = item.isrc ? item.isrc.trim() : null;
+
+                const textKey = `text:${normTitle}|||${primaryArtist}`;
+                const isrcKey = isrc ? `isrc:${isrc}` : null;
+                const ts = item.timestamp;
+
+                if (isrcKey) {
+                    if (!minTsMap.has(isrcKey) || ts < minTsMap.get(isrcKey)) minTsMap.set(isrcKey, ts);
+                }
+                if (!minTsMap.has(textKey) || ts < minTsMap.get(textKey)) minTsMap.set(textKey, ts);
+            }
+
+            for (const songGroup of latestAgg) {
+                let minTs = null;
+                for (const subSong of songGroup.songs) {
+                    const textKey = `text:${subSong.normTitle}|||${subSong.primaryArtist}`;
+                    const isrcKey = subSong.isrc ? `isrc:${subSong.isrc}` : null;
+
+                    if (isrcKey && minTsMap.has(isrcKey)) {
+                        const t = minTsMap.get(isrcKey);
+                        if (!minTs || t < minTs) minTs = t;
+                    }
+                    if (minTsMap.has(textKey)) {
+                        const t = minTsMap.get(textKey);
+                        if (!minTs || t < minTs) minTs = t;
+                    }
+                }
+                if (minTs) songMinTimestamps.push(minTs);
+            }
+        }
+
+        songMinTimestamps.sort();
+
+        function getDeduplicatedTracksAt(ts) {
+            if (!songMinTimestamps || songMinTimestamps.length === 0) return totalSongs;
             let count = 0;
-            for (let i = 0; i < sortedFirstTs.length; i++) {
-                if (sortedFirstTs[i] <= ts) {
+            for (let i = 0; i < songMinTimestamps.length; i++) {
+                if (songMinTimestamps[i] <= ts) {
                     count++;
                 } else {
                     break;
@@ -542,9 +580,9 @@ async function handleUserDetailAPI(username, request, env) {
 
         const reversedHistory = [...history].reverse();
         chartDataRaw = reversedHistory.map(h => {
-            let tracksCount = getCumulativeTracksAt(h.timestamp);
+            let tracksCount = getDeduplicatedTracksAt(h.timestamp);
             if (!tracksCount || tracksCount === 0) {
-                tracksCount = h.total_songs || totalSongs || 0;
+                tracksCount = totalSongs;
             }
             return {
                 x: h.timestamp,
