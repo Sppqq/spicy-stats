@@ -408,7 +408,14 @@ async function handleUserDetailAPI(username, request, env) {
 
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
-    const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
+    const { results: history } = await env.DB.prepare(`
+        SELECT id, total_views, 
+               COALESCE(total_songs, (SELECT COUNT(DISTINCT COALESCE(NULLIF(TRIM(title), ''), 'Hidden') || '|||' || COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics')) FROM snapshot_songs WHERE snapshot_id = snapshots.id AND views >= 0)) AS total_songs, 
+               timestamp 
+        FROM snapshots 
+        WHERE user_id = ? 
+        ORDER BY id DESC LIMIT 10000
+    `).bind(user.id).all();
 
     // ИСПРАВЛЕНИЕ 1: Ищем снапшот, ближайший к 24 часам назад
     const pastSnapshot = await env.DB.prepare(`
@@ -505,7 +512,47 @@ async function handleUserDetailAPI(username, request, env) {
         totalSongs = finalSongs.length;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
-        chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
+
+        // Calculate accurate historical track count at each snapshot timestamp based on earliest appearance
+        const { results: trackFirstSeen } = await env.DB.prepare(`
+            SELECT MIN(s.timestamp) as first_ts
+            FROM snapshot_songs ss
+            JOIN snapshots s ON ss.snapshot_id = s.id
+            WHERE s.user_id = ? AND ss.views >= 0
+            GROUP BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+        `).bind(user.id).all();
+
+        const sortedFirstTs = (trackFirstSeen || [])
+            .map(t => t.first_ts)
+            .filter(Boolean)
+            .sort();
+
+        function getCumulativeTracksAt(ts) {
+            if (!sortedFirstTs || sortedFirstTs.length === 0) return totalSongs;
+            let count = 0;
+            for (let i = 0; i < sortedFirstTs.length; i++) {
+                if (sortedFirstTs[i] <= ts) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            return count;
+        }
+
+        const reversedHistory = [...history].reverse();
+        chartDataRaw = reversedHistory.map(h => {
+            let tracksCount = getCumulativeTracksAt(h.timestamp);
+            if (!tracksCount || tracksCount === 0) {
+                tracksCount = h.total_songs || totalSongs || 0;
+            }
+            return {
+                x: h.timestamp,
+                y: h.total_views,
+                views: h.total_views,
+                tracks: tracksCount
+            };
+        });
     }
 
     // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)

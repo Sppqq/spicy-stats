@@ -1169,7 +1169,18 @@
                         <div class="panel-meta" id="profile-chart-sub-label" data-i18n="chart_sub">Total views over the last 30 days</div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div class="metric-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
+                            <button type="button" class="metric-btn active" data-metric="views" style="background: var(--line); border: 1px solid var(--line); padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--blue); font-weight: 700; border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--blue);"></span>
+                                <span data-i18n="metric_views">Views</span>
+                            </button>
+                            <button type="button" class="metric-btn" data-metric="tracks" style="background: transparent; border: 1px solid transparent; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
+                                <span data-i18n="metric_tracks">Tracks</span>
+                            </button>
+                        </div>
+
                         <div class="timeframe-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
                             <button type="button" class="timeframe-btn" data-val="7" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">7D</button>
                             <button type="button" class="timeframe-btn active" data-val="30" style="background: var(--line); border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--ink); border-radius: 3px; transition: background 0.15s, color 0.15s;">30D</button>
@@ -1187,8 +1198,13 @@
                                 <stop offset="0%" stop-color="var(--blue)" stop-opacity="0.28" />
                                 <stop offset="100%" stop-color="var(--blue)" stop-opacity="0" />
                             </linearGradient>
+                            <linearGradient id="tracksArea" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="var(--coral)" stop-opacity="0.25" />
+                                <stop offset="100%" stop-color="var(--coral)" stop-opacity="0" />
+                            </linearGradient>
                         </defs>
 
+                        <!-- Views paths -->
                         <path id="profile-chart-area-path"
                             d=""
                             fill="url(#profileArea)" />
@@ -1196,6 +1212,15 @@
                         <path id="profile-chart-line-path"
                             d=""
                             fill="none" stroke="var(--blue)" stroke-width="4" vector-effect="non-scaling-stroke" />
+
+                        <!-- Tracks paths -->
+                        <path id="profile-chart-tracks-area-path"
+                            d=""
+                            fill="url(#tracksArea)" />
+
+                        <path id="profile-chart-tracks-line-path"
+                            d=""
+                            fill="none" stroke="var(--coral)" stroke-width="3" stroke-dasharray="6 3" vector-effect="non-scaling-stroke" />
                     </svg>
 
                     <div class="chart-labels" id="profile-chart-labels">
@@ -1344,6 +1369,59 @@
         let profileData = null;
         let username = null;
         let chartTimeframe = 30;
+        let chartMetrics = { views: true, tracks: false };
+        try {
+            const savedMetrics = localStorage.getItem('spicy-chart-metrics');
+            if (savedMetrics) {
+                const parsed = JSON.parse(savedMetrics);
+                if (typeof parsed.views === 'boolean' && typeof parsed.tracks === 'boolean') {
+                    chartMetrics = parsed;
+                }
+            }
+        } catch (e) {}
+
+        function updateMetricBtnUI() {
+            document.querySelectorAll('.metric-btn').forEach(btn => {
+                const m = btn.dataset.metric;
+                const isActive = chartMetrics[m];
+                if (isActive) {
+                    btn.classList.add('active');
+                    btn.style.background = 'var(--line)';
+                    btn.style.color = m === 'views' ? 'var(--blue)' : 'var(--coral)';
+                    btn.style.borderColor = 'var(--line)';
+                    btn.style.fontWeight = '700';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--muted)';
+                    btn.style.borderColor = 'transparent';
+                    btn.style.fontWeight = '400';
+                }
+            });
+        }
+
+        function updateChartSubLabel() {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const subLabel = document.getElementById('profile-chart-sub-label');
+            if (!subLabel) return;
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+            let key = 'chart_sub_views';
+            if (chartMetrics.views && chartMetrics.tracks) {
+                key = chartTimeframe === 'all' ? 'chart_sub_both_all' : 'chart_sub_both';
+            } else if (chartMetrics.tracks) {
+                key = chartTimeframe === 'all' ? 'chart_sub_tracks_all' : 'chart_sub_tracks';
+            } else {
+                key = chartTimeframe === 'all' ? 'chart_sub_views_all' : 'chart_sub_views';
+            }
+
+            const template = dict[key] || TRANSLATIONS.en[key] || dict.chart_sub || 'Profile activity';
+            if (chartTimeframe === 'all') {
+                subLabel.textContent = template;
+            } else {
+                subLabel.textContent = template.replace('{days}', chartTimeframe);
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             checkNotifications();
@@ -1352,6 +1430,35 @@
             initLiveIndicator();
             showEasterEgg();
             checkLanguageSuggestion();
+
+            // Metric Selector Bindings
+            document.querySelectorAll('.metric-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const metric = btn.dataset.metric;
+                    if (metric === 'views') {
+                        if (chartMetrics.views && !chartMetrics.tracks) {
+                            chartMetrics.views = false;
+                            chartMetrics.tracks = true;
+                        } else {
+                            chartMetrics.views = !chartMetrics.views;
+                        }
+                    } else if (metric === 'tracks') {
+                        if (chartMetrics.tracks && !chartMetrics.views) {
+                            chartMetrics.tracks = false;
+                            chartMetrics.views = true;
+                        } else {
+                            chartMetrics.tracks = !chartMetrics.tracks;
+                        }
+                    }
+                    try {
+                        localStorage.setItem('spicy-chart-metrics', JSON.stringify(chartMetrics));
+                    } catch (e) {}
+                    updateMetricBtnUI();
+                    updateChartSubLabel();
+                    renderChart();
+                });
+            });
+            updateMetricBtnUI();
 
             // Timeframe Selector Bindings
             document.querySelectorAll('.timeframe-btn').forEach(btn => {
@@ -1366,20 +1473,7 @@
                     btn.style.color = 'var(--ink)';
 
                     chartTimeframe = btn.dataset.val === 'all' ? 'all' : parseInt(btn.dataset.val);
-
-                    // Update subtext
-                    const currentLang = localStorage.getItem('spicy-lang') || 'en';
-                    const subLabel = document.getElementById('profile-chart-sub-label');
-                    if (subLabel) {
-                        const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-                        if (chartTimeframe === 'all') {
-                            subLabel.textContent = dict.chart_sub_all || 'Total views over all tracking history';
-                        } else {
-                            const template = dict.chart_sub_days || 'Total views over the last {days} days';
-                            subLabel.textContent = template.replace('{days}', chartTimeframe);
-                        }
-                    }
-
+                    updateChartSubLabel();
                     renderChart();
                 });
             });
@@ -1507,6 +1601,14 @@
                 top_shares: "Top Track Shares",
                 chart_sub_all: "Total views over all tracking history",
                 chart_sub_days: "Total views over the last {days} days",
+                metric_views: "Views",
+                metric_tracks: "Tracks",
+                chart_sub_views: "Total views over the last {days} days",
+                chart_sub_tracks: "Total track count over the last {days} days",
+                chart_sub_both: "Views & track count over the last {days} days",
+                chart_sub_views_all: "Total views over all tracking history",
+                chart_sub_tracks_all: "Total track count over all tracking history",
+                chart_sub_both_all: "Views & track count over all tracking history",
                 contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq",
                 credits: 'Special thanks to <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> for the contribution',
                 data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -1628,6 +1730,14 @@
                 top_shares: "Доли топовых треков",
                 chart_sub_all: "Общие просмотры за все время отслеживания",
                 chart_sub_days: "Общие просмотры за последние {days} дней",
+                metric_views: "Просмотры",
+                metric_tracks: "Кол-во треков",
+                chart_sub_views: "Общее число просмотров за последние {days} дней",
+                chart_sub_tracks: "Количество треков за последние {days} дней",
+                chart_sub_both: "Просмотры и количество треков за последние {days} дней",
+                chart_sub_views_all: "Общие просмотры за все время отслеживания",
+                chart_sub_tracks_all: "Количество треков за все время отслеживания",
+                chart_sub_both_all: "Просмотры и количество треков за все время отслеживания",
                 contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq",
                 credits: 'Отдельная благодарность <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за вклад',
                 data_source: 'Данные предоставлены <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -1749,6 +1859,14 @@
                 top_shares: "Частки топових треків",
                 chart_sub_all: "Загальна кількість переглядів за всю історію відстеження",
                 chart_sub_days: "Загальна кількість переглядів за останні {days} днів",
+                metric_views: "Перегляди",
+                metric_tracks: "Кількість треків",
+                chart_sub_views: "Загальна кількість переглядів за останні {days} днів",
+                chart_sub_tracks: "Кількість треків за останні {days} днів",
+                chart_sub_both: "Перегляди та кількість треків за останні {days} днів",
+                chart_sub_views_all: "Загальна кількість переглядів за всю історію відстеження",
+                chart_sub_tracks_all: "Кількість треків за всю історію відстеження",
+                chart_sub_both_all: "Перегляди та кількість треків за всю історію відстеження",
                 contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq",
                 credits: 'Окрема подяка <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за внесок',
                 data_source: 'Дані надані <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -1870,6 +1988,14 @@
                 top_shares: "Top-Track-Anteile",
                 chart_sub_all: "Gesamtansichten über die gesamte Erfassungshistorie",
                 chart_sub_days: "Gesamtansichten in den letzten {days} Tagen",
+                metric_views: "Aufrufe",
+                metric_tracks: "Tracks",
+                chart_sub_views: "Gesamte Aufrufe in den letzten {days} Tagen",
+                chart_sub_tracks: "Anzahl der Tracks in den letzten {days} Tagen",
+                chart_sub_both: "Aufrufe und Trackanzahl in den letzten {days} Tagen",
+                chart_sub_views_all: "Gesamtansichten über die gesamte Erfassungshistorie",
+                chart_sub_tracks_all: "Trackanzahl über die gesamte Erfassungshistorie",
+                chart_sub_both_all: "Aufrufe und Trackanzahl über die gesamte Erfassungshistorie",
                 contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq",
                 credits: 'Besonderer Dank an <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> für den Beitrag',
                 data_source: 'Daten bereitgestellt von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -1991,6 +2117,14 @@
                 top_shares: "Quote dei brani migliori",
                 chart_sub_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
                 chart_sub_days: "Visualizzazioni totali negli ultimi {days} giorni",
+                metric_views: "Visualizzazioni",
+                metric_tracks: "Brani",
+                chart_sub_views: "Visualizzazioni totali negli ultimi {days} giorni",
+                chart_sub_tracks: "Numero di brani negli ultimi {days} giorni",
+                chart_sub_both: "Visualizzazioni e brani negli ultimi {days} giorni",
+                chart_sub_views_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
+                chart_sub_tracks_all: "Numero di brani su tutta la cronologia di monitoraggio",
+                chart_sub_both_all: "Visualizzazioni e brani su tutta la cronologia di monitoraggio",
                 contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq",
                 credits: 'Un ringraziamento speciale a <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> per il contributo',
                 data_source: 'Dati forniti da <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -2112,6 +2246,14 @@
                 top_shares: "Udziały top utworów",
                 chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
+                metric_views: "Wyświetlenia",
+                metric_tracks: "Utwory",
+                chart_sub_views: "Łączna liczba wyświetleń w ciągu ostatnich {days} dni",
+                chart_sub_tracks: "Liczba utworów w ciągu ostatnich {days} dni",
+                chart_sub_both: "Wyświetlenia i liczba utworów w ciągu ostatnich {days} dni",
+                chart_sub_views_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
+                chart_sub_tracks_all: "Liczba utworów w całej historii śledzenia",
+                chart_sub_both_all: "Wyświetlenia i liczba utworów w całej historii śledzenia",
                 contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
                 credits: 'Specjalne podziękowania dla <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wkład',
                 data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
@@ -2805,11 +2947,13 @@
         }
 
         function renderChart() {
-            const svgArea = document.getElementById('profile-chart-area-path');
-            const svgLine = document.getElementById('profile-chart-line-path');
+            const svgViewsArea = document.getElementById('profile-chart-area-path');
+            const svgViewsLine = document.getElementById('profile-chart-line-path');
+            const svgTracksArea = document.getElementById('profile-chart-tracks-area-path');
+            const svgTracksLine = document.getElementById('profile-chart-tracks-line-path');
             const labelsContainer = document.getElementById('profile-chart-labels');
 
-            if (!svgArea || !svgLine || !profileData.chart_data || profileData.chart_data.length < 2) return;
+            if (!profileData || !profileData.chart_data || profileData.chart_data.length < 2) return;
 
             const rawPoints = profileData.chart_data;
             let points = rawPoints;
@@ -2841,15 +2985,28 @@
             }
 
             if (points.length < 2) {
-                // If selected timeframe doesn't have enough data points, fallback to using all available
-                svgArea.setAttribute('d', '');
-                svgLine.setAttribute('d', '');
-                labelsContainer.innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).not_enough_data || 'Not enough data for this timeframe'}</span>`;
+                if (svgViewsArea) svgViewsArea.setAttribute('d', '');
+                if (svgViewsLine) svgViewsLine.setAttribute('d', '');
+                if (svgTracksArea) svgTracksArea.setAttribute('d', '');
+                if (svgTracksLine) svgTracksLine.setAttribute('d', '');
+                if (labelsContainer) {
+                    labelsContainer.innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).not_enough_data || 'Not enough data for this timeframe'}</span>`;
+                }
                 return;
             }
 
-            const firstVal = points[0].y;
-            const lastVal = points[points.length - 1].y;
+            const normalizedPoints = points.map(p => ({
+                x: p.x,
+                views: p.views !== undefined ? p.views : (p.y || 0),
+                tracks: p.tracks !== undefined ? p.tracks : (profileData.total_songs || 0)
+            }));
+
+            const showViews = chartMetrics.views;
+            const showTracks = chartMetrics.tracks;
+            const primaryMetric = showViews ? 'views' : 'tracks';
+
+            const firstVal = normalizedPoints[0][primaryMetric];
+            const lastVal = normalizedPoints[normalizedPoints.length - 1][primaryMetric];
             const totalGrowthPct = firstVal > 0 ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : '0';
             const totalGrowthSign = lastVal >= firstVal ? '+' : '';
 
@@ -2859,21 +3016,16 @@
                 growthEl.style.color = lastVal >= firstVal ? 'var(--positive-text)' : 'var(--coral)';
             }
 
-            const minViews = Math.min(...points.map(p => p.y));
-            const maxViews = Math.max(...points.map(p => p.y));
-
             const width = 800;
             const height = 190;
             const paddingLeft = 0;
             const paddingRight = 0;
             const paddingTop = 25;
             const paddingBottom = 10;
-
             const chartHeight = height - paddingTop - paddingBottom;
             const chartWidth = width - paddingLeft - paddingRight;
 
-            const pointsCount = points.length;
-            const times = points.map(p => {
+            const times = normalizedPoints.map(p => {
                 const dateObj = parseUTCDate(p.x);
                 return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
             });
@@ -2881,33 +3033,75 @@
             const maxTime = Math.max(...times);
             const timeRange = maxTime - minTime || 1;
 
-            const scaledPoints = points.map((p, i) => {
+            const minViews = Math.min(...normalizedPoints.map(p => p.views));
+            const maxViews = Math.max(...normalizedPoints.map(p => p.views));
+            const viewsDiff = maxViews - minViews;
+            const viewsRange = viewsDiff || 1;
+
+            const minTracks = Math.min(...normalizedPoints.map(p => p.tracks));
+            const maxTracks = Math.max(...normalizedPoints.map(p => p.tracks));
+            const tracksDiff = maxTracks - minTracks;
+            const tracksRange = tracksDiff || 1;
+
+            const scaledPoints = normalizedPoints.map((p, i) => {
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
-                const y = height - paddingBottom - ((p.y - minViews) / (maxViews - minViews || 1)) * chartHeight;
-                return { x, y, date: p.x, views: p.y };
+
+                let yViews = height - paddingBottom - ((p.views - minViews) / viewsRange) * chartHeight;
+                if (viewsDiff === 0) {
+                    yViews = paddingTop + chartHeight / 2;
+                }
+
+                let yTracks = height - paddingBottom - ((p.tracks - minTracks) / tracksRange) * chartHeight;
+                if (tracksDiff === 0) {
+                    // Position constant tracks line cleanly across middle (or slightly lower if views is also active and constant)
+                    yTracks = (showViews && viewsDiff === 0)
+                        ? paddingTop + chartHeight / 2 + 20
+                        : (showViews ? height - paddingBottom - 25 : paddingTop + chartHeight / 2);
+                }
+
+                return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks };
             });
 
-            let linePathStr = '';
-            scaledPoints.forEach((p, i) => {
-                const cmd = i === 0 ? 'M' : 'L';
-                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
-            });
+            if (showViews && svgViewsArea && svgViewsLine) {
+                let lineStr = '';
+                scaledPoints.forEach((p, i) => {
+                    const cmd = i === 0 ? 'M' : 'L';
+                    lineStr += `${cmd} ${p.x.toFixed(1)} ${p.yViews.toFixed(1)} `;
+                });
+                const areaStr = lineStr + `L ${width} ${height} L 0 ${height} Z`;
+                svgViewsArea.setAttribute('d', areaStr);
+                svgViewsLine.setAttribute('d', lineStr);
+            } else {
+                if (svgViewsArea) svgViewsArea.setAttribute('d', '');
+                if (svgViewsLine) svgViewsLine.setAttribute('d', '');
+            }
 
-            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
+            if (showTracks && svgTracksArea && svgTracksLine) {
+                let lineStr = '';
+                scaledPoints.forEach((p, i) => {
+                    const cmd = i === 0 ? 'M' : 'L';
+                    lineStr += `${cmd} ${p.x.toFixed(1)} ${p.yTracks.toFixed(1)} `;
+                });
+                const areaStr = lineStr + `L ${width} ${height} L 0 ${height} Z`;
+                svgTracksArea.setAttribute('d', areaStr);
+                svgTracksLine.setAttribute('d', lineStr);
+            } else {
+                if (svgTracksArea) svgTracksArea.setAttribute('d', '');
+                if (svgTracksLine) svgTracksLine.setAttribute('d', '');
+            }
 
-            svgArea.setAttribute('d', areaPathStr);
-            svgLine.setAttribute('d', linePathStr);
-
-            labelsContainer.innerHTML = '';
-            const steps = 5;
-            for (let i = 0; i <= steps; i++) {
-                const timeVal = minTime + (i / steps) * timeRange;
-                const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
-                const label = document.createElement('span');
-                label.textContent = formattedDate;
-                labelsContainer.appendChild(label);
+            if (labelsContainer) {
+                labelsContainer.innerHTML = '';
+                const steps = 5;
+                for (let i = 0; i <= steps; i++) {
+                    const timeVal = minTime + (i / steps) * timeRange;
+                    const dateObj = new Date(timeVal);
+                    const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                    const label = document.createElement('span');
+                    label.textContent = formattedDate;
+                    labelsContainer.appendChild(label);
+                }
             }
 
             setupProfileChartTooltip(scaledPoints);
@@ -2932,6 +3126,7 @@
                 tooltip.style.boxShadow = '3px 3px 0 var(--line)';
                 tooltip.style.pointerEvents = 'none';
                 tooltip.style.zIndex = '100';
+                tooltip.style.borderRadius = '4px';
                 chartWrap.appendChild(tooltip);
             }
 
@@ -2957,15 +3152,27 @@
                 const dateObj = parseUTCDate(closestPt.date);
                 const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
 
+                let content = `<div style="color: var(--green); font-weight: bold; margin-bottom: 4px;">${formattedDate}</div>`;
+                if (chartMetrics.views) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--blue);"></span>
+                        <span>${dict.views || 'Views'}: <strong>${formatFullNumber(closestPt.views)}</strong></span>
+                    </div>`;
+                }
+                if (chartMetrics.tracks) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
+                        <span>${dict.tracks || 'Tracks'}: <strong>${formatFullNumber(closestPt.tracks)}</strong></span>
+                    </div>`;
+                }
+
                 tooltip.style.display = 'block';
-                tooltip.innerHTML = `
-                    <div style="color: var(--green); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
-                    <div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>
-                `;
+                tooltip.innerHTML = content;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
                 const posX = ((closestPt.x / 800) * rect.width);
-                const posY = ((closestPt.y / 190) * rect.height) - 10;
+                const activeY = chartMetrics.views ? closestPt.yViews : closestPt.yTracks;
+                const posY = ((activeY / 190) * rect.height) - 10;
 
                 let left = posX + 20;
                 if (left + tooltipRect.width > rect.width) {
