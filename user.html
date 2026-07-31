@@ -555,7 +555,14 @@
             transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
         }
 
-        .lang-dropdown { width: auto; min-width: 150px; }
+        .lang-dropdown {
+            width: max-content;
+            min-width: 140px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
 
         [data-theme] .theme-dropdown.open, .lang-dropdown.open {
             transform: translateY(0) scale(1);
@@ -564,22 +571,7 @@
             visibility: visible;
         }
 
-        .theme-dropdown-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 5px 6px 13px;
-        }
-
-        .theme-dropdown-title { display: grid; gap: 3px; }
-        .theme-dropdown-eyebrow, .theme-dropdown-footer, .theme-shortcut { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; }
-        .theme-dropdown-title strong { font-size: 15px; letter-spacing: -0.03em; }
-        .theme-shortcut { padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; letter-spacing: 0.04em; }
-
-        .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-
-        [data-theme] .theme-option, .lang-option {
+        [data-theme] .theme-option {
             position: relative;
             display: grid;
             grid-template-columns: 62px minmax(0, 1fr) 20px;
@@ -599,7 +591,24 @@
             cursor: pointer;
         }
 
-        .lang-option { display: flex; min-height: auto; padding: 10px 14px; font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; border-radius: 8px; }
+        .lang-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: auto;
+            padding: 7px 12px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+        }
 
         [data-theme] .theme-option:hover, .lang-option:hover { transform: translateY(-1px); border-color: var(--line); background: var(--menu-hover); }
         [data-theme] .theme-option.active, .lang-option.active { border-color: var(--blue); background: var(--menu-active); color: var(--ink); }
