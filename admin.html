@@ -429,7 +429,7 @@
             box-shadow: 6px 6px 0 var(--ink);
         }
 
-        /* GitHub Stars Badge — matches .theme-toggle style */
+        /* GitHub Stars Badge — subtle topbar control */
         .github-stars-btn {
             display: inline-flex;
             align-items: center;
@@ -438,25 +438,31 @@
             padding: 0 11px;
             border: 1px solid var(--ink);
             background: transparent;
-            color: var(--ink);
+            color: var(--muted);
             font-family: 'DM Mono', monospace;
             font-size: 10px;
             text-transform: uppercase;
             cursor: pointer;
-            transition: 140ms ease;
+            transition: all 140ms ease;
             border-radius: 0;
             text-decoration: none;
             user-select: none;
+            opacity: 0.75;
         }
         .github-stars-btn:hover {
             background: rgba(255,255,255,0.06);
             border-color: var(--blue);
             color: var(--ink);
+            opacity: 1;
         }
         .github-star-icon {
-            color: #f59e0b;
+            color: var(--muted);
             font-size: 12px;
             line-height: 1;
+            transition: color 140ms ease;
+        }
+        .github-stars-btn:hover .github-star-icon {
+            color: #f59e0b;
         }
         .github-stars-count {
             font-weight: 700;
