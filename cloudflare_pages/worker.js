@@ -518,9 +518,8 @@ async function handleUserDetailAPI(username, request, env) {
             SELECT MIN(s.timestamp) as first_ts
             FROM snapshot_songs ss
             JOIN snapshots s ON ss.snapshot_id = s.id
-            LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
             WHERE s.user_id = ? AND ss.views >= 0
-            GROUP BY COALESCE(NULLIF(tm.isrc, ''), LOWER(TRIM(COALESCE(tm.title, ss.title))) || '|||' || LOWER(TRIM(COALESCE(tm.artist, ss.artist))))
+            GROUP BY LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist))
         `).bind(user.id).all();
 
         const sortedFirstTs = (trackFirstSeen || [])

@@ -1192,6 +1192,8 @@
                 </div>
 
                 <div class="chart-wrap" style="position: relative;">
+                    <div id="profile-chart-yaxis-left" style="position: absolute; top: 6px; left: 10px; bottom: 32px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; z-index: 2; opacity: 0.9;"></div>
+                    <div id="profile-chart-yaxis-right" style="position: absolute; top: 6px; right: 10px; bottom: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; pointer-events: none; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; z-index: 2; opacity: 0.9;"></div>
                     <svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id="profileArea" x1="0" y1="0" x2="0" y2="1">
@@ -3096,6 +3098,57 @@
             } else {
                 if (svgTracksArea) svgTracksArea.setAttribute('d', '');
                 if (svgTracksLine) svgTracksLine.setAttribute('d', '');
+            }
+
+            // Update Y-Axis Scale Labels (Left / Right)
+            const yAxisLeft = document.getElementById('profile-chart-yaxis-left');
+            const yAxisRight = document.getElementById('profile-chart-yaxis-right');
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const trkSuffix = currentLang === 'ru' ? 'трек.' : (currentLang === 'uk' ? 'трек.' : 'trk');
+
+            if (showViews && showTracks) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--blue)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViewsShort(maxViews)}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViewsShort(minViews)}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'flex';
+                    yAxisRight.style.color = 'var(--coral)';
+                    yAxisRight.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${maxTracks} ${trkSuffix}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${minTracks} ${trkSuffix}</span>
+                    `;
+                }
+            } else if (showViews) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--blue)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViewsShort(maxViews)}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViewsShort(minViews)}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'none';
+                    yAxisRight.innerHTML = '';
+                }
+            } else if (showTracks) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--coral)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${maxTracks} ${trkSuffix}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${minTracks} ${trkSuffix}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'none';
+                    yAxisRight.innerHTML = '';
+                }
             }
 
             if (labelsContainer) {
