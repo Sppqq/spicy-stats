@@ -3361,27 +3361,35 @@
                     }
                 });
 
-                // Render sleek milestone dots + tooltip notes
+                // Render sleek milestone dots + tooltip notes (aspect-corrected for 100% round circles)
+                const svgRect = svgElement.getBoundingClientRect();
+                const domW = svgRect.width || 800;
+                const domH = svgRect.height || 190;
+                const scaleX = 800 / domW;
+                const scaleY = 190 / domH;
+
                 milestoneEvents.forEach(evt => {
                     if (!activeMilestoneNotes[evt.index]) activeMilestoneNotes[evt.index] = [];
                     activeMilestoneNotes[evt.index].push(evt.fullNote);
 
-                    // Outer pulse ring
-                    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    // Outer pulse ring (5.5px radius in DOM pixels)
+                    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
                     ring.setAttribute('cx', evt.x.toFixed(1));
                     ring.setAttribute('cy', evt.y.toFixed(1));
-                    ring.setAttribute('r', '5.5');
+                    ring.setAttribute('rx', (5.5 * scaleX).toFixed(2));
+                    ring.setAttribute('ry', (5.5 * scaleY).toFixed(2));
                     ring.setAttribute('fill', 'none');
                     ring.setAttribute('stroke', evt.color);
                     ring.setAttribute('stroke-width', '1.5');
                     ring.setAttribute('stroke-opacity', '0.6');
                     milestoneContainer.appendChild(ring);
 
-                    // Glowing core dot
-                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    // Glowing core dot (3.5px radius in DOM pixels)
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
                     circle.setAttribute('cx', evt.x.toFixed(1));
                     circle.setAttribute('cy', evt.y.toFixed(1));
-                    circle.setAttribute('r', '3.5');
+                    circle.setAttribute('rx', (3.5 * scaleX).toFixed(2));
+                    circle.setAttribute('ry', (3.5 * scaleY).toFixed(2));
                     circle.setAttribute('fill', evt.color);
                     circle.setAttribute('stroke', 'var(--paper)');
                     circle.setAttribute('stroke-width', '1.2');
@@ -3419,6 +3427,8 @@
 
             svgElement.addEventListener('mousemove', (e) => {
                 const rect = svgElement.getBoundingClientRect();
+                if (!rect.width || !rect.height) return;
+
                 const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
 
                 let closestPt = scaledPoints[0];
@@ -3432,6 +3442,13 @@
                         closestPt = scaledPoints[i];
                         closestIdx = i;
                     }
+                }
+
+                // Check distance in DOM pixels -- hide tooltip if mouse is farther than 35px from nearest point
+                const distPx = Math.abs(closestPt.x - mouseX) * (rect.width / 800);
+                if (distPx > 35) {
+                    tooltip.style.display = 'none';
+                    return;
                 }
 
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
