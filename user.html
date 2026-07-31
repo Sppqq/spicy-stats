@@ -2995,11 +2995,18 @@
                 return;
             }
 
-            const normalizedPoints = points.map(p => ({
-                x: p.x,
-                views: p.views !== undefined ? p.views : (p.y || 0),
-                tracks: p.tracks !== undefined ? p.tracks : (profileData.total_songs || 0)
-            }));
+            const maxAllowedSongs = profileData.total_songs || 0;
+            const normalizedPoints = points.map(p => {
+                let rawTracks = p.tracks !== undefined ? p.tracks : maxAllowedSongs;
+                if (maxAllowedSongs > 0 && rawTracks > maxAllowedSongs) {
+                    rawTracks = maxAllowedSongs;
+                }
+                return {
+                    x: p.x,
+                    views: p.views !== undefined ? p.views : (p.y || 0),
+                    tracks: rawTracks
+                };
+            });
 
             const showViews = chartMetrics.views;
             const showTracks = chartMetrics.tracks;
