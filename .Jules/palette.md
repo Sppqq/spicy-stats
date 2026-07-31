@@ -7,3 +7,6 @@
 ## 2026-07-30 - Accessible Interactive Rows
 **Learning:** Interactive list items/rows implemented as `<div>` or `<tr>` with `onclick` handlers are inaccessible to keyboard users and screen readers.
 **Action:** Add `tabindex="0"`, `role="link"` (or `role="button"`), and a `keydown` event listener for Enter/Space to ensure full accessibility for these interactive elements, rather than converting them to buttons which might break or require custom CSS.
+## 2026-07-31 - Accessible Sortable Table Headers
+**Learning:** Adding `role="button"` to sortable `<th>` elements overrides their native semantic role as table headers (`columnheader`), causing screen readers to lose table context.
+**Action:** Keep the native `<th>` semantic by adding `tabindex="0"`, a `keydown` event listener for Enter/Space, explicit `role="columnheader"`, and dynamically updating the `aria-sort` attribute (`ascending`, `descending`, or `none`) to ensure full keyboard accessibility and screen reader support without breaking table semantics.
