@@ -513,26 +513,44 @@ async function handleUserDetailAPI(username, request, env) {
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
 
-        // Smart track count propagation for historical snapshots
-        let knownTracks = totalSongs;
-        for (let i = 0; i < history.length; i++) {
-            if (history[i].total_songs && history[i].total_songs > 0) {
-                knownTracks = history[i].total_songs;
-                break;
+        // Calculate accurate historical track count at each snapshot timestamp based on earliest appearance
+        const { results: trackFirstSeen } = await env.DB.prepare(`
+            SELECT MIN(s.timestamp) as first_ts
+            FROM snapshot_songs ss
+            JOIN snapshots s ON ss.snapshot_id = s.id
+            WHERE s.user_id = ? AND ss.views >= 0
+            GROUP BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+        `).bind(user.id).all();
+
+        const sortedFirstTs = (trackFirstSeen || [])
+            .map(t => t.first_ts)
+            .filter(Boolean)
+            .sort();
+
+        function getCumulativeTracksAt(ts) {
+            if (!sortedFirstTs || sortedFirstTs.length === 0) return totalSongs;
+            let count = 0;
+            for (let i = 0; i < sortedFirstTs.length; i++) {
+                if (sortedFirstTs[i] <= ts) {
+                    count++;
+                } else {
+                    break;
+                }
             }
+            return count;
         }
 
         const reversedHistory = [...history].reverse();
-        let runningTracks = knownTracks;
         chartDataRaw = reversedHistory.map(h => {
-            if (h.total_songs && h.total_songs > 0) {
-                runningTracks = h.total_songs;
+            let tracksCount = getCumulativeTracksAt(h.timestamp);
+            if (!tracksCount || tracksCount === 0) {
+                tracksCount = h.total_songs || totalSongs || 0;
             }
             return {
                 x: h.timestamp,
                 y: h.total_views,
                 views: h.total_views,
-                tracks: runningTracks || totalSongs || 0
+                tracks: tracksCount
             };
         });
     }
