@@ -4710,5 +4710,25 @@
         </div>
     </div>
 
+    <script>
+        // Global escape key handler to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const trackModal = document.getElementById('track-modal');
+                if (trackModal && trackModal.style.display === 'flex') {
+                    trackModal.style.display = 'none';
+                    const tooltip = document.getElementById('track-chart-tooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                    return;
+                }
+
+                const changelogModal = document.getElementById('changelog-modal');
+                if (changelogModal && changelogModal.style.display === 'flex') {
+                    changelogModal.style.display = 'none';
+                    return;
+                }
+            }
+        });
+    </script>
 </body>
 </html>

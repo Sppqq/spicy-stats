@@ -1751,6 +1751,10 @@
             applySortAndRenderTable();
         }
 
+        function closeCompareModal() {
+            document.getElementById('compare-modal').style.display = 'none';
+        }
+
         function openCompareModal() {
             document.getElementById('compare-modal').style.display = 'flex';
             renderCompareChart();
@@ -4086,5 +4090,30 @@
         </div>
     </div>
 
+    <script>
+        // Global escape key handler to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const addAuthorModal = document.getElementById('add-author-modal');
+                if (addAuthorModal && addAuthorModal.style.display === 'flex') {
+                    addAuthorModal.style.display = 'none';
+                    return;
+                }
+
+                const compareModal = document.getElementById('compare-modal');
+                if (compareModal && compareModal.style.display === 'flex') {
+                    if (typeof closeCompareModal === 'function') closeCompareModal();
+                    else compareModal.style.display = 'none';
+                    return;
+                }
+
+                const changelogModal = document.getElementById('changelog-modal');
+                if (changelogModal && changelogModal.style.display === 'flex') {
+                    changelogModal.style.display = 'none';
+                    return;
+                }
+            }
+        });
+    </script>
 </body>
 </html>
