@@ -48,10 +48,19 @@ function getPrimaryArtist(artistStr) {
     return res;
 }
 
-// In-memory rate limiting
+// In-memory rate limiting with Cloudflare Rate Limiter binding support
 const rateLimitMap = new Map();
 
-function isRateLimited(ip, limit, windowMs) {
+async function isRateLimited(env, ip, limit, windowMs) {
+    if (env && env.RATE_LIMITER && typeof env.RATE_LIMITER.limit === 'function') {
+        try {
+            const { success } = await env.RATE_LIMITER.limit({ key: ip });
+            return !success;
+        } catch (e) {
+            console.error("Rate limiter binding error:", e);
+        }
+    }
+
     const now = Date.now();
     if (rateLimitMap.size > 10000) rateLimitMap.clear();
 
@@ -225,9 +234,9 @@ export default {
         const rateLimitMsg = rateLimitMsgs[lang] || rateLimitMsgs.en;
 
         if (url.pathname === "/api/add-user" && request.method === "POST") {
-            if (isRateLimited(ip, 5, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+            if (await isRateLimited(env, ip, 2, 10000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         } else if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/admin/")) {
-            if (isRateLimited(ip, 60, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+            if (await isRateLimited(env, ip, 10, 10000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
         let response;
@@ -523,12 +532,14 @@ async function handleUserDetailAPI(username, request, env) {
         `).bind(user.id).all();
 
         const sortedFirstTs = (trackFirstSeen || [])
-            .map(t => t.first_ts)
+            .map(t => parseDate(t.first_ts)?.getTime())
             .filter(Boolean)
-            .sort();
+            .sort((a, b) => a - b);
 
-        function getDeduplicatedTracksAt(ts) {
-            if (!sortedFirstTs || sortedFirstTs.length === 0) return totalSongs;
+        function getDeduplicatedTracksAt(tsStr) {
+            if (!sortedFirstTs || sortedFirstTs.length === 0) return 0;
+            const ts = parseDate(tsStr)?.getTime();
+            if (!ts) return 0;
             let count = 0;
             for (let i = 0; i < sortedFirstTs.length; i++) {
                 if (sortedFirstTs[i] <= ts) {
@@ -537,14 +548,16 @@ async function handleUserDetailAPI(username, request, env) {
                     break;
                 }
             }
-            return Math.min(count, totalSongs);
+            return count;
         }
 
         const reversedHistory = [...history].reverse();
         chartDataRaw = reversedHistory.map(h => {
             let tracksCount = getDeduplicatedTracksAt(h.timestamp);
             if (!tracksCount || tracksCount === 0) {
-                tracksCount = totalSongs;
+                tracksCount = h.total_songs || totalSongs;
+            } else {
+                tracksCount = Math.min(tracksCount, totalSongs);
             }
             return {
                 x: h.timestamp,

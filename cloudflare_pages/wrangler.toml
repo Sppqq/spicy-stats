@@ -21,6 +21,11 @@ queue = "spicy-scrape-queue"
 max_batch_size = 1
 max_retries = 2
 
+# Optional Cloudflare Rate Limiter binding (if created in Cloudflare dashboard / wrangler)
+# [[ratelimits]]
+# binding = "RATE_LIMITER"
+# namespace_id = "1001"
+
 # Production Environment (Main Branch)
 [env.production]
 name = "spicy-stats"
