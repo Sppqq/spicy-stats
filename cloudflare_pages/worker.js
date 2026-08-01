@@ -523,12 +523,17 @@ async function handleUserDetailAPI(username, request, env) {
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
 
         const reversedHistory = [...history].reverse();
-        chartDataRaw = reversedHistory.map(h => {
+        chartDataRaw = reversedHistory.map((h, idx) => {
+            const isLatest = idx === reversedHistory.length - 1;
+            let tracksCount = (h.total_songs !== undefined && h.total_songs !== null && h.total_songs > 0) ? h.total_songs : totalSongs;
+            if (isLatest && totalSongs > 0) {
+                tracksCount = Math.max(tracksCount, totalSongs);
+            }
             return {
                 x: h.timestamp,
                 y: h.total_views,
                 views: h.total_views,
-                tracks: (h.total_songs !== undefined && h.total_songs !== null && h.total_songs > 0) ? h.total_songs : totalSongs
+                tracks: tracksCount
             };
         });
     }
