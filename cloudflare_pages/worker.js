@@ -522,48 +522,13 @@ async function handleUserDetailAPI(username, request, env) {
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
 
-        // Fast, deduplicated unique track first-appearance query in D1 SQL
-        const { results: trackFirstSeen } = await env.DB.prepare(`
-            SELECT MIN(s.timestamp) as first_ts
-            FROM snapshot_songs ss
-            JOIN snapshots s ON ss.snapshot_id = s.id
-            WHERE s.user_id = ? AND ss.views >= 0
-            GROUP BY LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist))
-        `).bind(user.id).all();
-
-        const sortedFirstTs = (trackFirstSeen || [])
-            .map(t => parseDate(t.first_ts)?.getTime())
-            .filter(Boolean)
-            .sort((a, b) => a - b);
-
-        function getDeduplicatedTracksAt(tsStr) {
-            if (!sortedFirstTs || sortedFirstTs.length === 0) return 0;
-            const ts = parseDate(tsStr)?.getTime();
-            if (!ts) return 0;
-            let count = 0;
-            for (let i = 0; i < sortedFirstTs.length; i++) {
-                if (sortedFirstTs[i] <= ts) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-            return count;
-        }
-
         const reversedHistory = [...history].reverse();
         chartDataRaw = reversedHistory.map(h => {
-            let tracksCount = getDeduplicatedTracksAt(h.timestamp);
-            if (!tracksCount || tracksCount === 0) {
-                tracksCount = h.total_songs || totalSongs;
-            } else {
-                tracksCount = Math.min(tracksCount, totalSongs);
-            }
             return {
                 x: h.timestamp,
                 y: h.total_views,
                 views: h.total_views,
-                tracks: tracksCount
+                tracks: (h.total_songs !== undefined && h.total_songs !== null && h.total_songs > 0) ? h.total_songs : totalSongs
             };
         });
     }
