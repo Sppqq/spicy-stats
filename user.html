@@ -3525,7 +3525,7 @@
             }
 
             // Render Views & Tracks Milestones & Anniversaries ("Юбилеи")
-            if (milestoneContainer && scaledPoints.length >= 2) {
+            if (chartShowMilestones && milestoneContainer && scaledPoints.length >= 2) {
                 const milestoneEvents = [];
 
                 // 1. Views Milestones
@@ -3647,19 +3647,17 @@
                     circle.setAttribute('stroke-width', '1.2');
                     milestoneContainer.appendChild(circle);
 
-                    // Render text label ONLY if user explicitly enabled milestone labels toggle
-                    if (chartShowMilestones) {
-                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        text.setAttribute('x', evt.x.toFixed(1));
-                        text.setAttribute('y', Math.max(16, evt.y - 9).toFixed(1));
-                        text.setAttribute('text-anchor', 'middle');
-                        text.setAttribute('fill', evt.color);
-                        text.setAttribute('font-family', 'DM Mono');
-                        text.setAttribute('font-size', '9');
-                        text.setAttribute('font-weight', '700');
-                        text.textContent = `${evt.icon} ${evt.label}`;
-                        milestoneContainer.appendChild(text);
-                    }
+                    // Render text label
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', evt.x.toFixed(1));
+                    text.setAttribute('y', Math.max(16, evt.y - 9).toFixed(1));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', evt.color);
+                    text.setAttribute('font-family', 'DM Mono');
+                    text.setAttribute('font-size', '9');
+                    text.setAttribute('font-weight', '700');
+                    text.textContent = `${evt.icon} ${evt.label}`;
+                    milestoneContainer.appendChild(text);
                 });
             }
 
