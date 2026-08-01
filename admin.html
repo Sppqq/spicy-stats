@@ -2350,6 +2350,39 @@
         </div>
     </div>
 
+    <script>
+        // Global escape key handler to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const deleteModal = document.getElementById('delete-modal');
+                if (deleteModal && deleteModal.style.display === 'flex') {
+                    if (typeof closeDeleteModal === 'function') closeDeleteModal();
+                    else deleteModal.style.display = 'none';
+                    return;
+                }
+
+                const metadataModal = document.getElementById('metadata-modal');
+                if (metadataModal && metadataModal.style.display === 'flex') {
+                    if (typeof closeMetadataModal === 'function') closeMetadataModal();
+                    else metadataModal.style.display = 'none';
+                    return;
+                }
+
+                const mergeModal = document.getElementById('merge-modal');
+                if (mergeModal && mergeModal.style.display === 'flex') {
+                    if (typeof closeMergeModal === 'function') closeMergeModal();
+                    else mergeModal.style.display = 'none';
+                    return;
+                }
+
+                const changelogModal = document.getElementById('changelog-modal');
+                if (changelogModal && changelogModal.style.display === 'flex') {
+                    changelogModal.style.display = 'none';
+                    return;
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

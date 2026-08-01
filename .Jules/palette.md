@@ -10,3 +10,6 @@
 ## 2026-07-31 - Accessible Sortable Table Headers
 **Learning:** Adding `role="button"` to sortable `<th>` elements overrides their native semantic role as table headers (`columnheader`), causing screen readers to lose table context.
 **Action:** Keep the native `<th>` semantic by adding `tabindex="0"`, a `keydown` event listener for Enter/Space, explicit `role="columnheader"`, and dynamically updating the `aria-sort` attribute (`ascending`, `descending`, or `none`) to ensure full keyboard accessibility and screen reader support without breaking table semantics.
+## 2026-08-01 - Global Escape Key to Close Modals
+**Learning:** Modals that lack an `Escape` key close mechanism fail critical keyboard accessibility requirements, trapping keyboard-only users who must awkwardly tab through all modal contents to find the close button.
+**Action:** Always implement a global `keydown` event listener for the `Escape` key that checks for currently open modals and properly triggers their respective close functions to ensure smooth, accessible navigation.
