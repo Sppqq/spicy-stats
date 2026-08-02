@@ -31,6 +31,7 @@
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script src="/api.js"></script>
 
     <style>
         :root {
@@ -48,6 +49,11 @@
 
         * {
             box-sizing: border-box;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--blue);
+            outline-offset: 2px;
         }
 
         body {
@@ -328,6 +334,13 @@
             }
         }
 
+        @media (max-width: 620px) {
+            .page { padding: 17px; }
+            .topbar .live-status { display: none; }
+            .panel-heading { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            input.admin-input, select.admin-input { width: 100% !important; }
+        }
+
         .back-button {
             border: 1px solid var(--ink);
             background: transparent;
@@ -417,6 +430,47 @@
             max-width: 400px;
             box-shadow: 6px 6px 0 var(--ink);
         }
+
+        /* GitHub Stars Badge — subtle topbar control */
+        .github-stars-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px solid var(--ink);
+            background: transparent;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 140ms ease;
+            border-radius: 0;
+            text-decoration: none;
+            user-select: none;
+            opacity: 0.75;
+        }
+        .github-stars-btn:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: var(--blue);
+            color: var(--ink);
+            opacity: 1;
+        }
+        .github-star-icon {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1;
+            transition: color 140ms ease;
+        }
+        .github-stars-btn:hover .github-star-icon {
+            color: #f59e0b;
+        }
+        .github-stars-count {
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: -0.02em;
+        }
     </style>
 </head>
 
@@ -449,6 +503,11 @@
             </div>
 
             <div class="topbar-right">
+                <a href="https://github.com/Sppqq/spicy-stats" target="_blank" rel="noopener noreferrer" class="github-stars-btn" id="github-stars-btn" title="Star Spicy Stats on GitHub">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>Star</span>
+                    <span class="github-stars-count" id="github-stars-count">...</span>
+                </a>
                 <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">
                     <span id="theme-toggle-icon">☾</span>
                     <span id="theme-toggle-label">Dark</span>
@@ -844,7 +903,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.4</span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.20 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</div>
                 <div style="margin-top: 8px;">
@@ -860,7 +919,7 @@
     <!-- Confirm Delete Modal -->
     <div id="delete-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeDeleteModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeDeleteModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--coral);">Warning</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Delete Profile?</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
@@ -876,7 +935,7 @@
     <!-- Edit Metadata Modal -->
     <div id="metadata-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeMetadataModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeMetadataModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--blue);">Metadata Editor</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Edit Track Details</h2>
             
@@ -910,7 +969,7 @@
     <!-- Confirm Merge Modal -->
     <div id="merge-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 3000; align-items: center; justify-content: center;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 460px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button onclick="closeMergeModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button onclick="closeMergeModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="color: var(--coral);">Warning</div>
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Merge Profiles?</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
@@ -972,7 +1031,6 @@
             };
             return fetch(urlStr, options);
         }
-        
         let adminSecret = '';
         let systemData = null;
         let userToDelete = '';
@@ -980,6 +1038,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkAuth();
+            initGitHubStars();
             showEasterEgg();
 
             // Show sync button only on dev environments
@@ -997,6 +1056,59 @@
                 });
             }
         });
+
+        async function initGitHubStars() {
+            const countEl = document.getElementById('github-stars-count');
+            if (!countEl) return;
+
+            let cachedCount = 0;
+            try {
+                const cached = localStorage.getItem('spicy-gh-stars');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data.count !== undefined && Date.now() - data.time < 3600000) {
+                        cachedCount = data.count;
+                        countEl.textContent = cachedCount;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const res = await fetch('https://api.github.com/repos/Sppqq/spicy-stats');
+                if (res.ok) {
+                    const repo = await res.json();
+                    const stars = repo.stargazers_count !== undefined ? repo.stargazers_count : 0;
+                    try {
+                        localStorage.setItem('spicy-gh-stars', JSON.stringify({ count: stars, time: Date.now() }));
+                    } catch (e) {}
+                    animateStarCounter(countEl, cachedCount, stars);
+                } else if (!cachedCount) {
+                    countEl.textContent = '★';
+                }
+            } catch (e) {
+                if (!cachedCount) countEl.textContent = '★';
+            }
+        }
+
+        function animateStarCounter(el, start, end) {
+            if (start === end) {
+                el.textContent = end;
+                return;
+            }
+            const duration = 800;
+            const startTime = performance.now();
+            function step(now) {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const current = Math.floor(start + (end - start) * progress);
+                el.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = end;
+                }
+            }
+            requestAnimationFrame(step);
+        }
 
         // Theme Setup
         function initTheme() {
@@ -1939,7 +2051,7 @@
             } else {
                 innerHTML = `
                     <div style="background: var(--paper-dark); border-left: 4px solid ${accentColor}; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 4px; padding: 14px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 100%;">
-                        <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;">✕</button>
+                        <button type="button" style="position: absolute; top: 8px; right: 8px; background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 12px;" aria-label="Close" title="Close">✕</button>
                         <div style="display: flex; gap: 10px; align-items: flex-start;">
                             <span style="font-size: 16px; margin-top: 2px;">${icon}</span>
                             <div style="padding-right: 14px;">
@@ -2151,6 +2263,168 @@
 'color: #b9f227; font-weight: bold; font-size: 14px;',
 'color: #8e9099; font-size: 11px;');
         }
+    </script>
+    <!-- REMINDER FOR AI AGENTS & DEVS: When making changes, DO NOT FORGET to update the version number and add an entry with the date to the changelog! -->
+
+    <!-- Changelog Modal -->
+    <div id="changelog-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 5000; align-items: center; justify-content: center; transition: opacity 0.2s ease;" onclick="if(event.target === this) this.style.display='none'">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 500px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button onclick="document.getElementById('changelog-modal').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
+            <div class="eyebrow" style="margin-bottom: 8px;">Updates</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Changelog</h2>
+
+            <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.20 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added Animate UI style GitHub Stars button badge in top header with live stargazers counter and spring animation.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.19 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added optional 24h Growth histogram bars overlay on user activity chart and track history charts.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.18 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed ReferenceError for svgElement in profile chart milestone calculations.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.17 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed JS syntax error in profile activity chart script preventing page metrics load.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.16 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added vertical date gridlines (weeks & 1st of month) and milestone/anniversary markers (⭐ views, 🎵 tracks, 🎂 anniversaries) on activity charts.</li>
+                        <li>Fixed mobile track table overflow and layout cutoff on phone screens in creator profile.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.15 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added multi-metric profile chart support (toggle Views, Tracks, or Dual series).</li>
+                        <li>Dynamic track count history calculation based on earliest track appearance dates.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.14 (2026-07-30)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Made interactive lists and table rows keyboard-accessible for improved screen reader support.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.13 (2026-07-29)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved accessibility of the favorite star and compare checkboxes for screen readers and keyboard navigation.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.12 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed 7-day growth calculation to use timestamps in user.html Catalog Analytics.</li>
+                        <li>Added XSS sanitization for track titles in Top Track Shares.</li>
+                    </ul>
+                </div>
+                                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.11 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed an issue where deleted tracks remained on user profiles. Now tracks missing for 2 consecutive scrapes will be removed.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.10 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added global focus styles for keyboard navigation to improve accessibility.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.9 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved mobile layout across all pages.</li>
+                        <li>Made the changelog button more obvious in the footer.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.8 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added full localization for previously untranslated strings (themes, loading states, modals) across all supported languages.</li>
+                        <li>Improved security by restricting HTML injection during language switching.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.7 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed issue where the auto language suggestion toast would not dismiss correctly.</li>
+                        <li>Fixed the author comparison selection window appearing partially on mobile devices even when closed.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.6 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added changelog modal.</li>
+                        <li>Added reminder for developers and AI agents to update version and changelog.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.5 (Previous Update)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>General bugfixes and UI improvements.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                <button type="button" onclick="document.getElementById('changelog-modal').style.display='none'" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--ink);">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global escape key handler to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const deleteModal = document.getElementById('delete-modal');
+                if (deleteModal && deleteModal.style.display === 'flex') {
+                    if (typeof closeDeleteModal === 'function') closeDeleteModal();
+                    else deleteModal.style.display = 'none';
+                    return;
+                }
+
+                const metadataModal = document.getElementById('metadata-modal');
+                if (metadataModal && metadataModal.style.display === 'flex') {
+                    if (typeof closeMetadataModal === 'function') closeMetadataModal();
+                    else metadataModal.style.display = 'none';
+                    return;
+                }
+
+                const mergeModal = document.getElementById('merge-modal');
+                if (mergeModal && mergeModal.style.display === 'flex') {
+                    if (typeof closeMergeModal === 'function') closeMergeModal();
+                    else mergeModal.style.display = 'none';
+                    return;
+                }
+
+                const changelogModal = document.getElementById('changelog-modal');
+                if (changelogModal && changelogModal.style.display === 'flex') {
+                    changelogModal.style.display = 'none';
+                    return;
+                }
+            }
+        });
     </script>
 </body>
 

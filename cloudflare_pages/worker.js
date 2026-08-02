@@ -48,10 +48,19 @@ function getPrimaryArtist(artistStr) {
     return res;
 }
 
-// In-memory rate limiting
+// In-memory rate limiting with Cloudflare Rate Limiter binding support
 const rateLimitMap = new Map();
 
-function isRateLimited(ip, limit, windowMs) {
+async function isRateLimited(env, ip, limit, windowMs) {
+    if (env && env.RATE_LIMITER && typeof env.RATE_LIMITER.limit === 'function') {
+        try {
+            const { success } = await env.RATE_LIMITER.limit({ key: ip });
+            return !success;
+        } catch (e) {
+            console.error("Rate limiter binding error:", e);
+        }
+    }
+
     const now = Date.now();
     if (rateLimitMap.size > 10000) rateLimitMap.clear();
 
@@ -145,6 +154,15 @@ async function checkSchema(env) {
             VALUES (1, 0, 'banner', 'Технические работы', 'На сайте проводятся технические работы. Пожалуйста, зайдите позже.', 'warning')
         `).run().catch(() => {});
 
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS missing_tracks_tracker (
+                user_id INTEGER,
+                song_key TEXT,
+                missing_count INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, song_key)
+            )
+        `).run().catch(() => {});
+
         schemaChecked = true;
     } catch (e) {}
 }
@@ -224,9 +242,9 @@ export default {
         const rateLimitMsg = rateLimitMsgs[lang] || rateLimitMsgs.en;
 
         if (url.pathname === "/api/add-user" && request.method === "POST") {
-            if (isRateLimited(ip, 5, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+            if (await isRateLimited(env, ip, 2, 10000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         } else if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/admin/")) {
-            if (isRateLimited(ip, 60, 60000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+            if (await isRateLimited(env, ip, 10, 10000)) return new Response(JSON.stringify({ error: rateLimitMsg }), { status: 429, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
         }
 
         let response;
@@ -361,8 +379,8 @@ async function handleDashboardAPI(request, env) {
         u.username, ls.latest_views AS current_views, u.last_scraped_at AS last_updated, s_past.total_views AS past_views,
         (SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1) AS first_snapshot,
         s_past_7d.id AS past_7d_id,
-        COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id), 0) AS total_songs,
-        COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id), 0) AS total_songs_7d
+        COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id AND views >= 0), 0) AS total_songs,
+        COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id AND views >= 0), 0) AS total_songs_7d
     FROM users u
     LEFT JOIN latest_snapshots ls ON ls.user_id = u.id
     LEFT JOIN snapshots s_past ON s_past.id = (
@@ -407,7 +425,14 @@ async function handleUserDetailAPI(username, request, env) {
 
 
     const firstSnapshot = await env.DB.prepare("SELECT timestamp FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT 1").bind(user.id).first();
-    const { results: history } = await env.DB.prepare("SELECT id, total_views, timestamp FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 10000").bind(user.id).all();
+    const { results: history } = await env.DB.prepare(`
+        SELECT id, total_views, 
+               COALESCE(total_songs, (SELECT COUNT(DISTINCT COALESCE(NULLIF(TRIM(title), ''), 'Hidden') || '|||' || COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics')) FROM snapshot_songs WHERE snapshot_id = snapshots.id AND views >= 0)) AS total_songs, 
+               timestamp 
+        FROM snapshots 
+        WHERE user_id = ? 
+        ORDER BY id DESC LIMIT 10000
+    `).bind(user.id).all();
 
     // ИСПРАВЛЕНИЕ 1: Ищем снапшот, ближайший к 24 часам назад
     const pastSnapshot = await env.DB.prepare(`
@@ -434,7 +459,7 @@ async function handleUserDetailAPI(username, request, env) {
                 JOIN snapshots s ON ss.snapshot_id = s.id
                 LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                 WHERE s.user_id = ? AND s.id <= ?
-            ) ss WHERE rn = 1
+            ) ss WHERE rn = 1 AND views >= 0
         `).bind(user.id, latestSnapshot.id).all();
         let latestRaw = dbLatestSongs || [];
 
@@ -459,7 +484,7 @@ async function handleUserDetailAPI(username, request, env) {
                     JOIN snapshots s ON ss.snapshot_id = s.id
                     LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
                     WHERE s.user_id = ? AND s.id <= ?
-                ) ss WHERE rn = 1
+                ) ss WHERE rn = 1 AND views >= 0
             `).bind(user.id, pastSnapshot.id).all();
             if (pSongs) pastRaw = pSongs;
         }
@@ -504,7 +529,21 @@ async function handleUserDetailAPI(username, request, env) {
         totalSongs = finalSongs.length;
 
         topTracks = finalSongs.slice(0, 3).filter(x => x.growth > 0 || totalViews > 0);
-        chartDataRaw = [...history].reverse().map(h => ({ x: h.timestamp, y: h.total_views }));
+
+        const reversedHistory = [...history].reverse();
+        chartDataRaw = reversedHistory.map((h, idx) => {
+            const isLatest = idx === reversedHistory.length - 1;
+            let tracksCount = (h.total_songs !== undefined && h.total_songs !== null && h.total_songs > 0) ? h.total_songs : totalSongs;
+            if (isLatest && totalSongs > 0) {
+                tracksCount = Math.max(tracksCount, totalSongs);
+            }
+            return {
+                x: h.timestamp,
+                y: h.total_views,
+                views: h.total_views,
+                tracks: tracksCount
+            };
+        });
     }
 
     // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)
@@ -571,7 +610,11 @@ async function handleTrackHistoryAPI(request, env) {
         while (historyIndex < matchingChanges.length && matchingChanges[historyIndex].snapshot_id <= snap.id) {
             const m = matchingChanges[historyIndex];
             const key = m.spotify_id || `${normalizeTitle(m.meta_title || m.title)}||${getPrimaryArtist(m.meta_artist || m.artist)}`;
-            trackState.set(key, m.views);
+            if (m.views < 0) {
+                trackState.delete(key);
+            } else {
+                trackState.set(key, m.views);
+            }
             historyIndex++;
         }
 
@@ -629,7 +672,7 @@ async function handleAdminStats(request, env) {
     `).all();
 
     const { results: songCounts } = await env.DB.prepare(`
-        SELECT id as snapshot_id, COALESCE(total_songs, (SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) FROM snapshot_songs WHERE snapshot_id = s.id)) as cnt
+        SELECT id as snapshot_id, COALESCE(total_songs, (SELECT COUNT(DISTINCT (LOWER(TRIM(title)) || ' - ' || LOWER(TRIM(artist)))) FROM snapshot_songs WHERE snapshot_id = s.id AND views >= 0)) as cnt
         FROM snapshots s WHERE id IN (SELECT MAX(id) FROM snapshots GROUP BY user_id)
     `).all();
 
@@ -674,7 +717,11 @@ async function handleAdminExportUser(request, env) {
         while (songIdx < songsList.length && songsList[songIdx].snapshot_id === snap.id) {
             const s = songsList[songIdx];
             const key = `${s.title}||${s.artist}||${s.spotify_id}`;
-            state.set(key, s);
+            if (s.views < 0) {
+                state.delete(key);
+            } else {
+                state.set(key, s);
+            }
             songIdx++;
         }
         
@@ -853,52 +900,90 @@ async function populateMetadataCache(env, targetUsername = null) {
     let bindParams = [];
     if (targetUsername) { query += " WHERE LOWER(username) = LOWER(?)"; bindParams.push(targetUsername); }
     const { results: users } = await env.DB.prepare(query).bind(...bindParams).all();
+    if (!users || users.length === 0) return;
+
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" };
 
-    for (const user of users) {
+    const processUser = async (user) => {
         try {
             let userId = user.discord_id;
             if (!userId) {
                 const response = await fetch(`https://spicylyrics.org/${user.username}`, { headers });
-                if (!response.ok) continue;
+                if (!response.ok) return { user, tracksDetails: [] };
                 const html = await response.text();
-                // Легкий поиск
                 const match = html.match(/avatars\/(\d{17,21})\//) || html.match(/"userId"\s*:\s*"?(\d{17,21})"?/);
                 if (match) userId = match[1];
             }
-            if (!userId) continue;
+            if (!userId) return { user, tracksDetails: [] };
 
             const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
-            if (!tracksRes.ok) continue;
-            const tracksDetails = (await tracksRes.json()).result?.data?.json?.data || [];
+            if (!tracksRes.ok) return { user, tracksDetails: [] };
 
-            if (tracksDetails.length > 0) {
-                const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
-                const batch = tracksDetails.map(track => {
-                    if (!track) return null;
-                    const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
-                    return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
-                }).filter(Boolean);
-                if (batch.length > 0) await env.DB.batch(batch);
-            }
+            const jsonRes = await tracksRes.json();
+            const tracksDetails = jsonRes.result?.data?.json?.data || [];
+            return { user, tracksDetails };
+        } catch (err) {
+            return { user, tracksDetails: [] };
+        }
+    };
 
-            const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
-            if (latestSnap) {
-                const { results: snapSongs } = await env.DB.prepare(`
-                    SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
-                    FROM (
-                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
-                               ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
-                        FROM snapshot_songs ss
-                        JOIN snapshots s ON ss.snapshot_id = s.id
-                        LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
-                        WHERE s.user_id = ?
-                    ) ss WHERE rn = 1
-                `).bind(user.id).all();
-                const uniqueSongs = aggregateSongs(snapSongs);
-                await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
+    // Chunk size 20 to prevent hitting API limits and exhausting D1 concurrent connections
+    const CHUNK_SIZE = 20;
+    const D1_MAX_BATCH = 100;
+
+    for (let i = 0; i < users.length; i += CHUNK_SIZE) {
+        const chunk = users.slice(i, i + CHUNK_SIZE);
+
+        // 1. Fetch external data concurrently
+        const fetchedData = await Promise.all(chunk.map(processUser));
+
+        // 2. Batch track_metadata insertions
+        let allBatches = [];
+        const stmt = env.DB.prepare("INSERT OR REPLACE INTO track_metadata (spotify_id, isrc, title, artist) VALUES (?, ?, ?, ?)");
+
+        for (const data of fetchedData) {
+            if (!data || !data.tracksDetails || data.tracksDetails.length === 0) continue;
+
+            const userBatch = data.tracksDetails.map(track => {
+                if (!track) return null;
+                const artistNames = (track.artists || []).map(a => a ? a.name : "SpicyLyrics").join(", ");
+                return stmt.bind(track.id, track.isrc || null, track.name || "Hidden", artistNames);
+            }).filter(Boolean);
+
+            allBatches.push(...userBatch);
+        }
+
+        if (allBatches.length > 0) {
+            for (let j = 0; j < allBatches.length; j += D1_MAX_BATCH) {
+                await env.DB.batch(allBatches.slice(j, j + D1_MAX_BATCH)).catch(() => {});
             }
-        } catch (err) {}
+        }
+
+        // 3. Update snapshots concurrently
+        const snapshotPromises = fetchedData.map(async (data) => {
+            try {
+                if (!data || !data.user) return;
+                const user = data.user;
+                const latestSnap = await env.DB.prepare("SELECT id FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(user.id).first();
+                if (latestSnap) {
+                    const { results: snapSongs } = await env.DB.prepare(`
+                        SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist
+                        FROM (
+                            SELECT ss.spotify_id, ss.views, ss.title, ss.artist, tm.isrc, tm.title as meta_title, tm.artist as meta_artist,
+                                   ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
+                            FROM snapshot_songs ss
+                            JOIN snapshots s ON ss.snapshot_id = s.id
+                            LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+                            WHERE s.user_id = ?
+                        ) ss WHERE rn = 1 AND views >= 0
+                    `).bind(user.id).all();
+                    const uniqueSongs = aggregateSongs(snapSongs);
+                    await env.DB.prepare("UPDATE snapshots SET total_songs = ? WHERE id = ?").bind(uniqueSongs.length, latestSnap.id).run();
+                }
+            } catch (err) {}
+        });
+
+        await Promise.all(snapshotPromises);
     }
 }
 
@@ -1244,11 +1329,68 @@ async function scrapeAndSave(userId, username, discordId, env) {
 
     if (!data) return;
 
-    const prevSnap = await env.DB.prepare("SELECT id, total_views FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
-    const oldViews = prevSnap ? prevSnap.total_views : 0;
+    const totalSongsCount = data.songs ? aggregateSongs(data.songs).length : 0;
 
-    // EARLY EXIT: Если просмотры не поменялись, просто выходим
-    if (prevSnap && oldViews === data.total_views) {
+    const prevSnap = await env.DB.prepare("SELECT id, total_views, total_songs FROM snapshots WHERE user_id = ? ORDER BY id DESC LIMIT 1").bind(userId).first();
+    const oldViews = prevSnap ? prevSnap.total_views : 0;
+    const oldSongsCount = prevSnap ? prevSnap.total_songs : 0;
+
+    // Fetch latest known views for all songs for delta compression and tracking
+    let latestSongsMap = new Map();
+    if (prevSnap) {
+        const { results: latestSongs } = await env.DB.prepare(`
+            SELECT spotify_id, title, artist, views
+            FROM (
+                SELECT ss.spotify_id, ss.title, ss.artist, ss.views,
+                       ROW_NUMBER() OVER(PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist))) ORDER BY s.id DESC) as rn
+                FROM snapshot_songs ss
+                JOIN snapshots s ON ss.snapshot_id = s.id
+                WHERE s.user_id = ?
+            )
+            WHERE rn = 1 AND views >= 0
+        `).bind(userId).all();
+
+        for (const ls of (latestSongs || [])) {
+            const key = ls.spotify_id || `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
+            latestSongsMap.set(key, ls);
+        }
+    }
+
+    const { results: trackerResults } = await env.DB.prepare("SELECT song_key, missing_count FROM missing_tracks_tracker WHERE user_id = ?").bind(userId).all();
+    const missingTracker = new Map((trackerResults || []).map(r => [r.song_key, r.missing_count]));
+
+    const changedSongs = [];
+    const currentSongsMap = new Map();
+
+    let hasNewTracks = false;
+
+    if (data.songs) {
+        for (const song of data.songs) {
+            const key = song.spotify_id || `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
+            currentSongsMap.set(key, song);
+
+            const prevSong = latestSongsMap.get(key);
+            if (prevSong === undefined || prevSong.views !== song.views) {
+                changedSongs.push(song);
+                if (prevSong === undefined) {
+                    hasNewTracks = true;
+                }
+            }
+        }
+    }
+
+    let hasMissingTracks = false;
+    for (const key of latestSongsMap.keys()) {
+        if (!currentSongsMap.has(key)) {
+            hasMissingTracks = true;
+            break;
+        }
+    }
+
+    const hasPending = missingTracker.size > 0;
+
+    // EARLY EXIT: Check if absolutely nothing changed (views, counts, no pending tracks, no missing tracks, no new tracks)
+    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending && !hasMissingTracks && !hasNewTracks) {
         return;
     }
 
@@ -1264,39 +1406,56 @@ async function scrapeAndSave(userId, username, discordId, env) {
         if (batch.length > 0) await env.DB.batch(batch);
     }
 
-    const totalSongsCount = aggregateSongs(data.songs).length;
+    const trackerUpdates = [];
+    const trackerDeletes = [];
 
-    // Fetch latest known views for all songs for delta compression
-    let latestSongsMap = new Map();
-    if (prevSnap) {
-        const { results: latestSongs } = await env.DB.prepare(`
-            SELECT title, artist, views
-            FROM (
-                SELECT ss.title, ss.artist, ss.views,
-                       ROW_NUMBER() OVER(PARTITION BY LOWER(TRIM(ss.title)), LOWER(TRIM(ss.artist)) ORDER BY s.id DESC) as rn
-                FROM snapshot_songs ss
-                JOIN snapshots s ON ss.snapshot_id = s.id
-                WHERE s.user_id = ?
-            )
-            WHERE rn = 1
-        `).bind(userId).all();
-        
-        for (const ls of (latestSongs || [])) {
-            const key = `${(ls.title || "").trim().toLowerCase()}|||${(ls.artist || "").trim().toLowerCase()}`;
-            latestSongsMap.set(key, ls.views);
+    // Check for missing tracks
+    for (const [key, prevSong] of latestSongsMap.entries()) {
+        if (!currentSongsMap.has(key)) {
+            const currentMissingCount = missingTracker.get(key) || 0;
+            const newMissingCount = currentMissingCount + 1;
+
+            if (newMissingCount >= 2) {
+                // Track missing for 2 consecutive scrapes, mark as deleted
+                changedSongs.push({
+                    spotify_id: prevSong.spotify_id,
+                    title: prevSong.title,
+                    artist: prevSong.artist,
+                    views: -1
+                });
+                trackerDeletes.push(key);
+            } else {
+                trackerUpdates.push({ key, count: newMissingCount });
+            }
         }
     }
 
-    const changedSongs = [];
-    for (const song of data.songs) {
-        const key = `${(song.title || "").trim().toLowerCase()}|||${(song.artist || "").trim().toLowerCase()}`;
-        const prevViews = latestSongsMap.get(key);
-        if (prevViews === undefined || prevViews !== song.views) {
-            changedSongs.push(song);
+    // Tracks that reappeared or were successfully deleted should be removed from tracker
+    for (const key of missingTracker.keys()) {
+        if (currentSongsMap.has(key)) {
+            trackerDeletes.push(key);
         }
     }
 
     try {
+        // Execute tracker updates/deletes in batches
+        const batches = [];
+        const deleteStmt = env.DB.prepare("DELETE FROM missing_tracks_tracker WHERE user_id = ? AND song_key = ?");
+        const upsertStmt = env.DB.prepare("INSERT OR REPLACE INTO missing_tracks_tracker (user_id, song_key, missing_count) VALUES (?, ?, ?)");
+
+        for (const key of trackerDeletes) {
+            batches.push(deleteStmt.bind(userId, key));
+        }
+        for (const update of trackerUpdates) {
+            batches.push(upsertStmt.bind(userId, update.key, update.count));
+        }
+
+        if (batches.length > 0) {
+            for (let i = 0; i < batches.length; i += 100) {
+                await env.DB.batch(batches.slice(i, i + 100)).catch(e => console.error("Tracker batch error:", e.message));
+            }
+        }
+
         await saveSnapshotWithRetry(userId, data.total_views, totalSongsCount, changedSongs, env);
     } catch (saveErr) {
         console.error(`Failed to save snapshot for user ${userId} (@${username}):`, saveErr.message);

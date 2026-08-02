@@ -37,13 +37,17 @@ graph TD
 
 ## ✨ Core Features
 
-- **📊 Comprehensive Dashboards**: Visualizes daily plays, growth differentials, milestones, and catalog sizes.
+- **📊 Comprehensive Dashboards**: Visualizes daily plays, growth differentials, milestones, track counts, and catalog sizes.
+- **⚡ Activity Feed**: Real-time log of recent snapshot events, audience milestones, and catalog updates across monitored creators.
 - **🔄 Intelligent Track Grouping**: Automatically identifies identical music tracks featuring different artist lists (e.g. single releases vs. collaborative albums) and aggregates them as variants under a single track entity.
+- **♿ Accessibility & Keyboard Support (a11y)**: Fully keyboard-accessible sortable table headers, interactive user rows, ARIA attributes, semantic controls, and `focus-visible` styling.
+- **🌐 Multilingual Support (i18n)**: Full internationalization support (English & Russian) with dynamic runtime switching and secure XSS-safe text rendering.
 - **🛡️ Signed API Handshake**: Crucial write actions and analytical profiles are secured using timestamped client-side hashing (`X-Spicy-Signature`) to block unauthorized web scraping.
 - **🎨 Dynamic Themes**: Toggle dynamically between three custom themes:
   - **Neon Dark**: Default high-contrast dark palette with deep violets and greens.
   - **Neo-Brutalism**: Vibrant borders, stark typography, and flat color design.
   - **Terminal / Retro**: Monospaced hacker green aesthetic.
+- **🧹 Track Retention Logic**: Automatically cleans up tracks removed or missing across 2 consecutive catalog snapshots to maintain accurate analytics.
 - **📈 Progressive Web App (PWA)**: Built-in offline-ready Service Worker (`sw.js`) that caches frontend pages, static resources, and external typography fonts.
 - **🔄 Catalog Migration Tools**: Comprehensive JSON-based catalog backup/restore triggers.
 
@@ -74,7 +78,9 @@ All backend routes are prefixed with `/api`. Public endpoints require a valid si
 
 - **`GET /api/dashboard`**: Fetch aggregate stats (total users, global plays, full creator leaderboard).
 - **`GET /api/user/:username`**: Fetch creator-specific analytics including historical growth charts, milestone forecasts, top tracks, and grouped variants.
+- **`GET /api/activity-feed`**: Fetch latest global system events, snapshot logs, and user milestone notifications.
 - **`GET /api/track-history`**: Fetch historical play count logs for a specific track.
+- **`GET /api/notification-settings`**: Retrieve active public notification and webhook configurations.
 - **`POST /api/add-user`**: Add a new Spotify username to the monitoring system. *(Strictly rate-limited to 5 requests/min per IP)*.
 
 ### Administrative Routes (Requires Admin Credentials)
@@ -83,7 +89,13 @@ All backend routes are prefixed with `/api`. Public endpoints require a valid si
 - **`POST /api/admin/scrape-user`**: Instantly force-scrape a creator's catalog.
 - **`POST /api/admin/scrape-all`**: Trigger a complete catalog scrape across all users.
 - **`POST /api/admin/populate-metadata`**: Backfill missing track metadata and ISRCs.
+- **`POST /api/admin/search-metadata`**: Search track metadata entries in D1 cache.
+- **`POST /api/admin/update-metadata`**: Manually update track ISRC, title, or artist information.
 - **`POST /api/admin/merge-users`**: Merge duplicate user entities and consolidate history.
+- **`POST /api/admin/export-user`**: Download formatted admin export data for a user.
+- **`POST /api/admin/sync-prod-db`**: Synchronize data between production and development databases.
+- **`POST /api/admin/prune-snapshots`**: Clean up redundant snapshot data to save database storage.
+- **`POST /api/admin/notification-settings`**: Save global Discord webhook notification parameters.
 - **`POST /api/admin/delete-user`**: Permanently remove a creator and all associated statistical snapshots.
 
 
@@ -160,4 +172,4 @@ Open `http://localhost:3000` to access the application.
 
 ## 📄 License
 
-This repository is proprietary. Unauthorized redistribution or scraping is strictly prohibited.
+This is an open-source project. Contributions are welcome! Pull requests are preferred, but clones are also welcome.

@@ -1190,7 +1190,6 @@
             width: 0%;
             transition: width 0.1s linear;
         }
-
         @media (prefers-reduced-motion: reduce) {
             body::before, .theme-dropdown, .theme-option, .theme-toggle-arrow { transition: none !important; }
         }
@@ -2606,6 +2605,9 @@
                 download_png: "Scarica PNG ↓",
                 copy_image: "Copia immagine 📋",
                 copied: "Copiato!"
+=======
+                milestone_to_go: "mancanti per"
+>>>>>>> bc081c2415bc89f85a5ab706168a1bb5aae8f9ea
             },
             pl: {
                 back: "← Powrót do panelu",
@@ -4500,6 +4502,24 @@
             const deltaContainer = document.getElementById('track-chart-delta-bars');
             if (deltaContainer) {
                 deltaContainer.innerHTML = '';
+                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
+                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+
+                scaledPoints.forEach(p => {
+                    if (p.delta <= 0) return;
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const barY = height - paddingBottom - barHeight;
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
+                    rect.setAttribute('y', barY.toFixed(1));
+                    rect.setAttribute('width', barWidth.toFixed(1));
+                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
+                    rect.setAttribute('fill', 'var(--green)');
+                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('rx', '1');
+                    deltaContainer.appendChild(rect);
+                });
             }
 
             let linePathStr = '';
@@ -4578,6 +4598,9 @@
                     <div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
                     <div>${dict.views}: <strong>${formatFullNumber(closestPt.views)}</strong></div>
                 `;
+                if (closestPt.delta !== undefined && closestPt.delta > 0) {
+                    tooltipHtml += `<div style="color: var(--green); margin-top: 2px;">${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></div>`;
+                }
 
                 tooltip.style.display = 'block';
                 tooltip.innerHTML = tooltipHtml;
