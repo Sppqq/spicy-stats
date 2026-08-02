@@ -1084,35 +1084,6 @@
         }
 
         /* 30-Sec Audio Preview Mini-Player */
-        .track-play-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            border: 1px solid var(--line);
-            background: var(--paper-dark);
-            color: var(--positive-text);
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            flex-shrink: 0;
-            margin-right: 8px;
-            padding: 0;
-            line-height: 1;
-        }
-        .track-play-btn:hover {
-            background: var(--green);
-            color: #101114;
-            border-color: var(--green);
-            transform: scale(1.08);
-        }
-        .track-play-btn.playing {
-            background: var(--coral);
-            color: #101114;
-            border-color: var(--coral);
-        }
         
         #mini-audio-player {
             position: fixed;
@@ -4205,13 +4176,8 @@
                 const safeTitle = (song.title || '').replace(/"/g, '&quot;');
                 const safeArtist = (song.artist || '').replace(/"/g, '&quot;');
 
-                const isThisPlaying = currentAudioTrack && currentAudioTrack.title === song.title && currentAudioTrack.artist === song.artist && isAudioPlaying;
-                const playBtnClass = isThisPlaying ? 'track-play-btn playing' : 'track-play-btn';
-                const playBtnIcon = isThisPlaying ? '❚❚' : '▶';
-
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
-                    <button class="${playBtnClass}" onclick="event.stopPropagation(); toggleTrackPreview('${safeTitle}', '${safeArtist}', this);" title="${dict.play_preview || 'Play preview'}" aria-label="${dict.play_preview || 'Play preview'}">${playBtnIcon}</button>
                     <div class="track-info">
                         <div class="track-title" title="${safeTitle}">${song.title}</div>
                         <div class="track-artist" title="${safeArtist}">${song.artist}</div>
