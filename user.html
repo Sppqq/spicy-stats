@@ -378,8 +378,8 @@
 
         .track {
             display: grid;
-            grid-template-columns: 28px minmax(0, 1fr) auto;
-            gap: 12px;
+            grid-template-columns: 24px 28px minmax(0, 1fr) auto;
+            gap: 10px;
             align-items: center;
             padding: 12px 8px;
             border-bottom: 1px solid var(--paper-dark);
@@ -1011,7 +1011,7 @@
 
             .panel { overflow-x: hidden; max-width: 100%; box-sizing: border-box; }
             .tracks { padding: 4px 6px 8px; }
-            .track { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; padding: 11px 4px; }
+            .track { grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 6px; padding: 11px 4px; }
             .track-number { font-size: 10px; }
             .track-title { font-size: 12px; }
             .track-artist { font-size: 10px; }
@@ -1085,6 +1085,35 @@
         }
 
         /* 30-Sec Audio Preview Mini-Player */
+        
+        .track-play-btn {
+            background: var(--paper);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            padding: 0;
+            line-height: 1;
+        }
+        .track-play-btn:hover {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+            transform: scale(1.08);
+        }
+        .track-play-btn.playing {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+        }
         
         #mini-audio-player {
             position: fixed;
@@ -4192,11 +4221,13 @@
                         openTrackStats(song.title, song.artist, song.views, song.growth);
                     }
                 };
-                const safeTitle = (song.title || '').replace(/"/g, '&quot;');
-                const safeArtist = (song.artist || '').replace(/"/g, '&quot;');
+                const safeTitle = (song.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeArtist = (song.artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const isPlayingThis = currentAudioTrack && currentAudioTrack.title === song.title && currentAudioTrack.artist === song.artist && isAudioPlaying;
 
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
+                    <button type="button" class="track-play-btn ${isPlayingThis ? 'playing' : ''}" onclick="event.stopPropagation(); toggleTrackPreview('${safeTitle}', '${safeArtist}', this)" aria-label="${isPlayingThis ? 'Pause preview' : 'Play preview'}" title="${isPlayingThis ? 'Pause preview' : 'Play preview'}">${isPlayingThis ? '❚❚' : '▶'}</button>
                     <div class="track-info">
                         <div class="track-title" title="${safeTitle}">${song.title}</div>
                         <div class="track-artist" title="${safeArtist}">${song.artist}</div>
@@ -4224,13 +4255,16 @@
             modalViews.textContent = formatFullNumber(currentViews);
 
             if (modalPlayBtn) {
-                const safeTitle = (title || '').replace(/"/g, '&quot;');
-                const safeArtist = (artist || '').replace(/"/g, '&quot;');
+                const safeTitle = (title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeArtist = (artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 modalPlayBtn.onclick = (e) => {
                     e.stopPropagation();
                     toggleTrackPreview(safeTitle, safeArtist);
                 };
             }
+
+            // Start 30-sec audio preview when clicking row
+            toggleTrackPreview(title, artist);
 
             // Clear chart paths while loading
             document.getElementById('track-chart-area-path').setAttribute('d', '');
