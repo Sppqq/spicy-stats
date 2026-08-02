@@ -4212,8 +4212,6 @@
             const modalTitle = document.getElementById('track-modal-title');
             const modalArtist = document.getElementById('track-modal-artist');
             const modalViews = document.getElementById('track-modal-views');
-            const modalGrowth = document.getElementById('track-modal-growth');
-            const modalGrowthCard = document.getElementById('track-modal-growth-card');
             const modalPlayBtn = document.getElementById('track-modal-play-btn');
 
             if (!modal) return;
@@ -4229,34 +4227,6 @@
                     e.stopPropagation();
                     toggleTrackPreview(safeTitle, safeArtist);
                 };
-            }
-
-            if (growth !== null && growth !== undefined) {
-                if (growth > 0) {
-                    modalGrowthCard.style.background = 'var(--green)';
-                    modalGrowthCard.style.color = '#101114';
-                    modalGrowthCard.style.border = 'none';
-                    modalGrowth.textContent = `+${formatFullNumber(growth)}`;
-                    modalGrowth.style.color = '#101114';
-                } else if (growth < 0) {
-                    modalGrowthCard.style.background = 'var(--coral)';
-                    modalGrowthCard.style.color = '#101114';
-                    modalGrowthCard.style.border = 'none';
-                    modalGrowth.textContent = `-${formatFullNumber(Math.abs(growth))}`;
-                    modalGrowth.style.color = '#101114';
-                } else {
-                    modalGrowthCard.style.background = 'var(--white)';
-                    modalGrowthCard.style.color = 'var(--ink)';
-                    modalGrowthCard.style.border = '1px solid var(--line)';
-                    modalGrowth.textContent = '0';
-                    modalGrowth.style.color = 'var(--muted)';
-                }
-            } else {
-                modalGrowthCard.style.background = 'var(--white)';
-                modalGrowthCard.style.color = 'var(--ink)';
-                modalGrowthCard.style.border = '1px solid var(--line)';
-                modalGrowth.textContent = '—';
-                modalGrowth.style.color = 'var(--muted)';
             }
 
             // Clear chart paths while loading
@@ -4529,24 +4499,6 @@
             const deltaContainer = document.getElementById('track-chart-delta-bars');
             if (deltaContainer) {
                 deltaContainer.innerHTML = '';
-                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
-
-                scaledPoints.forEach(p => {
-                    if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
-                    const barY = height - paddingBottom - barHeight;
-
-                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
-                    rect.setAttribute('y', barY.toFixed(1));
-                    rect.setAttribute('width', barWidth.toFixed(1));
-                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
-                    rect.setAttribute('fill', 'var(--green)');
-                    rect.setAttribute('opacity', '0.45');
-                    rect.setAttribute('rx', '1');
-                    deltaContainer.appendChild(rect);
-                });
             }
 
             let linePathStr = '';
@@ -4964,14 +4916,10 @@
             <h2 id="track-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 4px; line-height: 1.1;">Track Title</h2>
             <div id="track-modal-artist" style="color: var(--muted); font-size: 13px; font-family: 'DM Mono', monospace; margin-bottom: 24px;">Artist Name</div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px;">
                 <div style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
                     <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="views">Views</div>
                     <div id="track-modal-views" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
-                </div>
-                <div id="track-modal-growth-card" style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
-                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="growth_24h">24h Growth</div>
-                    <div id="track-modal-growth" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
                 </div>
             </div>
 
