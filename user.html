@@ -6,8 +6,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Spicy Monitor — Real-time performance tracking and audience growth analytics for your favorite creators, tracks, and audio catalogs.">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/png" href="/icon.png">
     <title>Spicy Monitor — Profile</title>
 
@@ -31,6 +29,7 @@
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script src="/api.js"></script>
 
     <script>
         // Apply the saved appearance before the first paint to avoid a theme flash.
@@ -101,6 +100,11 @@
         html {
             background: var(--paper);
             color-scheme: dark;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--blue);
+            outline-offset: 2px;
         }
 
         body {
@@ -333,27 +337,48 @@
             margin-top: 4px;
         }
 
-        .tracks { padding: 7px 12px 12px; }
+        .tracks { padding: 7px 12px 12px; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
 
         .track {
             display: grid;
-            grid-template-columns: 32px 1fr auto;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
             gap: 12px;
             align-items: center;
-            padding: 15px 8px;
+            padding: 12px 8px;
             border-bottom: 1px solid var(--paper-dark);
             transition: 140ms ease;
             cursor: pointer;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .track:hover { background: var(--paper-dark); }
         .track:last-child { border-bottom: 0; }
 
-        .track-number { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; }
-        .track-title { font-weight: 800; font-size: 13px; }
-        .track-artist { color: var(--muted); font-size: 11px; margin-top: 3px; }
-        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; }
-        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 3px; text-align: right; }
+        .track-info { min-width: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+        .track-number { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; flex-shrink: 0; }
+        .track-title {
+            font-weight: 800;
+            font-size: 13px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+        .track-artist {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .track-stats-right { text-align: right; flex-shrink: 0; margin-left: 8px; min-width: 65px; }
+        .track-views { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; text-align: right; white-space: nowrap; }
+        .track-growth { color: var(--positive-text); font-size: 10px; margin-top: 2px; text-align: right; white-space: nowrap; }
 
         .mini-card {
             padding: 24px;
@@ -451,10 +476,13 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            height: 34px;
-            padding: 0 11px;
-            border: 1px solid var(--ink);
-            background: transparent;
+            height: 42px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            background: var(--menu-bg);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
             color: var(--ink);
             font-family: 'DM Mono', monospace;
             font-size: 10px;
@@ -466,14 +494,7 @@
 
         .theme-selector > .theme-toggle {
             min-width: 138px;
-            height: 42px;
-            padding: 0 12px;
             gap: 9px;
-            border-color: var(--line);
-            background: var(--menu-bg);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
-            backdrop-filter: blur(16px) saturate(1.2);
-            -webkit-backdrop-filter: blur(16px) saturate(1.2);
         }
 
         .theme-toggle:hover, .theme-selector > .theme-toggle:hover, .theme-selector > .theme-toggle[aria-expanded="true"] {
@@ -534,7 +555,14 @@
             transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
         }
 
-        .lang-dropdown { width: auto; min-width: 150px; }
+        .lang-dropdown {
+            width: max-content;
+            min-width: 140px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
 
         [data-theme] .theme-dropdown.open, .lang-dropdown.open {
             transform: translateY(0) scale(1);
@@ -543,22 +571,7 @@
             visibility: visible;
         }
 
-        .theme-dropdown-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 5px 6px 13px;
-        }
-
-        .theme-dropdown-title { display: grid; gap: 3px; }
-        .theme-dropdown-eyebrow, .theme-dropdown-footer, .theme-shortcut { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; }
-        .theme-dropdown-title strong { font-size: 15px; letter-spacing: -0.03em; }
-        .theme-shortcut { padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; letter-spacing: 0.04em; }
-
-        .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-
-        [data-theme] .theme-option, .lang-option {
+        [data-theme] .theme-option {
             position: relative;
             display: grid;
             grid-template-columns: 62px minmax(0, 1fr) 20px;
@@ -578,7 +591,24 @@
             cursor: pointer;
         }
 
-        .lang-option { display: flex; min-height: auto; padding: 10px 14px; font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; border-radius: 8px; }
+        .lang-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: auto;
+            padding: 7px 12px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+        }
 
         [data-theme] .theme-option:hover, .lang-option:hover { transform: translateY(-1px); border-color: var(--line); background: var(--menu-hover); }
         [data-theme] .theme-option.active, .lang-option.active { border-color: var(--blue); background: var(--menu-active); color: var(--ink); }
@@ -930,7 +960,7 @@
         }
 
         @media (max-width: 620px) {
-            .page { padding: 17px; }
+            .page { padding: 12px; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
             .profile-title { align-items: flex-start; flex-direction: column; }
             .topbar .live-status { display: none; }
             .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
@@ -940,6 +970,26 @@
             .theme-preview { width: 52px; }
             [data-theme] .theme-option .theme-check { width: 18px; height: 18px; }
             [data-theme] .theme-dropdown { position: fixed; top: 68px; right: 12px; left: 12px; width: auto; max-height: calc(100dvh - 80px); overflow-y: auto; transform-origin: top center; }
+
+            .panel { overflow-x: hidden; max-width: 100%; box-sizing: border-box; }
+            .tracks { padding: 4px 6px 8px; }
+            .track { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; padding: 11px 4px; }
+            .track-number { font-size: 10px; }
+            .track-title { font-size: 12px; }
+            .track-artist { font-size: 10px; }
+            .track-views { font-size: 10px; }
+            .track-growth { font-size: 9px; }
+
+            .chart-wrap { padding: 12px 10px 10px; }
+            .chart { height: 140px; }
+
+            .panel-heading { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            .metric-selector { width: 100%; justify-content: space-between; }
+            .metric-btn { flex: 1; justify-content: center; }
+            .timeframe-selector { width: 100%; justify-content: space-between; }
+            .timeframe-btn { flex: 1; text-align: center; padding: 6px; }
+
+            .mini-stats-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 440px) {
@@ -950,6 +1000,216 @@
         @media (max-width: 340px) {
             .theme-grid { grid-template-columns: 1fr; }
             .theme-option-auto { grid-column: auto; }
+        }
+
+        /* GitHub Stars Badge — subtle topbar control */
+        .github-stars-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 42px;
+            padding: 0 12px;
+            border: 1px solid var(--line);
+            background: var(--menu-bg);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 140ms ease;
+            border-radius: var(--theme-control-radius);
+            text-decoration: none;
+            user-select: none;
+            opacity: 0.75;
+        }
+        .github-stars-btn:hover {
+            background: var(--menu-hover);
+            border-color: var(--blue);
+            color: var(--ink);
+            opacity: 1;
+        }
+        .github-star-icon {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1;
+            transition: color 140ms ease;
+        }
+        .github-stars-btn:hover .github-star-icon {
+            color: #f59e0b;
+        }
+        .github-stars-count {
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        /* 30-Sec Audio Preview Mini-Player */
+        .track-play-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: var(--paper-dark);
+            color: var(--positive-text);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            margin-right: 8px;
+            padding: 0;
+            line-height: 1;
+        }
+        .track-play-btn:hover {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+            transform: scale(1.08);
+        }
+        .track-play-btn.playing {
+            background: var(--coral);
+            color: #101114;
+            border-color: var(--coral);
+        }
+        
+        #mini-audio-player {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            width: calc(100% - 48px);
+            max-width: 580px;
+            background: var(--white);
+            border: 2px solid var(--ink);
+            box-shadow: 6px 6px 0 var(--ink);
+            z-index: 9990;
+            padding: 12px 18px;
+            box-sizing: border-box;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-family: 'Manrope', sans-serif;
+        }
+        #mini-audio-player.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .player-eq-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 18px;
+            width: 20px;
+            flex-shrink: 0;
+        }
+        .eq-bar {
+            width: 3px;
+            background: var(--green);
+            border-radius: 1px;
+            height: 4px;
+            transition: height 0.15s ease;
+        }
+        #mini-audio-player.playing .eq-bar:nth-child(1) { animation: eqAnim 0.6s infinite ease-in-out alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(2) { animation: eqAnim 0.8s infinite ease-in-out 0.2s alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(3) { animation: eqAnim 0.5s infinite ease-in-out 0.4s alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(4) { animation: eqAnim 0.7s infinite ease-in-out 0.1s alternate; }
+        @keyframes eqAnim {
+            0% { height: 4px; }
+            100% { height: 18px; }
+        }
+        .player-track-details {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .player-track-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-artist-name {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .player-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--line);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        .player-progress-fill {
+            height: 100%;
+            background: var(--green);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Shareable Card Generator Modal */
+        #card-generator-modal .card-btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        #card-generator-modal .card-opt-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            background: var(--paper-dark);
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+        #card-generator-modal .card-opt-btn.active {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+            font-weight: 700;
+        }
+        .card-preview-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--paper-dark);
+            border: 1px solid var(--line);
+            padding: 16px;
+            margin-bottom: 20px;
+            max-height: 420px;
+            overflow: hidden;
+            position: relative;
+        }
+        #share-card-canvas {
+            max-width: 100%;
+            max-height: 380px;
+            height: auto;
+            object-fit: contain;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--line);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -980,7 +1240,7 @@
                             <i></i><i></i><i></i>
                         </span>
                         <span class="theme-toggle-copy">
-                            <span class="theme-toggle-kicker">Theme</span>
+                            <span class="theme-toggle-kicker" data-i18n="theme_kicker">Theme</span>
                             <span id="theme-toggle-label">Auto</span>
                         </span>
                         <span class="theme-toggle-arrow" aria-hidden="true">▾</span>
@@ -999,8 +1259,8 @@
                             <button class="theme-option theme-option-auto" type="button" role="option" aria-selected="false" data-theme-value="auto">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Auto</strong>
-                                    <small>Follows your device</small>
+                                    <strong data-i18n="theme_auto">Auto</strong>
+                                    <small data-i18n="theme_auto_desc">Follows your device</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1008,8 +1268,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="dark">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Carbon</strong>
-                                    <small>Editorial dark</small>
+                                    <strong data-i18n="theme_carbon">Carbon</strong>
+                                    <small data-i18n="theme_carbon_desc">Editorial dark</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1017,8 +1277,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="light">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Paper</strong>
-                                    <small>Warm and clear</small>
+                                    <strong data-i18n="theme_paper">Paper</strong>
+                                    <small data-i18n="theme_paper_desc">Warm and clear</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1026,8 +1286,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="cyber">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Electric</strong>
-                                    <small>Violet + mint</small>
+                                    <strong data-i18n="theme_electric">Electric</strong>
+                                    <small data-i18n="theme_electric_desc">Violet + mint</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1035,8 +1295,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="glass">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Aurora</strong>
-                                    <small>Soft glass layers</small>
+                                    <strong data-i18n="theme_aurora">Aurora</strong>
+                                    <small data-i18n="theme_aurora_desc">Soft glass layers</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1044,8 +1304,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="terminal">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Terminal</strong>
-                                    <small>Zero-distraction mode</small>
+                                    <strong data-i18n="theme_terminal">Terminal</strong>
+                                    <small data-i18n="theme_terminal_desc">Zero-distraction mode</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1053,8 +1313,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="nordic">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Nordic</strong>
-                                    <small>Calm and natural</small>
+                                    <strong data-i18n="theme_nordic">Nordic</strong>
+                                    <small data-i18n="theme_nordic_desc">Calm and natural</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1062,8 +1322,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="cupertino">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Midnight</strong>
-                                    <small>Polished dark</small>
+                                    <strong data-i18n="theme_midnight">Midnight</strong>
+                                    <small data-i18n="theme_midnight_desc">Polished dark</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1071,8 +1331,8 @@
                             <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="steel">
                                 <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
                                 <span class="theme-option-copy">
-                                    <strong>Graphite</strong>
-                                    <small>Quiet and dense</small>
+                                    <strong data-i18n="theme_graphite">Graphite</strong>
+                                    <small data-i18n="theme_graphite_desc">Quiet and dense</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -1080,13 +1340,13 @@
 
                         <div class="theme-dropdown-footer">
                             <span data-i18n="theme_saved">Saved across pages</span>
-                            <span>8 palettes + Auto</span>
+                            <span data-i18n="theme_palettes">8 palettes + Auto</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="lang-selector" id="lang-selector">
-                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="font-size: 20px; padding: 0 12px;">
                         <span id="lang-toggle-flag">🇬🇧</span>
                     </button>
                     <div class="lang-dropdown" id="lang-dropdown">
@@ -1098,6 +1358,12 @@
                         <button class="lang-option" data-lang-value="pl">🇵🇱 Polski</button>
                     </div>
                 </div>
+
+                <a href="https://github.com/Sppqq/spicy-stats" target="_blank" rel="noopener noreferrer" class="github-stars-btn" id="github-stars-btn" title="Star Spicy Stats on GitHub">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>Star</span>
+                    <span class="github-stars-count" id="github-stars-count">...</span>
+                </a>
 
                 <div class="live-status">
                     <span class="live-dot"></span>
@@ -1127,9 +1393,14 @@
                     </div>
                 </div>
 
-                <button class="back-button" id="export-json-btn">
-                    Export JSON ↓
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button class="back-button" id="share-card-btn" onclick="openCardGeneratorModal()" style="border-color: var(--green); color: var(--positive-text); background: rgba(185,242,39,0.08);">
+                        ✨ <span data-i18n="share_card">Share Card</span>
+                    </button>
+                    <button class="back-button" id="export-json-btn" data-i18n="export_json">
+                        Export JSON ↓
+                    </button>
+                </div>
             </section>
 
             <section class="profile-stats">
@@ -1156,26 +1427,56 @@
                         <div class="panel-meta" id="profile-chart-sub-label" data-i18n="chart_sub">Total views over the last 30 days</div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div class="metric-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
+                            <button type="button" class="metric-btn active" data-metric="views" style="background: var(--line); border: 1px solid var(--line); padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--blue); font-weight: 700; border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--blue);"></span>
+                                <span data-i18n="metric_views">Views</span>
+                            </button>
+                            <button type="button" class="metric-btn" data-metric="tracks" style="background: transparent; border: 1px solid transparent; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
+                                <span data-i18n="metric_tracks">Tracks</span>
+                            </button>
+                            <button type="button" class="metric-btn" data-metric="delta" style="background: transparent; border: 1px solid transparent; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
+                                <span data-i18n="metric_delta">24h Growth</span>
+                            </button>
+                        </div>
+
                         <div class="timeframe-selector" style="display: flex; gap: 4px; border: 1px solid var(--line); padding: 2px; border-radius: 4px; background: var(--paper);">
                             <button type="button" class="timeframe-btn" data-val="7" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">7D</button>
                             <button type="button" class="timeframe-btn active" data-val="30" style="background: var(--line); border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--ink); border-radius: 3px; transition: background 0.15s, color 0.15s;">30D</button>
                             <button type="button" class="timeframe-btn" data-val="90" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">90D</button>
                             <button type="button" class="timeframe-btn" data-val="all" style="background: transparent; border: none; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s;">ALL</button>
                         </div>
+
+                        <button type="button" id="milestone-toggle-btn" style="background: transparent; border: 1px solid var(--line); padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 4px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
+                            <span>⭐</span>
+                            <span data-i18n="toggle_milestones">Milestones</span>
+                        </button>
                         <div class="panel-meta" id="profile-chart-growth-header" style="font-weight: 700; font-family: 'DM Mono', monospace;">+0.0%</div>
                     </div>
                 </div>
 
                 <div class="chart-wrap" style="position: relative;">
+                    <div id="profile-chart-yaxis-left" style="position: absolute; top: 6px; left: 10px; bottom: 32px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; z-index: 2; opacity: 0.9;"></div>
+                    <div id="profile-chart-yaxis-right" style="position: absolute; top: 6px; right: 10px; bottom: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; pointer-events: none; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; z-index: 2; opacity: 0.9;"></div>
                     <svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id="profileArea" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="var(--blue)" stop-opacity="0.28" />
                                 <stop offset="100%" stop-color="var(--blue)" stop-opacity="0" />
                             </linearGradient>
+                            <linearGradient id="tracksArea" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="var(--coral)" stop-opacity="0.25" />
+                                <stop offset="100%" stop-color="var(--coral)" stop-opacity="0" />
+                            </linearGradient>
                         </defs>
 
+                        <!-- Vertical Grid Lines -->
+                        <g id="profile-chart-grid-lines"></g>
+
+                        <!-- Views paths -->
                         <path id="profile-chart-area-path"
                             d=""
                             fill="url(#profileArea)" />
@@ -1183,6 +1484,21 @@
                         <path id="profile-chart-line-path"
                             d=""
                             fill="none" stroke="var(--blue)" stroke-width="4" vector-effect="non-scaling-stroke" />
+
+                        <!-- Tracks paths -->
+                        <path id="profile-chart-tracks-area-path"
+                            d=""
+                            fill="url(#tracksArea)" />
+
+                        <path id="profile-chart-tracks-line-path"
+                            d=""
+                            fill="none" stroke="var(--coral)" stroke-width="3" stroke-dasharray="6 3" vector-effect="non-scaling-stroke" />
+
+                        <!-- 24h Growth Delta Bars -->
+                        <g id="profile-chart-delta-bars"></g>
+
+                        <!-- Milestone Markers -->
+                        <g id="profile-chart-milestones"></g>
                     </svg>
 
                     <div class="chart-labels" id="profile-chart-labels">
@@ -1312,7 +1628,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;">v1.2.5</span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.20 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -1328,52 +1644,89 @@
     </div>
 
     <script>
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
-        const API_BASE = isDevEnv
-             ? 'https://dev-api.glyph-labs.site/api'
-             : 'https://spicy-api.glyph-labs.site/api';
-
-        function generateSignature(path, timestamp) {
-            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
-            const str = `${timestamp}:${path}:${salt}`;
-            let hash = 5381;
-            for (let i = 0; i < str.length; i++) {
-                hash = ((hash << 5) + hash) + str.charCodeAt(i);
-            }
-            return (hash >>> 0).toString(16);
-        }
-
-        async function spicyFetch(urlStr, options = {}) {
-            let path = '';
-            if (urlStr.startsWith('http')) {
-                path = new URL(urlStr).pathname;
-            } else {
-                path = urlStr.split('?')[0];
-            }
-            const timestamp = Math.floor(Date.now() / 1000).toString();
-            const signature = generateSignature(path, timestamp);
-            const currentLang = localStorage.getItem('spicy-lang') || 'en';
-            options.headers = {
-                ...(options.headers || {}),
-                "X-Spicy-Timestamp": timestamp,
-                "X-Spicy-Signature": signature,
-                "X-Spicy-Lang": currentLang
-            };
-            return fetch(urlStr, options);
-        }
         let profileData = null;
         let username = null;
         let chartTimeframe = 30;
+        let chartMetrics = { views: true, tracks: false, delta: false };
+        try {
+            const savedMetrics = localStorage.getItem('spicy-chart-metrics');
+            if (savedMetrics) {
+                const parsed = JSON.parse(savedMetrics);
+                if (typeof parsed.views === 'boolean' && typeof parsed.tracks === 'boolean') {
+                    chartMetrics.views = parsed.views;
+                    chartMetrics.tracks = parsed.tracks;
+                    if (typeof parsed.delta === 'boolean') chartMetrics.delta = parsed.delta;
+                }
+            }
+        } catch (e) {}
+
+        let chartShowMilestones = false;
+        try {
+            if (localStorage.getItem('spicy-chart-show-milestones') === 'true') {
+                chartShowMilestones = true;
+            }
+        } catch (e) {}
+
+        function updateMilestoneBtnUI() {
+            const btn = document.getElementById('milestone-toggle-btn');
+            if (!btn) return;
+            if (chartShowMilestones) {
+                btn.classList.add('active');
+                btn.style.background = 'var(--line)';
+                btn.style.color = 'var(--ink)';
+                btn.style.borderColor = 'var(--blue)';
+                btn.style.fontWeight = '700';
+            } else {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--muted)';
+                btn.style.borderColor = 'var(--line)';
+                btn.style.fontWeight = '400';
+            }
+        }
+
+        function updateMetricBtnUI() {
+            document.querySelectorAll('.metric-btn').forEach(btn => {
+                const m = btn.dataset.metric;
+                const isActive = chartMetrics[m];
+                if (isActive) {
+                    btn.classList.add('active');
+                    btn.style.background = 'var(--line)';
+                    btn.style.color = m === 'views' ? 'var(--blue)' : (m === 'tracks' ? 'var(--coral)' : 'var(--green)');
+                    btn.style.borderColor = 'var(--line)';
+                    btn.style.fontWeight = '700';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--muted)';
+                    btn.style.borderColor = 'transparent';
+                    btn.style.fontWeight = '400';
+                }
+            });
+        }
+
+        function updateChartSubLabel() {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const subLabel = document.getElementById('profile-chart-sub-label');
+            if (!subLabel) return;
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+            let key = 'chart_sub_views';
+            if (chartMetrics.views && chartMetrics.tracks) {
+                key = chartTimeframe === 'all' ? 'chart_sub_both_all' : 'chart_sub_both';
+            } else if (chartMetrics.tracks) {
+                key = chartTimeframe === 'all' ? 'chart_sub_tracks_all' : 'chart_sub_tracks';
+            } else {
+                key = chartTimeframe === 'all' ? 'chart_sub_views_all' : 'chart_sub_views';
+            }
+
+            const template = dict[key] || TRANSLATIONS.en[key] || dict.chart_sub || 'Profile activity';
+            if (chartTimeframe === 'all') {
+                subLabel.textContent = template;
+            } else {
+                subLabel.textContent = template.replace('{days}', chartTimeframe);
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             checkNotifications();
@@ -1382,6 +1735,31 @@
             initLiveIndicator();
             showEasterEgg();
             checkLanguageSuggestion();
+            initGitHubStars();
+
+            // Metric Selector Bindings
+            document.querySelectorAll('.metric-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const metric = btn.dataset.metric;
+                    if (metric === 'views') {
+                        chartMetrics.views = !chartMetrics.views;
+                    } else if (metric === 'tracks') {
+                        chartMetrics.tracks = !chartMetrics.tracks;
+                    } else if (metric === 'delta') {
+                        chartMetrics.delta = !chartMetrics.delta;
+                    }
+                    if (!chartMetrics.views && !chartMetrics.tracks && !chartMetrics.delta) {
+                        chartMetrics[metric] = true;
+                    }
+                    try {
+                        localStorage.setItem('spicy-chart-metrics', JSON.stringify(chartMetrics));
+                    } catch (e) {}
+                    updateMetricBtnUI();
+                    updateChartSubLabel();
+                    renderChart();
+                });
+            });
+            updateMetricBtnUI();
 
             // Timeframe Selector Bindings
             document.querySelectorAll('.timeframe-btn').forEach(btn => {
@@ -1396,23 +1774,77 @@
                     btn.style.color = 'var(--ink)';
 
                     chartTimeframe = btn.dataset.val === 'all' ? 'all' : parseInt(btn.dataset.val);
-
-                    // Update subtext
-                    const currentLang = localStorage.getItem('spicy-lang') || 'en';
-                    const subLabel = document.getElementById('profile-chart-sub-label');
-                    if (subLabel) {
-                        const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-                        if (chartTimeframe === 'all') {
-                            subLabel.textContent = dict.chart_sub_all || 'Total views over all tracking history';
-                        } else {
-                            const template = dict.chart_sub_days || 'Total views over the last {days} days';
-                            subLabel.textContent = template.replace('{days}', chartTimeframe);
-                        }
-                    }
-
+                    updateChartSubLabel();
                     renderChart();
                 });
             });
+
+            // Milestone Toggle Binding
+            const milestoneBtn = document.getElementById('milestone-toggle-btn');
+            if (milestoneBtn) {
+                milestoneBtn.addEventListener('click', () => {
+                    chartShowMilestones = !chartShowMilestones;
+                    try {
+                        localStorage.setItem('spicy-chart-show-milestones', chartShowMilestones ? 'true' : 'false');
+                    } catch (e) {}
+                    updateMilestoneBtnUI();
+                    renderChart();
+                });
+            }
+            updateMilestoneBtnUI();
+
+        async function initGitHubStars() {
+            const countEl = document.getElementById('github-stars-count');
+            if (!countEl) return;
+
+            let cachedCount = 0;
+            try {
+                const cached = localStorage.getItem('spicy-gh-stars');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data.count !== undefined && Date.now() - data.time < 3600000) {
+                        cachedCount = data.count;
+                        countEl.textContent = cachedCount;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const res = await fetch('https://api.github.com/repos/Sppqq/spicy-stats');
+                if (res.ok) {
+                    const repo = await res.json();
+                    const stars = repo.stargazers_count !== undefined ? repo.stargazers_count : 0;
+                    try {
+                        localStorage.setItem('spicy-gh-stars', JSON.stringify({ count: stars, time: Date.now() }));
+                    } catch (e) {}
+                    animateStarCounter(countEl, cachedCount, stars);
+                } else if (!cachedCount) {
+                    countEl.textContent = '★';
+                }
+            } catch (e) {
+                if (!cachedCount) countEl.textContent = '★';
+            }
+        }
+
+        function animateStarCounter(el, start, end) {
+            if (start === end) {
+                el.textContent = end;
+                return;
+            }
+            const duration = 800;
+            const startTime = performance.now();
+            function step(now) {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const current = Math.floor(start + (end - start) * progress);
+                el.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = end;
+                }
+            }
+            requestAnimationFrame(step);
+        }
 
             // Register Service Worker for offline support / speed caching
             if ('serviceWorker' in navigator) {
@@ -1537,9 +1969,83 @@
                 top_shares: "Top Track Shares",
                 chart_sub_all: "Total views over all tracking history",
                 chart_sub_days: "Total views over the last {days} days",
+                metric_views: "Views",
+                metric_tracks: "Tracks",
+                metric_delta: "24h Growth",
+                toggle_milestones: "Milestones",
+                chart_sub_views: "Total views over the last {days} days",
+                chart_sub_tracks: "Total track count over the last {days} days",
+                chart_sub_both: "Views & track count over the last {days} days",
+                chart_sub_views_all: "Total views over all tracking history",
+                chart_sub_tracks_all: "Total track count over all tracking history",
+                chart_sub_both_all: "Views & track count over all tracking history",
                 contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq",
                 credits: 'Special thanks to <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> for the contribution',
-                data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Auto",
+                theme_auto_desc: "Follows your device",
+                theme_carbon: "Carbon",
+                theme_carbon_desc: "Editorial dark",
+                theme_paper: "Paper",
+                theme_paper_desc: "Warm and clear",
+                theme_electric: "Electric",
+                theme_electric_desc: "Violet + mint",
+                theme_aurora: "Aurora",
+                theme_aurora_desc: "Soft glass layers",
+                theme_terminal: "Terminal",
+                theme_terminal_desc: "Zero-distraction mode",
+                theme_nordic: "Nordic",
+                theme_nordic_desc: "Calm and natural",
+                theme_midnight: "Midnight",
+                theme_midnight_desc: "Polished dark",
+                theme_graphite: "Graphite",
+                theme_graphite_desc: "Quiet and dense",
+                theme_palettes: "8 palettes + Auto",
+                theme_kicker: "Theme",
+                lang_switch: "Switch language?",
+                lang_yes: "Yes",
+                lang_no: "Keep EN",
+                updates: "Updates",
+                changelog: "Changelog",
+                close_btn: "Close",
+                export_json: "Export JSON ↓",
+                loading_metrics: "Loading live metrics...",
+                analyzing_growth: "Analyzing growth...",
+                calc_milestones: "Calculating milestones...",
+                error_loading: "Error loading data. Please reload the page.",
+                no_milestone_data: "No milestone data",
+                monitored_profiles: "Monitored profiles",
+                across_profiles: "Across all profiles",
+                views_24h_suffix: "views 24h",
+                compare_selected: "Compare selected",
+                loading_profile: "Loading profile details...",
+                error: "Error",
+                loading_tracks: "Loading tracks...",
+                not_enough_data: "Not enough data for this timeframe",
+                loading_history: "Loading history...",
+                failed_history: "Failed to load history",
+                error_history: "Error loading history",
+                no_history_data: "No history data available yet",
+                return_dashboard: "Return to Dashboard",
+                track_count_unavail: "Track count unavailable",
+                milestone_to_go: "to go to",
+                share_card: "Share Card",
+                play_preview: "Play Preview",
+                pause_preview: "Pause",
+                loading_preview: "Searching preview...",
+                preview_not_found: "Preview unavailable",
+                card_generator_title: "Shareable Story Card Generator",
+                card_format: "Format",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Timeframe",
+                period_7d: "7 Days",
+                period_30d: "30 Days",
+                period_total: "All Time",
+                card_theme: "Theme Style",
+                download_png: "Download PNG ↓",
+                copy_image: "Copy Image 📋",
+                copied: "Copied!"
             },
             ru: {
                 back: "← Вернуться на дашборд",
@@ -1611,9 +2117,83 @@
                 top_shares: "Доли топовых треков",
                 chart_sub_all: "Общие просмотры за все время отслеживания",
                 chart_sub_days: "Общие просмотры за последние {days} дней",
+                metric_views: "Просмотры",
+                metric_tracks: "Кол-во треков",
+                metric_delta: "Рост 24ч",
+                toggle_milestones: "Отметки",
+                chart_sub_views: "Общее число просмотров за последние {days} дней",
+                chart_sub_tracks: "Количество треков за последние {days} дней",
+                chart_sub_both: "Просмотры и количество треков за последние {days} дней",
+                chart_sub_views_all: "Общие просмотры за все время отслеживания",
+                chart_sub_tracks_all: "Количество треков за все время отслеживания",
+                chart_sub_both_all: "Просмотры и количество треков за все время отслеживания",
                 contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq",
                 credits: 'Отдельная благодарность <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за вклад',
-                data_source: 'Данные предоставлены <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Данные предоставлены <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Авто",
+                theme_auto_desc: "Как в системе",
+                theme_carbon: "Карбон",
+                theme_carbon_desc: "Редакторский темный",
+                theme_paper: "Бумага",
+                theme_paper_desc: "Теплый и ясный",
+                theme_electric: "Электрик",
+                theme_electric_desc: "Фиолетовый + мятный",
+                theme_aurora: "Аврора",
+                theme_aurora_desc: "Мягкое стекло",
+                theme_terminal: "Терминал",
+                theme_terminal_desc: "Без отвлечений",
+                theme_nordic: "Нордик",
+                theme_nordic_desc: "Спокойный и естественный",
+                theme_midnight: "Полночь",
+                theme_midnight_desc: "Полированный темный",
+                theme_graphite: "Графит",
+                theme_graphite_desc: "Тихий и плотный",
+                theme_palettes: "8 палитр + Авто",
+                theme_kicker: "Тема",
+                lang_switch: "Переключить язык?",
+                lang_yes: "Да",
+                lang_no: "Оставить EN",
+                updates: "Обновления",
+                changelog: "Список изменений",
+                close_btn: "Закрыть",
+                export_json: "Экспорт JSON ↓",
+                loading_metrics: "Загрузка живых метрик...",
+                analyzing_growth: "Анализ роста...",
+                calc_milestones: "Расчет достижений...",
+                error_loading: "Ошибка загрузки данных. Пожалуйста, перезагрузите страницу.",
+                no_milestone_data: "Нет данных о достижениях",
+                monitored_profiles: "Отслеживаемые профили",
+                across_profiles: "По всем профилям",
+                views_24h_suffix: "просмотров за 24ч",
+                compare_selected: "Сравнить выбранные",
+                loading_profile: "Загрузка данных профиля...",
+                error: "Ошибка",
+                loading_tracks: "Загрузка треков...",
+                not_enough_data: "Недостаточно данных для этого периода",
+                loading_history: "Загрузка истории...",
+                failed_history: "Не удалось загрузить историю",
+                error_history: "Ошибка при загрузке истории",
+                no_history_data: "Данные истории пока недоступны",
+                return_dashboard: "Вернуться на дашборд",
+                track_count_unavail: "Количество треков недоступно",
+                milestone_to_go: "осталось до",
+                share_card: "Поделиться",
+                play_preview: "Слушать превью",
+                pause_preview: "Пауза",
+                loading_preview: "Поиск превью...",
+                preview_not_found: "Превью недоступно",
+                card_generator_title: "Генератор карточки достижений",
+                card_format: "Формат карточки",
+                format_story: "Story 9:16 (Stories)",
+                format_post: "Пост 1:1 (Квадрат)",
+                card_period: "Период",
+                period_7d: "7 дней",
+                period_30d: "30 дней",
+                period_total: "Всё время",
+                card_theme: "Стиль оформления",
+                download_png: "Скачать PNG ↓",
+                copy_image: "Копировать 📋",
+                copied: "Скопировано!"
             },
             uk: {
                 back: "← Повернутися на дашборд",
@@ -1685,9 +2265,81 @@
                 top_shares: "Частки топових треків",
                 chart_sub_all: "Загальна кількість переглядів за всю історію відстеження",
                 chart_sub_days: "Загальна кількість переглядів за останні {days} днів",
+                metric_views: "Перегляди",
+                metric_tracks: "Кількість треків",
+                chart_sub_views: "Загальна кількість переглядів за останні {days} днів",
+                chart_sub_tracks: "Кількість треків за останні {days} днів",
+                chart_sub_both: "Перегляди та кількість треків за останні {days} днів",
+                chart_sub_views_all: "Загальна кількість переглядів за всю історію відстеження",
+                chart_sub_tracks_all: "Кількість треків за всю історію відстеження",
+                chart_sub_both_all: "Перегляди та кількість треків за всю історію відстеження",
                 contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq",
                 credits: 'Окрема подяка <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за внесок',
-                data_source: 'Дані надані <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Дані надані <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Авто",
+                theme_auto_desc: "Як у системі",
+                theme_carbon: "Карбон",
+                theme_carbon_desc: "Редакторський темний",
+                theme_paper: "Папір",
+                theme_paper_desc: "Теплий та ясний",
+                theme_electric: "Електрик",
+                theme_electric_desc: "Фіолетовий + м'ятний",
+                theme_aurora: "Аврора",
+                theme_aurora_desc: "М'яке скло",
+                theme_terminal: "Термінал",
+                theme_terminal_desc: "Без відволікань",
+                theme_nordic: "Нордік",
+                theme_nordic_desc: "Спокійний та природний",
+                theme_midnight: "Північ",
+                theme_midnight_desc: "Полірований темний",
+                theme_graphite: "Графіт",
+                theme_graphite_desc: "Тихий та щільний",
+                theme_palettes: "8 палітр + Авто",
+                theme_kicker: "Тема",
+                lang_switch: "Перемкнути мову?",
+                lang_yes: "Так",
+                lang_no: "Залишити EN",
+                updates: "Оновлення",
+                changelog: "Список змін",
+                close_btn: "Закрити",
+                export_json: "Експорт JSON ↓",
+                loading_metrics: "Завантаження живих метрик...",
+                analyzing_growth: "Аналіз зростання...",
+                calc_milestones: "Розрахунок досягнень...",
+                error_loading: "Помилка завантаження даних. Будь ласка, перезавантажте сторінку.",
+                no_milestone_data: "Немає даних про досягнення",
+                monitored_profiles: "Відстежувані профілі",
+                across_profiles: "По всім профілям",
+                views_24h_suffix: "переглядів за 24г",
+                compare_selected: "Порівняти вибрані",
+                loading_profile: "Завантаження даних профілю...",
+                error: "Помилка",
+                loading_tracks: "Завантаження треків...",
+                not_enough_data: "Недостатньо даних для цього періоду",
+                loading_history: "Завантаження історії...",
+                failed_history: "Не вдалося завантажити історію",
+                error_history: "Помилка при завантаженні історії",
+                no_history_data: "Дані історії поки недоступні",
+                return_dashboard: "Повернутися на дашборд",
+                track_count_unavail: "Кількість треків недоступна",
+                milestone_to_go: "залишилося до",
+                share_card: "Поділитися",
+                play_preview: "Слухати прев'ю",
+                pause_preview: "Пауза",
+                loading_preview: "Пошук прев'ю...",
+                preview_not_found: "Прев'ю недоступне",
+                card_generator_title: "Генератор картки досягнень",
+                card_format: "Формат картки",
+                format_story: "Story 9:16 (Stories)",
+                format_post: "Пост 1:1 (Квадрат)",
+                card_period: "Період",
+                period_7d: "7 днів",
+                period_30d: "30 днів",
+                period_total: "Весь час",
+                card_theme: "Стиль оформлення",
+                download_png: "Завантажити PNG ↓",
+                copy_image: "Копіювати 📋",
+                copied: "Скопійовано!"
             },
             de: {
                 back: "← Zurück zum Dashboard",
@@ -1759,9 +2411,81 @@
                 top_shares: "Top-Track-Anteile",
                 chart_sub_all: "Gesamtansichten über die gesamte Erfassungshistorie",
                 chart_sub_days: "Gesamtansichten in den letzten {days} Tagen",
+                metric_views: "Aufrufe",
+                metric_tracks: "Tracks",
+                chart_sub_views: "Gesamte Aufrufe in den letzten {days} Tagen",
+                chart_sub_tracks: "Anzahl der Tracks in den letzten {days} Tagen",
+                chart_sub_both: "Aufrufe und Trackanzahl in den letzten {days} Tagen",
+                chart_sub_views_all: "Gesamtansichten über die gesamte Erfassungshistorie",
+                chart_sub_tracks_all: "Trackanzahl über die gesamte Erfassungshistorie",
+                chart_sub_both_all: "Aufrufe und Trackanzahl über die gesamte Erfassungshistorie",
                 contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq",
                 credits: 'Besonderer Dank an <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> für den Beitrag',
-                data_source: 'Daten bereitgestellt von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Daten bereitgestellt von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Auto",
+                theme_auto_desc: "Folgt deinem Gerät",
+                theme_carbon: "Carbon",
+                theme_carbon_desc: "Redaktionelles Dunkel",
+                theme_paper: "Papier",
+                theme_paper_desc: "Warm und klar",
+                theme_electric: "Electric",
+                theme_electric_desc: "Violett + Minze",
+                theme_aurora: "Aurora",
+                theme_aurora_desc: "Weiche Glasschichten",
+                theme_terminal: "Terminal",
+                theme_terminal_desc: "Null-Ablenkung-Modus",
+                theme_nordic: "Nordic",
+                theme_nordic_desc: "Ruhig und natürlich",
+                theme_midnight: "Midnight",
+                theme_midnight_desc: "Poliertes Dunkel",
+                theme_graphite: "Graphite",
+                theme_graphite_desc: "Leise und dicht",
+                theme_palettes: "8 Paletten + Auto",
+                theme_kicker: "Theme",
+                lang_switch: "Sprache wechseln?",
+                lang_yes: "Ja",
+                lang_no: "EN behalten",
+                updates: "Updates",
+                changelog: "Änderungsprotokoll",
+                close_btn: "Schließen",
+                export_json: "JSON exportieren ↓",
+                loading_metrics: "Live-Metriken werden geladen...",
+                analyzing_growth: "Wachstum wird analysiert...",
+                calc_milestones: "Meilensteine werden berechnet...",
+                error_loading: "Fehler beim Laden der Daten. Bitte laden Sie die Seite neu.",
+                no_milestone_data: "Keine Meilenstein-Daten",
+                monitored_profiles: "Überwachte Profile",
+                across_profiles: "Über alle Profile",
+                views_24h_suffix: "Aufrufe in 24h",
+                compare_selected: "Ausgewählte vergleichen",
+                loading_profile: "Profildetails werden geladen...",
+                error: "Fehler",
+                loading_tracks: "Tracks werden geladen...",
+                not_enough_data: "Nicht genügend Daten für diesen Zeitraum",
+                loading_history: "Historie wird geladen...",
+                failed_history: "Historie konnte nicht geladen werden",
+                error_history: "Fehler beim Laden der Historie",
+                no_history_data: "Noch keine Verlaufsdaten verfügbar",
+                return_dashboard: "Zurück zum Dashboard",
+                track_count_unavail: "Track-Anzahl nicht verfügbar",
+                milestone_to_go: "verbleibend bis",
+                share_card: "Karte teilen",
+                play_preview: "Vorschau abspielen",
+                pause_preview: "Pause",
+                loading_preview: "Suche Vorschau...",
+                preview_not_found: "Vorschau nicht verfügbar",
+                card_generator_title: "Story-Karten-Generator",
+                card_format: "Kartenformat",
+                format_story: "Story 9:16",
+                format_post: "Beitrag 1:1",
+                card_period: "Zeitraum",
+                period_7d: "7 Tage",
+                period_30d: "30 Tage",
+                period_total: "Gesamt",
+                card_theme: "Stil-Thema",
+                download_png: "PNG herunterladen ↓",
+                copy_image: "Bild kopieren 📋",
+                copied: "Kopiert!"
             },
             it: {
                 back: "← Torna al dashboard",
@@ -1833,9 +2557,81 @@
                 top_shares: "Quote dei brani migliori",
                 chart_sub_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
                 chart_sub_days: "Visualizzazioni totali negli ultimi {days} giorni",
+                metric_views: "Visualizzazioni",
+                metric_tracks: "Brani",
+                chart_sub_views: "Visualizzazioni totali negli ultimi {days} giorni",
+                chart_sub_tracks: "Numero di brani negli ultimi {days} giorni",
+                chart_sub_both: "Visualizzazioni e brani negli ultimi {days} giorni",
+                chart_sub_views_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
+                chart_sub_tracks_all: "Numero di brani su tutta la cronologia di monitoraggio",
+                chart_sub_both_all: "Visualizzazioni e brani su tutta la cronologia di monitoraggio",
                 contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq",
                 credits: 'Un ringraziamento speciale a <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> per il contributo',
-                data_source: 'Dati forniti da <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Dati forniti da <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Auto",
+                theme_auto_desc: "Segue il tuo dispositivo",
+                theme_carbon: "Carbon",
+                theme_carbon_desc: "Scuro editoriale",
+                theme_paper: "Carta",
+                theme_paper_desc: "Caldo e chiaro",
+                theme_electric: "Elettrico",
+                theme_electric_desc: "Viola + menta",
+                theme_aurora: "Aurora",
+                theme_aurora_desc: "Strati di vetro morbido",
+                theme_terminal: "Terminale",
+                theme_terminal_desc: "Modalità zero distrazioni",
+                theme_nordic: "Nordico",
+                theme_nordic_desc: "Calmo e naturale",
+                theme_midnight: "Mezzanotte",
+                theme_midnight_desc: "Scuro lucido",
+                theme_graphite: "Grafite",
+                theme_graphite_desc: "Silenzioso e denso",
+                theme_palettes: "8 tavolozze + Auto",
+                theme_kicker: "Tema",
+                lang_switch: "Cambiare lingua?",
+                lang_yes: "Sì",
+                lang_no: "Mantieni EN",
+                updates: "Aggiornamenti",
+                changelog: "Registro delle modifiche",
+                close_btn: "Chiudi",
+                export_json: "Esporta JSON ↓",
+                loading_metrics: "Caricamento metriche in tempo reale...",
+                analyzing_growth: "Analisi della crescita...",
+                calc_milestones: "Calcolo dei traguardi...",
+                error_loading: "Errore di caricamento dati. Ricarica la pagina.",
+                no_milestone_data: "Nessun dato sui traguardi",
+                monitored_profiles: "Profili monitorati",
+                across_profiles: "Su tutti i profili",
+                views_24h_suffix: "visualizzazioni in 24h",
+                compare_selected: "Confronta selezionati",
+                loading_profile: "Caricamento dettagli profilo...",
+                error: "Errore",
+                loading_tracks: "Caricamento brani...",
+                not_enough_data: "Dati insufficienti per questo periodo",
+                loading_history: "Caricamento cronologia...",
+                failed_history: "Impossibile caricare la cronologia",
+                error_history: "Errore di caricamento cronologia",
+                no_history_data: "Nessun dato cronologico ancora disponibile",
+                return_dashboard: "Ritorna alla Dashboard",
+                track_count_unavail: "Numero di brani non disponibile",
+                milestone_to_go: "mancanti per",
+                share_card: "Condividi scheda",
+                play_preview: "Ascolta anteprima",
+                pause_preview: "Pausa",
+                loading_preview: "Ricerca anteprima...",
+                preview_not_found: "Anteprima non disponibile",
+                card_generator_title: "Generatore di scheda da condividere",
+                card_format: "Formato scheda",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Periodo",
+                period_7d: "7 Giorni",
+                period_30d: "30 Giorni",
+                period_total: "Tutto il tempo",
+                card_theme: "Stile tema",
+                download_png: "Scarica PNG ↓",
+                copy_image: "Copia immagine 📋",
+                copied: "Copiato!"
             },
             pl: {
                 back: "← Powrót do panelu",
@@ -1907,9 +2703,34 @@
                 top_shares: "Udziały top utworów",
                 chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
+                metric_views: "Wyświetlenia",
+                metric_tracks: "Utwory",
+                chart_sub_views: "Łączna liczba wyświetleń w ciągu ostatnich {days} dni",
+                chart_sub_tracks: "Liczba utworów w ciągu ostatnich {days} dni",
+                chart_sub_both: "Wyświetlenia i liczba utworów w ciągu ostatnich {days} dni",
+                chart_sub_views_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
+                chart_sub_tracks_all: "Liczba utworów w całej historii śledzenia",
+                chart_sub_both_all: "Wyświetlenia i liczba utworów w całej historii śledzenia",
                 contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
                 credits: 'Specjalne podziękowania dla <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wkład',
-                data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                share_card: "Udostępnij kartę",
+                play_preview: "Odtwórz próbkę",
+                pause_preview: "Pauza",
+                loading_preview: "Szukanie próbki...",
+                preview_not_found: "Próbka niedostępna",
+                card_generator_title: "Generator karty wyników",
+                card_format: "Format karty",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Okres",
+                period_7d: "7 Dni",
+                period_30d: "30 Dni",
+                period_total: "Cały czas",
+                card_theme: "Motyw stylu",
+                download_png: "Pobierz PNG ↓",
+                copy_image: "Kopiuj obraz 📋",
+                copied: "Skopiowano!"
             }
         };
 
@@ -1931,7 +2752,11 @@
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
                 if (dict[key]) {
-                    el.innerHTML = dict[key];
+                    if (key === 'credits' || key === 'data_source') {
+                        el.innerHTML = dict[key];
+                    } else {
+                        el.textContent = dict[key];
+                    }
                 }
             });
 
@@ -2294,34 +3119,38 @@
         }
 
         function showLoading() {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             if (window.updateCountdownInterval) {
                 clearInterval(window.updateCountdownInterval);
             }
             const nextUpdateEl = document.getElementById('profile-next-update');
             if (nextUpdateEl) nextUpdateEl.style.display = 'none';
             document.getElementById('profile-name').textContent = `@${username}...`;
-            document.getElementById('profile-updated').textContent = 'Loading profile details...';
+            document.getElementById('profile-updated').textContent = dict.loading_profile || 'Loading profile details...';
             document.getElementById('tracks-list').innerHTML = `
                 <div style="padding: 30px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
-                    Loading tracks...
+                    ${dict.loading_tracks || 'Loading tracks...'}
                 </div>
             `;
         }
 
         function showError(msg) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             if (window.updateCountdownInterval) {
                 clearInterval(window.updateCountdownInterval);
             }
             const nextUpdateEl = document.getElementById('profile-next-update');
             if (nextUpdateEl) nextUpdateEl.style.display = 'none';
-            document.getElementById('profile-name').textContent = 'Error';
+            document.getElementById('profile-name').textContent = dict.error || 'Error';
             document.getElementById('profile-updated').style.color = 'var(--coral)';
             document.getElementById('profile-updated').textContent = msg;
             document.getElementById('tracks-list').innerHTML = `
                 <div style="padding: 30px; text-align: center; color: var(--coral); font-family: 'DM Mono', monospace; border: 1px solid var(--coral); background: rgba(255,113,91,0.05);">
-                    ${escapeHtml(msg)}
+                    ${msg}
                     <div style="margin-top: 15px;">
-                        <button class="back-button" onclick="goBack()" style="background: var(--white);">Return to Dashboard</button>
+                        <button class="back-button" onclick="goBack()" style="background: var(--white);">${dict.return_dashboard || 'Return to Dashboard'}</button>
                     </div>
                 </div>
             `;
@@ -2345,7 +3174,7 @@
                     const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
                     avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
                 }
-                avatarEl.innerHTML = `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(profileData.username)}" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
+                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${profileData.username}" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
                 avatarEl.style.padding = '0';
                 avatarEl.style.background = 'transparent';
                 avatarEl.style.overflow = 'hidden';
@@ -2503,7 +3332,19 @@
 
             if (rawPoints && rawPoints.length >= 2) {
                 const current = rawPoints[rawPoints.length - 1].y;
-                const prevIndex = Math.max(0, rawPoints.length - 8);
+                const lastPointDate = parseUTCDate(rawPoints[rawPoints.length - 1].x);
+                const lastTime = lastPointDate ? lastPointDate.getTime() : Date.now();
+                const cutoffTime = lastTime - (7 * 24 * 60 * 60 * 1000);
+
+                let prevIndex = 0;
+                for (let i = rawPoints.length - 1; i >= 0; i--) {
+                    const d = parseUTCDate(rawPoints[i].x);
+                    if (d && d.getTime() <= cutoffTime) {
+                        prevIndex = i;
+                        break;
+                    }
+                }
+
                 const prev = rawPoints[prevIndex].y;
                 growth7d = current - prev;
                 pct7d = prev > 0 ? ((growth7d / prev) * 100).toFixed(1) : '0.0';
@@ -2560,9 +3401,14 @@
                 sortedSongs.forEach(track => {
                     const pct = profileData.total_views > 0 ? ((track.views / profileData.total_views) * 100).toFixed(1) : '0.0';
                     const trackRow = document.createElement('div');
+
+                    const safeTitle = track.title
+                        ? track.title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
+                        : "Unknown";
+
                     trackRow.innerHTML = `
                         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</span>
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${safeTitle}">${safeTitle}</span>
                             <strong style="font-family: 'DM Mono', monospace; font-size: 10px;">${pct}%</strong>
                         </div>
                         <div style="width: 100%; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden;">
@@ -2574,33 +3420,88 @@
             }
         }
 
+        /**
+         * Auto-detect and filter out single-point spike/dip glitches.
+         * Safe: Only removes isolated transient glitches, preserves all legitimate growth data.
+         */
+        function removeChartAnomalies(pts, key = 'views') {
+            if (!pts || pts.length <= 3) return pts;
+
+            const result = [pts[0]];
+            for (let i = 1; i < pts.length - 1; i++) {
+                const prev = pts[i - 1][key];
+                const curr = pts[i][key];
+                const next = pts[i + 1][key];
+
+                // Single point drop anomaly (e.g. curr is near zero while prev & next are high)
+                if (prev > 100 && curr < prev * 0.15 && next > prev * 0.7) {
+                    continue;
+                }
+                // Single point spike anomaly (e.g. curr is > 3x prev AND > 3x next)
+                if (prev > 0 && curr > prev * 3 && curr > next * 3) {
+                    continue;
+                }
+
+                result.push(pts[i]);
+            }
+            result.push(pts[pts.length - 1]);
+            return result;
+        }
+
         function renderChart() {
-            const svgArea = document.getElementById('profile-chart-area-path');
-            const svgLine = document.getElementById('profile-chart-line-path');
+            const svgViewsArea = document.getElementById('profile-chart-area-path');
+            const svgViewsLine = document.getElementById('profile-chart-line-path');
+            const svgTracksArea = document.getElementById('profile-chart-tracks-area-path');
+            const svgTracksLine = document.getElementById('profile-chart-tracks-line-path');
             const labelsContainer = document.getElementById('profile-chart-labels');
 
-            if (!svgArea || !svgLine || !profileData.chart_data || profileData.chart_data.length < 2) return;
+            if (!profileData || !profileData.chart_data || profileData.chart_data.length < 2) return;
 
             const rawPoints = profileData.chart_data;
             let points = rawPoints;
 
-            // 1. Адаптивная фильтрация по реальному времени
+            // 1. Адаптивная фильтрация по реальному времени со сниппет-интерполяцией на границе
+            let timeframeCutoff = null;
             if (chartTimeframe !== 'all' && rawPoints.length > 0) {
                 const lastPointDate = parseUTCDate(rawPoints[rawPoints.length - 1].x);
                 const lastTime = lastPointDate ? lastPointDate.getTime() : Date.now();
-                const cutoffTime = lastTime - (chartTimeframe * 24 * 60 * 60 * 1000);
+                timeframeCutoff = lastTime - (chartTimeframe * 24 * 60 * 60 * 1000);
 
-                points = rawPoints.filter(p => {
+                const firstAfterIdx = rawPoints.findIndex(p => {
                     const d = parseUTCDate(p.x);
-                    return d && d.getTime() >= cutoffTime;
+                    return d && d.getTime() >= timeframeCutoff;
                 });
 
-                // Захватываем одну точку до начала периода для красивого старта линии
-                if (points.length > 0 && points[0] !== rawPoints[0]) {
-                    const firstIncludedIndex = rawPoints.indexOf(points[0]);
-                    if (firstIncludedIndex > 0) {
-                        points.unshift(rawPoints[firstIncludedIndex - 1]);
+                if (firstAfterIdx > 0) {
+                    const prevPt = rawPoints[firstAfterIdx - 1];
+                    const nextPt = rawPoints[firstAfterIdx];
+                    const tPrev = parseUTCDate(prevPt.x).getTime();
+                    const tNext = parseUTCDate(nextPt.x).getTime();
+
+                    let interpViews = nextPt.views !== undefined ? nextPt.views : (nextPt.y || 0);
+                    let interpTracks = nextPt.tracks;
+
+                    if (tNext > tPrev) {
+                        const ratio = (timeframeCutoff - tPrev) / (tNext - tPrev);
+                        const vPrev = prevPt.views !== undefined ? prevPt.views : (prevPt.y || 0);
+                        const vNext = interpViews;
+                        interpViews = Math.round(vPrev + ratio * (vNext - vPrev));
+
+                        if (prevPt.tracks !== undefined && nextPt.tracks !== undefined) {
+                            interpTracks = Math.round(prevPt.tracks + ratio * (nextPt.tracks - prevPt.tracks));
+                        }
                     }
+
+                    const startPt = {
+                        x: new Date(timeframeCutoff).toISOString(),
+                        views: interpViews,
+                        tracks: interpTracks
+                    };
+                    points = [startPt, ...rawPoints.slice(firstAfterIdx)];
+                } else if (firstAfterIdx === 0) {
+                    points = [...rawPoints];
+                } else {
+                    points = [];
                 }
             }
 
@@ -2611,15 +3512,38 @@
             }
 
             if (points.length < 2) {
-                // If selected timeframe doesn't have enough data points, fallback to using all available
-                svgArea.setAttribute('d', '');
-                svgLine.setAttribute('d', '');
-                labelsContainer.innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">Not enough data for this timeframe</span>';
+                if (svgViewsArea) svgViewsArea.setAttribute('d', '');
+                if (svgViewsLine) svgViewsLine.setAttribute('d', '');
+                if (svgTracksArea) svgTracksArea.setAttribute('d', '');
+                if (svgTracksLine) svgTracksLine.setAttribute('d', '');
+                if (labelsContainer) {
+                    labelsContainer.innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).not_enough_data || 'Not enough data for this timeframe'}</span>`;
+                }
                 return;
             }
 
-            const firstVal = points[0].y;
-            const lastVal = points[points.length - 1].y;
+            const maxAllowedSongs = profileData.total_songs || 0;
+            let normalizedPoints = points.map(p => {
+                let rawTracks = p.tracks !== undefined ? p.tracks : maxAllowedSongs;
+                if (maxAllowedSongs > 0 && rawTracks > maxAllowedSongs) {
+                    rawTracks = maxAllowedSongs;
+                }
+                return {
+                    x: p.x,
+                    views: p.views !== undefined ? p.views : (p.y || 0),
+                    tracks: rawTracks
+                };
+            });
+
+            // Auto-detect and filter out statistical anomalies
+            normalizedPoints = removeChartAnomalies(normalizedPoints, 'views');
+
+            const showViews = chartMetrics.views;
+            const showTracks = chartMetrics.tracks;
+            const primaryMetric = showViews ? 'views' : 'tracks';
+
+            const firstVal = normalizedPoints[0][primaryMetric];
+            const lastVal = normalizedPoints[normalizedPoints.length - 1][primaryMetric];
             const totalGrowthPct = firstVal > 0 ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : '0';
             const totalGrowthSign = lastVal >= firstVal ? '+' : '';
 
@@ -2629,61 +3553,391 @@
                 growthEl.style.color = lastVal >= firstVal ? 'var(--positive-text)' : 'var(--coral)';
             }
 
-            const minViews = Math.min(...points.map(p => p.y));
-            const maxViews = Math.max(...points.map(p => p.y));
-
             const width = 800;
             const height = 190;
             const paddingLeft = 0;
             const paddingRight = 0;
             const paddingTop = 25;
             const paddingBottom = 10;
-
             const chartHeight = height - paddingTop - paddingBottom;
             const chartWidth = width - paddingLeft - paddingRight;
 
-            const pointsCount = points.length;
-            const times = points.map(p => {
+            const times = normalizedPoints.map(p => {
                 const dateObj = parseUTCDate(p.x);
                 return dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
             });
-            const minTime = Math.min(...times);
+            const realMinTime = Math.min(...times);
+            const minTime = (chartTimeframe !== 'all' && timeframeCutoff && realMinTime <= timeframeCutoff) ? timeframeCutoff : realMinTime;
             const maxTime = Math.max(...times);
             const timeRange = maxTime - minTime || 1;
 
-            const scaledPoints = points.map((p, i) => {
+            const minViews = Math.min(...normalizedPoints.map(p => p.views));
+            const maxViews = Math.max(...normalizedPoints.map(p => p.views));
+            const viewsDiff = maxViews - minViews;
+            const viewsRange = viewsDiff || 1;
+
+            const minTracks = Math.min(...normalizedPoints.map(p => p.tracks));
+            const maxTracks = Math.max(...normalizedPoints.map(p => p.tracks));
+            const tracksDiff = maxTracks - minTracks;
+            const tracksRange = tracksDiff || 1;
+
+            const scaledPoints = normalizedPoints.map((p, i) => {
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
-                const y = height - paddingBottom - ((p.y - minViews) / (maxViews - minViews || 1)) * chartHeight;
-                return { x, y, date: p.x, views: p.y };
+
+                let yViews = height - paddingBottom - ((p.views - minViews) / viewsRange) * chartHeight;
+                if (viewsDiff === 0) {
+                    yViews = paddingTop + chartHeight / 2;
+                }
+
+                let yTracks = height - paddingBottom - ((p.tracks - minTracks) / tracksRange) * chartHeight;
+                if (tracksDiff === 0) {
+                    // Position constant tracks line cleanly across middle (or slightly lower if views is also active and constant)
+                    yTracks = (showViews && viewsDiff === 0)
+                        ? paddingTop + chartHeight / 2 + 20
+                        : (showViews ? height - paddingBottom - 25 : paddingTop + chartHeight / 2);
+                }
+
+                const prevViews = i > 0 ? normalizedPoints[i - 1].views : p.views;
+                const delta = Math.max(0, p.views - prevViews);
+
+                return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks, delta };
             });
 
-            let linePathStr = '';
-            scaledPoints.forEach((p, i) => {
-                const cmd = i === 0 ? 'M' : 'L';
-                linePathStr += `${cmd} ${p.x.toFixed(1)} ${p.y.toFixed(1)} `;
-            });
+            const deltaContainer = document.getElementById('profile-chart-delta-bars');
+            if (deltaContainer) deltaContainer.innerHTML = '';
 
-            const areaPathStr = linePathStr + `L ${width} ${height} L 0 ${height} Z`;
+            if (chartMetrics.delta && deltaContainer && scaledPoints.length >= 2) {
+                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
+                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.65);
 
-            svgArea.setAttribute('d', areaPathStr);
-            svgLine.setAttribute('d', linePathStr);
+                scaledPoints.forEach(p => {
+                    if (p.delta <= 0) return;
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.45);
+                    const barY = height - paddingBottom - barHeight;
 
-            labelsContainer.innerHTML = '';
-            const steps = 5;
-            for (let i = 0; i <= steps; i++) {
-                const timeVal = minTime + (i / steps) * timeRange;
-                const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
-                const label = document.createElement('span');
-                label.textContent = formattedDate;
-                labelsContainer.appendChild(label);
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
+                    rect.setAttribute('y', barY.toFixed(1));
+                    rect.setAttribute('width', barWidth.toFixed(1));
+                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
+                    rect.setAttribute('fill', 'var(--green)');
+                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('rx', '1.5');
+                    deltaContainer.appendChild(rect);
+                });
             }
 
-            setupProfileChartTooltip(scaledPoints);
+            if (showViews && svgViewsArea && svgViewsLine) {
+                let lineStr = '';
+                scaledPoints.forEach((p, i) => {
+                    const cmd = i === 0 ? 'M' : 'L';
+                    lineStr += `${cmd} ${p.x.toFixed(1)} ${p.yViews.toFixed(1)} `;
+                });
+                const areaStr = lineStr + `L ${width} ${height} L 0 ${height} Z`;
+                svgViewsArea.setAttribute('d', areaStr);
+                svgViewsLine.setAttribute('d', lineStr);
+            } else {
+                if (svgViewsArea) svgViewsArea.setAttribute('d', '');
+                if (svgViewsLine) svgViewsLine.setAttribute('d', '');
+            }
+
+            if (showTracks && svgTracksArea && svgTracksLine) {
+                let lineStr = '';
+                scaledPoints.forEach((p, i) => {
+                    const cmd = i === 0 ? 'M' : 'L';
+                    lineStr += `${cmd} ${p.x.toFixed(1)} ${p.yTracks.toFixed(1)} `;
+                });
+                const areaStr = lineStr + `L ${width} ${height} L 0 ${height} Z`;
+                svgTracksArea.setAttribute('d', areaStr);
+                svgTracksLine.setAttribute('d', lineStr);
+            } else {
+                if (svgTracksArea) svgTracksArea.setAttribute('d', '');
+                if (svgTracksLine) svgTracksLine.setAttribute('d', '');
+            }
+
+            // Update Y-Axis Scale Labels (Left / Right)
+            const yAxisLeft = document.getElementById('profile-chart-yaxis-left');
+            const yAxisRight = document.getElementById('profile-chart-yaxis-right');
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const trkSuffix = currentLang === 'ru' ? 'трек.' : (currentLang === 'uk' ? 'трек.' : 'trk');
+
+            if (showViews && showTracks) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--blue)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViews(maxViews)}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViews(minViews)}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'flex';
+                    yAxisRight.style.color = 'var(--coral)';
+                    yAxisRight.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${maxTracks} ${trkSuffix}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${minTracks} ${trkSuffix}</span>
+                    `;
+                }
+            } else if (showViews) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--blue)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViews(maxViews)}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${formatViews(minViews)}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'none';
+                    yAxisRight.innerHTML = '';
+                }
+            } else if (showTracks) {
+                if (yAxisLeft) {
+                    yAxisLeft.style.display = 'flex';
+                    yAxisLeft.style.color = 'var(--coral)';
+                    yAxisLeft.innerHTML = `
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${maxTracks} ${trkSuffix}</span>
+                        <span style="background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; backdrop-filter: blur(2px);">${minTracks} ${trkSuffix}</span>
+                    `;
+                }
+                if (yAxisRight) {
+                    yAxisRight.style.display = 'none';
+                    yAxisRight.innerHTML = '';
+                }
+            }
+
+            // Render Vertical Grid Lines & Aligned Date Labels
+            const gridContainer = document.getElementById('profile-chart-grid-lines');
+            const milestoneContainer = document.getElementById('profile-chart-milestones');
+            if (gridContainer) gridContainer.innerHTML = '';
+            if (milestoneContainer) milestoneContainer.innerHTML = '';
+
+            const activeMilestoneNotes = {};
+
+            const gridPoints = [];
+            const startDate = new Date(minTime);
+            const endDate = new Date(maxTime);
+
+            let cur = new Date(startDate);
+            cur.setUTCHours(0, 0, 0, 0);
+
+            while (cur <= endDate) {
+                const curTime = cur.getTime();
+                if (curTime >= minTime && curTime <= maxTime) {
+                    const isFirstOfMonth = cur.getUTCDate() === 1;
+                    const isMonday = cur.getUTCDay() === 1;
+
+                    if (isFirstOfMonth || isMonday) {
+                        const x = paddingLeft + ((curTime - minTime) / timeRange) * chartWidth;
+                        gridPoints.push({
+                            x,
+                            time: curTime,
+                            dateObj: new Date(cur),
+                            isFirstOfMonth
+                        });
+                    }
+                }
+                cur.setUTCDate(cur.getUTCDate() + 1);
+            }
+
+            if (gridPoints.length < 2) {
+                gridPoints.length = 0;
+                const steps = 4;
+                for (let i = 0; i <= steps; i++) {
+                    const t = minTime + (i / steps) * timeRange;
+                    const x = paddingLeft + (i / steps) * chartWidth;
+                    gridPoints.push({
+                        x,
+                        time: t,
+                        dateObj: new Date(t),
+                        isFirstOfMonth: false
+                    });
+                }
+            }
+
+            if (gridContainer) {
+                gridPoints.forEach(gp => {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', gp.x.toFixed(1));
+                    line.setAttribute('y1', '0');
+                    line.setAttribute('x2', gp.x.toFixed(1));
+                    line.setAttribute('y2', height.toString());
+
+                    if (gp.isFirstOfMonth) {
+                        line.setAttribute('stroke', 'var(--blue)');
+                        line.setAttribute('stroke-opacity', '0.35');
+                        line.setAttribute('stroke-width', '1.2');
+                        line.setAttribute('vector-effect', 'non-scaling-stroke');
+                    } else {
+                        line.setAttribute('stroke', 'var(--line)');
+                        line.setAttribute('stroke-opacity', '0.2');
+                        line.setAttribute('stroke-width', '1');
+                        line.setAttribute('stroke-dasharray', '2 3');
+                        line.setAttribute('vector-effect', 'non-scaling-stroke');
+                    }
+                    gridContainer.appendChild(line);
+                });
+            }
+
+            if (labelsContainer) {
+                labelsContainer.innerHTML = '';
+                gridPoints.forEach(gp => {
+                    const formattedDate = gp.dateObj.toLocaleDateString(getLocale(), { month: 'short', day: gp.isFirstOfMonth ? 'numeric' : '2-digit' });
+                    const label = document.createElement('span');
+                    label.textContent = formattedDate;
+                    if (gp.isFirstOfMonth) {
+                        label.style.fontWeight = '800';
+                        label.style.color = 'var(--blue)';
+                        label.style.padding = '1px 4px';
+                        label.style.background = 'rgba(112, 128, 255, 0.12)';
+                        label.style.borderRadius = '3px';
+                    }
+                    labelsContainer.appendChild(label);
+                });
+            }
+
+            // Render Views & Tracks Milestones & Anniversaries ("Юбилеи")
+            if (chartShowMilestones && milestoneContainer && scaledPoints.length >= 2) {
+                const milestoneEvents = [];
+
+                // 1. Views Milestones
+                if (showViews) {
+                    const viewThresholds = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
+                    for (const threshold of viewThresholds) {
+                        for (let i = 1; i < scaledPoints.length; i++) {
+                            const prev = scaledPoints[i - 1];
+                            const curr = scaledPoints[i];
+                            if (prev.views < threshold && curr.views >= threshold) {
+                                milestoneEvents.push({
+                                    index: i,
+                                    x: curr.x,
+                                    y: curr.yViews,
+                                    type: 'views',
+                                    color: '#10b981',
+                                    icon: '⭐',
+                                    label: `${formatViews(threshold)}`,
+                                    fullNote: `⭐ Milestone: Passed ${formatViews(threshold)} views!`
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 2. Track Catalog Milestones
+                if (showTracks) {
+                    const trackThresholds = [5, 10, 20, 25, 50, 75, 100, 150, 200];
+                    for (const threshold of trackThresholds) {
+                        for (let i = 1; i < scaledPoints.length; i++) {
+                            const prev = scaledPoints[i - 1];
+                            const curr = scaledPoints[i];
+                            if (prev.tracks < threshold && curr.tracks >= threshold) {
+                                milestoneEvents.push({
+                                    index: i,
+                                    x: curr.x,
+                                    y: curr.yTracks,
+                                    type: 'tracks',
+                                    color: 'var(--coral)',
+                                    icon: '🎵',
+                                    label: `${threshold} ${trkSuffix}`,
+                                    fullNote: `🎵 Milestone: Reached ${threshold} tracks!`
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Tracking Time Anniversaries ("Юбилеи отслеживания")
+                const anniversaries = [
+                    { days: 30, label: '1 Mo', full: '1 Month Tracking Anniversary' },
+                    { days: 90, label: '3 Mo', full: '3 Months Tracking Anniversary' },
+                    { days: 180, label: '6 Mo', full: '6 Months Tracking Anniversary' },
+                    { days: 365, label: '1 Yr', full: '1 Year Tracking Anniversary' }
+                ];
+                const dayMs = 86400000;
+
+                anniversaries.forEach(anniv => {
+                    const annivTime = minTime + (anniv.days * dayMs);
+                    if (annivTime > minTime && annivTime < maxTime) {
+                        const annivX = paddingLeft + ((annivTime - minTime) / timeRange) * chartWidth;
+                        let closestIdx = 0;
+                        let minDiff = Math.abs(times[0] - annivTime);
+                        for (let i = 1; i < times.length; i++) {
+                            const diff = Math.abs(times[i] - annivTime);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                closestIdx = i;
+                            }
+                        }
+                        const pt = scaledPoints[closestIdx];
+                        milestoneEvents.push({
+                            index: closestIdx,
+                            x: annivX,
+                            y: showViews ? pt.yViews : pt.yTracks,
+                            type: 'anniversary',
+                            color: '#8b5cf6',
+                            icon: '🎂',
+                            label: anniv.label,
+                            fullNote: `🎂 ${anniv.full}`
+                        });
+                    }
+                });
+
+                // Render sleek milestone dots + tooltip notes (aspect-corrected for 100% round circles)
+                const svgElement = document.querySelector('.profile-chart .chart');
+                const svgRect = svgElement ? svgElement.getBoundingClientRect() : { width: 800, height: 190 };
+                const domW = svgRect.width || 800;
+                const domH = svgRect.height || 190;
+                const scaleX = 800 / domW;
+                const scaleY = 190 / domH;
+
+                milestoneEvents.forEach(evt => {
+                    if (!activeMilestoneNotes[evt.index]) activeMilestoneNotes[evt.index] = [];
+                    activeMilestoneNotes[evt.index].push(evt.fullNote);
+
+                    // Outer pulse ring (5.5px radius in DOM pixels)
+                    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    ring.setAttribute('cx', evt.x.toFixed(1));
+                    ring.setAttribute('cy', evt.y.toFixed(1));
+                    ring.setAttribute('rx', (5.5 * scaleX).toFixed(2));
+                    ring.setAttribute('ry', (5.5 * scaleY).toFixed(2));
+                    ring.setAttribute('fill', 'none');
+                    ring.setAttribute('stroke', evt.color);
+                    ring.setAttribute('stroke-width', '1.5');
+                    ring.setAttribute('stroke-opacity', '0.6');
+                    milestoneContainer.appendChild(ring);
+
+                    // Glowing core dot (3.5px radius in DOM pixels)
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    circle.setAttribute('cx', evt.x.toFixed(1));
+                    circle.setAttribute('cy', evt.y.toFixed(1));
+                    circle.setAttribute('rx', (3.5 * scaleX).toFixed(2));
+                    circle.setAttribute('ry', (3.5 * scaleY).toFixed(2));
+                    circle.setAttribute('fill', evt.color);
+                    circle.setAttribute('stroke', 'var(--paper)');
+                    circle.setAttribute('stroke-width', '1.2');
+                    milestoneContainer.appendChild(circle);
+
+                    // Render text label
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', evt.x.toFixed(1));
+                    text.setAttribute('y', Math.max(16, evt.y - 9).toFixed(1));
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', evt.color);
+                    text.setAttribute('font-family', 'DM Mono');
+                    text.setAttribute('font-size', '9');
+                    text.setAttribute('font-weight', '700');
+                    text.textContent = `${evt.icon} ${evt.label}`;
+                    milestoneContainer.appendChild(text);
+                });
+            }
+
+            setupProfileChartTooltip(scaledPoints, activeMilestoneNotes);
         }
 
-        function setupProfileChartTooltip(scaledPoints) {
+        function setupProfileChartTooltip(scaledPoints, activeMilestoneNotes = {}) {
             const chartWrap = document.querySelector('.profile-chart .chart-wrap');
             const svgElement = document.querySelector('.profile-chart .chart');
             let tooltip = document.getElementById('profile-chart-tooltip');
@@ -2702,6 +3956,7 @@
                 tooltip.style.boxShadow = '3px 3px 0 var(--line)';
                 tooltip.style.pointerEvents = 'none';
                 tooltip.style.zIndex = '100';
+                tooltip.style.borderRadius = '4px';
                 chartWrap.appendChild(tooltip);
             }
 
@@ -2709,9 +3964,12 @@
 
             svgElement.addEventListener('mousemove', (e) => {
                 const rect = svgElement.getBoundingClientRect();
+                if (!rect.width || !rect.height) return;
+
                 const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
 
                 let closestPt = scaledPoints[0];
+                let closestIdx = 0;
                 let minDist = Math.abs(closestPt.x - mouseX);
 
                 for (let i = 1; i < scaledPoints.length; i++) {
@@ -2719,23 +3977,55 @@
                     if (dist < minDist) {
                         minDist = dist;
                         closestPt = scaledPoints[i];
+                        closestIdx = i;
                     }
+                }
+
+                // Check distance in DOM pixels -- hide tooltip if mouse is farther than 35px from nearest point
+                const distPx = Math.abs(closestPt.x - mouseX) * (rect.width / 800);
+                if (distPx > 35) {
+                    tooltip.style.display = 'none';
+                    return;
                 }
 
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                 const dateObj = parseUTCDate(closestPt.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
+                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+
+                let content = `<div style="color: var(--green); font-weight: bold; margin-bottom: 4px;">${formattedDate}</div>`;
+                if (chartMetrics.views) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--blue);"></span>
+                        <span>${dict.views || 'Views'}: <strong>${formatFullNumber(closestPt.views)}</strong></span>
+                    </div>`;
+                }
+                if (chartMetrics.tracks) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--coral);"></span>
+                        <span>${dict.tracks || 'Tracks'}: <strong>${formatFullNumber(closestPt.tracks)}</strong></span>
+                    </div>`;
+                }
+                if (chartMetrics.delta) {
+                    content += `<div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
+                        <span>${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></span>
+                    </div>`;
+                }
+
+                if (activeMilestoneNotes && activeMilestoneNotes[closestIdx]) {
+                    activeMilestoneNotes[closestIdx].forEach(note => {
+                        content += `<div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(255,255,255,0.25); color: #10b981; font-weight: bold;">${note}</div>`;
+                    });
+                }
 
                 tooltip.style.display = 'block';
-                tooltip.innerHTML = `
-                    <div style="color: var(--green); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
-                    <div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>
-                `;
+                tooltip.innerHTML = content;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
                 const posX = ((closestPt.x / 800) * rect.width);
-                const posY = ((closestPt.y / 190) * rect.height) - 10;
+                const activeY = chartMetrics.views ? closestPt.yViews : closestPt.yTracks;
+                const posY = ((activeY / 190) * rect.height) - 10;
 
                 let left = posX + 20;
                 if (left + tooltipRect.width > rect.width) {
@@ -2917,14 +4207,30 @@
 
                 const row = document.createElement('div');
                 row.className = 'track';
+                row.tabIndex = 0;
+                row.setAttribute('role', 'button');
                 row.onclick = () => openTrackStats(song.title, song.artist, song.views, song.growth);
+                row.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openTrackStats(song.title, song.artist, song.views, song.growth);
+                    }
+                };
+                const safeTitle = (song.title || '').replace(/"/g, '&quot;');
+                const safeArtist = (song.artist || '').replace(/"/g, '&quot;');
+
+                const isThisPlaying = currentAudioTrack && currentAudioTrack.title === song.title && currentAudioTrack.artist === song.artist && isAudioPlaying;
+                const playBtnClass = isThisPlaying ? 'track-play-btn playing' : 'track-play-btn';
+                const playBtnIcon = isThisPlaying ? '❚❚' : '▶';
+
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
-                    <div>
-                        <div class="track-title">${escapeHtml(song.title)}</div>
-                        <div class="track-artist">${escapeHtml(song.artist)}</div>
+                    <button class="${playBtnClass}" onclick="event.stopPropagation(); toggleTrackPreview('${safeTitle}', '${safeArtist}', this);" title="${dict.play_preview || 'Play preview'}" aria-label="${dict.play_preview || 'Play preview'}">${playBtnIcon}</button>
+                    <div class="track-info">
+                        <div class="track-title" title="${safeTitle}">${song.title}</div>
+                        <div class="track-artist" title="${safeArtist}">${song.artist}</div>
                     </div>
-                    <div>
+                    <div class="track-stats-right">
                         <div class="track-views">${formatViews(song.views)}</div>
                         <div class="track-growth" style="color: ${growthColor};">${growthText}</div>
                     </div>
@@ -2940,12 +4246,22 @@
             const modalViews = document.getElementById('track-modal-views');
             const modalGrowth = document.getElementById('track-modal-growth');
             const modalGrowthCard = document.getElementById('track-modal-growth-card');
+            const modalPlayBtn = document.getElementById('track-modal-play-btn');
 
             if (!modal) return;
 
             modalTitle.textContent = title;
             modalArtist.textContent = artist;
             modalViews.textContent = formatFullNumber(currentViews);
+
+            if (modalPlayBtn) {
+                const safeTitle = (title || '').replace(/"/g, '&quot;');
+                const safeArtist = (artist || '').replace(/"/g, '&quot;');
+                modalPlayBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleTrackPreview(safeTitle, safeArtist);
+                };
+            }
 
             if (growth !== null && growth !== undefined) {
                 if (growth > 0) {
@@ -2978,7 +4294,7 @@
             // Clear chart paths while loading
             document.getElementById('track-chart-area-path').setAttribute('d', '');
             document.getElementById('track-chart-line-path').setAttribute('d', '');
-            document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">Loading history...</span>';
+            document.getElementById('track-chart-labels').innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).loading_history || 'Loading history...'}</span>`;
 
             modal.style.display = 'flex';
 
@@ -2988,12 +4304,510 @@
                     const data = await res.json();
                     renderTrackChart(data.history);
                 } else {
-                    document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--coral);">Failed to load history</span>';
+                    document.getElementById('track-chart-labels').innerHTML = `<span style="width: 100%; text-align: center; color: var(--coral);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).failed_history || 'Failed to load history'}</span>`;
                 }
             } catch (e) {
                 console.error(e);
-                document.getElementById('track-chart-labels').innerHTML = '<span style="width: 100%; text-align: center; color: var(--coral);">Error loading history</span>';
+                document.getElementById('track-chart-labels').innerHTML = `<span style="width: 100%; text-align: center; color: var(--coral);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).error_history || 'Error loading history'}</span>`;
             }
+        }
+
+        /* -------------------------------------------------------------
+         * 30-Sec Audio Preview State & Logic (iTunes Search API)
+         * ------------------------------------------------------------- */
+        let currentAudio = null;
+        let currentAudioTrack = null;
+        let isAudioPlaying = false;
+        const previewCache = new Map();
+
+        async function toggleTrackPreview(title, artist, btnEl) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            
+            // If clicking same track that is currently playing -> toggle pause/play
+            if (currentAudioTrack && currentAudioTrack.title === title && currentAudioTrack.artist === artist) {
+                if (isAudioPlaying) {
+                    pauseAudioPreview();
+                } else if (currentAudio) {
+                    currentAudio.play();
+                    isAudioPlaying = true;
+                    updatePlayerUI();
+                }
+                return;
+            }
+
+            // Stop existing audio playback
+            stopAudioPreview();
+
+            // Show loading in mini player
+            showMiniPlayerLoading(title, artist);
+
+            try {
+                const cacheKey = `${artist.toLowerCase()} - ${title.toLowerCase()}`;
+                let previewUrl = previewCache.get(cacheKey);
+
+                if (!previewUrl) {
+                    const query = `${artist} ${title}`;
+                    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0 && data.results[0].previewUrl) {
+                            previewUrl = data.results[0].previewUrl;
+                            previewCache.set(cacheKey, previewUrl);
+                        }
+                    }
+                }
+
+                if (!previewUrl) {
+                    showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+                    return;
+                }
+
+                currentAudioTrack = { title, artist, url: previewUrl };
+                currentAudio = new Audio(previewUrl);
+                currentAudio.volume = 0.8;
+
+                currentAudio.addEventListener('timeupdate', () => {
+                    if (currentAudio && currentAudio.duration) {
+                        const pct = (currentAudio.currentTime / currentAudio.duration) * 100;
+                        const fill = document.getElementById('player-progress-fill');
+                        if (fill) fill.style.width = `${pct}%`;
+                    }
+                });
+
+                currentAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    updatePlayerUI();
+                });
+
+                currentAudio.addEventListener('error', () => {
+                    showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+                });
+
+                await currentAudio.play();
+                isAudioPlaying = true;
+                updatePlayerUI();
+
+            } catch (e) {
+                console.error('Failed to play preview audio:', e);
+                showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+            }
+        }
+
+        function pauseAudioPreview() {
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            isAudioPlaying = false;
+            updatePlayerUI();
+        }
+
+        function stopAudioPreview() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            currentAudioTrack = null;
+            isAudioPlaying = false;
+            const player = document.getElementById('mini-audio-player');
+            if (player) player.classList.remove('visible', 'playing');
+            renderTracks();
+        }
+
+        function updatePlayerUI() {
+            const player = document.getElementById('mini-audio-player');
+            const playBtn = document.getElementById('player-play-btn');
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+
+            if (!player) return;
+
+            if (currentAudioTrack) {
+                player.classList.add('visible');
+                if (isAudioPlaying) {
+                    player.classList.add('playing');
+                    if (playBtn) playBtn.textContent = '❚❚';
+                } else {
+                    player.classList.remove('playing');
+                    if (playBtn) playBtn.textContent = '▶';
+                }
+                if (titleEl) titleEl.textContent = currentAudioTrack.title;
+                if (artistEl) artistEl.textContent = currentAudioTrack.artist;
+            } else {
+                player.classList.remove('visible', 'playing');
+            }
+            renderTracks();
+        }
+
+        function showMiniPlayerLoading(title, artist) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const player = document.getElementById('mini-audio-player');
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+            const fill = document.getElementById('player-progress-fill');
+            if (fill) fill.style.width = '0%';
+            if (player) {
+                player.classList.add('visible');
+                player.classList.remove('playing');
+            }
+            if (titleEl) titleEl.textContent = title;
+            if (artistEl) artistEl.textContent = dict.loading_preview || 'Searching preview...';
+        }
+
+        function showMiniPlayerError(msg) {
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+            if (artistEl) artistEl.textContent = msg;
+            setTimeout(() => {
+                if (!isAudioPlaying) stopAudioPreview();
+            }, 2500);
+        }
+
+        /* -------------------------------------------------------------
+         * Shareable Story & Card Generator (Canvas 2D Renderer)
+         * ------------------------------------------------------------- */
+        const cardState = {
+            format: 'story', // 'story' (9:16) or 'post' (1:1)
+            period: '7d',    // '7d', '30d', 'total'
+            theme: 'neon'    // 'neon', 'brutal', 'cyber'
+        };
+
+        function openCardGeneratorModal() {
+            const modal = document.getElementById('card-generator-modal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            renderShareCardCanvas();
+        }
+
+        function closeCardGeneratorModal() {
+            const modal = document.getElementById('card-generator-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function setCardFormat(fmt) {
+            cardState.format = fmt;
+            document.querySelectorAll('#card-opt-format .card-opt-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.val === fmt);
+            });
+            renderShareCardCanvas();
+        }
+
+        function setCardPeriod(prd) {
+            cardState.period = prd;
+            document.querySelectorAll('#card-opt-period .card-opt-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.val === prd);
+            });
+            renderShareCardCanvas();
+        }
+
+        function setCardTheme(thm) {
+            cardState.theme = thm;
+            document.querySelectorAll('#card-opt-theme .card-opt-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.val === thm);
+            });
+            renderShareCardCanvas();
+        }
+
+        function renderShareCardCanvas() {
+            const canvas = document.getElementById('share-card-canvas');
+            if (!canvas || !profileData) return;
+
+            const isStory = cardState.format === 'story';
+            const width = 1080;
+            const height = isStory ? 1920 : 1080;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+            // Determine Theme Colors
+            let bgStyle, cardBg, textPrimary, textSecondary, accentColor, borderLine;
+            if (cardState.theme === 'brutal') {
+                bgStyle = '#f4efe6';
+                cardBg = '#ffffff';
+                textPrimary = '#101114';
+                textSecondary = '#555555';
+                accentColor = '#ff5722';
+                borderLine = '#101114';
+            } else if (cardState.theme === 'cyber') {
+                bgStyle = '#060a06';
+                cardBg = '#0c140c';
+                textPrimary = '#00ff41';
+                textSecondary = '#008f24';
+                accentColor = '#00ff41';
+                borderLine = '#005517';
+            } else { // 'neon' (default)
+                const grad = ctx.createLinearGradient(0, 0, width, height);
+                grad.addColorStop(0, '#0d0e14');
+                grad.addColorStop(0.5, '#151724');
+                grad.addColorStop(1, '#090a0f');
+                bgStyle = grad;
+                cardBg = '#191b26';
+                textPrimary = '#f1f0ea';
+                textSecondary = '#8e9099';
+                accentColor = '#b9f227';
+                borderLine = '#2d2f39';
+            }
+
+            // 1. Background Fill
+            ctx.fillStyle = bgStyle;
+            ctx.fillRect(0, 0, width, height);
+
+            // Atmosphere / grid overlay
+            if (cardState.theme === 'neon') {
+                ctx.save();
+                const radGlow = ctx.createRadialGradient(width * 0.5, height * 0.3, 50, width * 0.5, height * 0.3, width * 0.7);
+                radGlow.addColorStop(0, 'rgba(185, 242, 39, 0.12)');
+                radGlow.addColorStop(0.6, 'rgba(77, 101, 255, 0.08)');
+                radGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = radGlow;
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            } else if (cardState.theme === 'cyber') {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 255, 65, 0.05)';
+                ctx.lineWidth = 2;
+                const gridGap = 40;
+                for (let x = 0; x < width; x += gridGap) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+                }
+                for (let y = 0; y < height; y += gridGap) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+                }
+                ctx.restore();
+            } else if (cardState.theme === 'brutal') {
+                ctx.save();
+                ctx.strokeStyle = '#101114';
+                ctx.lineWidth = 12;
+                ctx.strokeRect(20, 20, width - 40, height - 40);
+                ctx.restore();
+            }
+
+            const padding = isStory ? 90 : 70;
+            let currentY = isStory ? 160 : 100;
+
+            // Header Branding
+            ctx.font = '800 28px "Manrope", sans-serif';
+            ctx.fillStyle = accentColor;
+            ctx.fillText('🌶️ SPICY MONITOR', padding, currentY);
+
+            // Period badge
+            let periodText = cardState.period === '7d' ? (dict.period_7d || '7 Days') : (cardState.period === '30d' ? (dict.period_30d || '30 Days') : (dict.period_total || 'All Time'));
+            ctx.font = '600 22px "DM Mono", monospace';
+            ctx.fillStyle = textSecondary;
+            ctx.textAlign = 'right';
+            ctx.fillText(periodText.toUpperCase(), width - padding, currentY);
+            ctx.textAlign = 'left';
+
+            currentY += isStory ? 90 : 70;
+
+            // Artist Profile Box
+            ctx.fillStyle = cardBg;
+            const boxHeight = isStory ? 180 : 150;
+            if (cardState.theme === 'brutal') {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(padding, currentY, width - (padding * 2), boxHeight);
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#101114';
+                ctx.strokeRect(padding, currentY, width - (padding * 2), boxHeight);
+            } else {
+                ctx.fillRect(padding, currentY, width - (padding * 2), boxHeight);
+                ctx.strokeStyle = borderLine;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(padding, currentY, width - (padding * 2), boxHeight);
+            }
+
+            // Artist Avatar Circle
+            const avatarRadius = isStory ? 50 : 45;
+            const avatarX = padding + avatarRadius + 30;
+            const avatarY = currentY + (boxHeight / 2);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
+            ctx.fillStyle = accentColor;
+            ctx.fill();
+            ctx.clip();
+
+            ctx.font = `800 ${isStory ? 44 : 36}px "Manrope", sans-serif`;
+            ctx.fillStyle = cardState.theme === 'brutal' ? '#ffffff' : '#101114';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(username.substring(0, 2).toUpperCase(), avatarX, avatarY);
+            ctx.restore();
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.font = `800 ${isStory ? 44 : 38}px "Manrope", sans-serif`;
+            ctx.fillStyle = textPrimary;
+            ctx.fillText(`@${profileData.username}`, avatarX + avatarRadius + 30, avatarY - 5);
+
+            ctx.font = `600 ${isStory ? 24 : 20}px "DM Mono", monospace`;
+            ctx.fillStyle = textSecondary;
+            ctx.fillText(`${dict.author_profile || 'Author Profile'} • ${profileData.total_songs || 0} ${dict.tracks || 'tracks'}`, avatarX + avatarRadius + 30, avatarY + 30);
+
+            currentY += boxHeight + (isStory ? 60 : 40);
+
+            // Big Stat Block: Total Views & Growth
+            let calcGrowth = 0;
+            if (profileData.chart_data && profileData.chart_data.length > 1) {
+                const lastVal = profileData.chart_data[profileData.chart_data.length - 1].y;
+                let pastIndex = 0;
+                if (cardState.period === '7d') {
+                    pastIndex = Math.max(0, profileData.chart_data.length - 8);
+                } else if (cardState.period === '30d') {
+                    pastIndex = Math.max(0, profileData.chart_data.length - 31);
+                }
+                const firstVal = profileData.chart_data[pastIndex].y;
+                calcGrowth = lastVal - firstVal;
+            } else {
+                calcGrowth = profileData.growth_24h || 0;
+            }
+
+            const statBoxHeight = isStory ? 240 : 180;
+            if (cardState.theme === 'brutal') {
+                ctx.fillStyle = '#ffe082';
+                ctx.fillRect(padding, currentY, width - (padding * 2), statBoxHeight);
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#101114';
+                ctx.strokeRect(padding, currentY, width - (padding * 2), statBoxHeight);
+            } else {
+                ctx.fillStyle = cardBg;
+                ctx.fillRect(padding, currentY, width - (padding * 2), statBoxHeight);
+                ctx.strokeStyle = borderLine;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(padding, currentY, width - (padding * 2), statBoxHeight);
+            }
+
+            ctx.font = `600 ${isStory ? 24 : 20}px "DM Mono", monospace`;
+            ctx.fillStyle = cardState.theme === 'brutal' ? '#101114' : textSecondary;
+            ctx.fillText((dict.total_views || 'TOTAL VIEWS').toUpperCase(), padding + 40, currentY + 50);
+
+            const totalViewsFormatted = formatFullNumber(profileData.total_views || 0);
+            ctx.font = `800 ${isStory ? 72 : 56}px "Manrope", sans-serif`;
+            ctx.fillStyle = cardState.theme === 'brutal' ? '#101114' : textPrimary;
+            ctx.fillText(totalViewsFormatted, padding + 40, currentY + (isStory ? 135 : 115));
+
+            // Growth Badge right side
+            const growthSign = calcGrowth > 0 ? '+' : '';
+            const growthText = `${growthSign}${formatFullNumber(calcGrowth)}`;
+            ctx.font = `800 ${isStory ? 34 : 28}px "Manrope", sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.fillStyle = calcGrowth >= 0 ? (cardState.theme === 'brutal' ? '#101114' : accentColor) : '#ff715b';
+            ctx.fillText(growthText, width - padding - 40, currentY + (isStory ? 135 : 115));
+            ctx.textAlign = 'left';
+
+            currentY += statBoxHeight + (isStory ? 60 : 40);
+
+            // Top 3 Tracks Section
+            ctx.font = `800 ${isStory ? 32 : 26}px "Manrope", sans-serif`;
+            ctx.fillStyle = textPrimary;
+            ctx.fillText(`🏆 ${dict.top_tracks || 'TOP TRACKS'}`, padding, currentY);
+
+            currentY += isStory ? 45 : 35;
+
+            const topSongs = (profileData.songs || []).slice(0, 3);
+            const trackRowHeight = isStory ? 105 : 85;
+
+            topSongs.forEach((song, idx) => {
+                const rowY = currentY + (idx * (trackRowHeight + 16));
+
+                if (cardState.theme === 'brutal') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(padding, rowY, width - (padding * 2), trackRowHeight);
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = '#101114';
+                    ctx.strokeRect(padding, rowY, width - (padding * 2), trackRowHeight);
+                } else {
+                    ctx.fillStyle = cardBg;
+                    ctx.fillRect(padding, rowY, width - (padding * 2), trackRowHeight);
+                    ctx.strokeStyle = borderLine;
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(padding, rowY, width - (padding * 2), trackRowHeight);
+                }
+
+                // Rank number
+                ctx.font = `800 ${isStory ? 32 : 26}px "DM Mono", monospace`;
+                ctx.fillStyle = accentColor;
+                ctx.fillText(`#0${idx + 1}`, padding + 24, rowY + (trackRowHeight / 2) + 8);
+
+                // Song Title & Artist
+                ctx.font = `700 ${isStory ? 28 : 22}px "Manrope", sans-serif`;
+                ctx.fillStyle = cardState.theme === 'brutal' ? '#101114' : textPrimary;
+                const maxTitleWidth = isStory ? 480 : 420;
+
+                let titleStr = song.title;
+                if (ctx.measureText(titleStr).width > maxTitleWidth) {
+                    while (titleStr.length > 3 && ctx.measureText(titleStr + '...').width > maxTitleWidth) {
+                        titleStr = titleStr.substring(0, titleStr.length - 1);
+                    }
+                    titleStr += '...';
+                }
+                ctx.fillText(titleStr, padding + 100, rowY + (isStory ? 42 : 36));
+
+                ctx.font = `500 ${isStory ? 20 : 16}px "DM Mono", monospace`;
+                ctx.fillStyle = cardState.theme === 'brutal' ? '#555555' : textSecondary;
+                ctx.fillText(song.artist || profileData.username, padding + 100, rowY + (isStory ? 74 : 62));
+
+                // Views count right side
+                ctx.font = `800 ${isStory ? 26 : 22}px "Manrope", sans-serif`;
+                ctx.fillStyle = cardState.theme === 'brutal' ? '#101114' : textPrimary;
+                ctx.textAlign = 'right';
+                ctx.fillText(formatViews(song.views), width - padding - 24, rowY + (trackRowHeight / 2) + 7);
+                ctx.textAlign = 'left';
+            });
+
+            // Footer Watermark
+            const footerY = height - (isStory ? 80 : 50);
+            ctx.font = '600 20px "DM Mono", monospace';
+            ctx.fillStyle = textSecondary;
+            ctx.textAlign = 'center';
+            ctx.fillText(`SPICY MONITOR • STATS & AUDIENCE GROWTH • spicy-stats`, width / 2, footerY);
+            ctx.textAlign = 'left';
+        }
+
+        function downloadShareCard() {
+            const canvas = document.getElementById('share-card-canvas');
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = `spicy-card-${username}-${cardState.period}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        async function copyShareCardToClipboard() {
+            const canvas = document.getElementById('share-card-canvas');
+            const copyBtn = document.getElementById('card-copy-btn');
+            if (!canvas) return;
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    if (copyBtn) {
+                        const origText = copyBtn.textContent;
+                        copyBtn.textContent = dict.copied || 'Copied!';
+                        copyBtn.style.background = 'var(--green)';
+                        copyBtn.style.color = '#101114';
+                        setTimeout(() => {
+                            copyBtn.textContent = origText;
+                            copyBtn.style.background = '';
+                            copyBtn.style.color = '';
+                        }, 2000);
+                    }
+                } catch (err) {
+                    console.error('Failed to copy card image to clipboard:', err);
+                    downloadShareCard();
+                }
+            }, 'image/png');
         }
 
         function renderTrackChart(points) {
@@ -3009,10 +4823,13 @@
                 points = points.filter((_, index) => index % step === 0 || index === points.length - 1);
             }
 
+            // Auto-detect and filter out track chart anomalies
+            points = removeChartAnomalies(points, 'views');
+
             if (!points || points.length < 2) {
                 svgArea.setAttribute('d', '');
                 svgLine.setAttribute('d', '');
-                labelsContainer.innerHTML = '<span style="width: 100%; text-align: center; color: var(--muted);">No history data available yet</span>';
+                labelsContainer.innerHTML = `<span style="width: 100%; text-align: center; color: var(--muted);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).no_history_data || 'No history data available yet'}</span>`;
                 return;
             }
 
@@ -3042,8 +4859,33 @@
                 const timeVal = times[i];
                 const x = paddingLeft + ((timeVal - minTime) / timeRange) * chartWidth;
                 const y = height - paddingBottom - ((p.views - minViews) / (maxViews - minViews || 1)) * chartHeight;
-                return { x, y, date: p.timestamp, views: p.views };
+                const prevViews = i > 0 ? points[i - 1].views : p.views;
+                const delta = Math.max(0, p.views - prevViews);
+                return { x, y, date: p.timestamp, views: p.views, delta };
             });
+
+            const deltaContainer = document.getElementById('track-chart-delta-bars');
+            if (deltaContainer) {
+                deltaContainer.innerHTML = '';
+                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
+                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+
+                scaledPoints.forEach(p => {
+                    if (p.delta <= 0) return;
+                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const barY = height - paddingBottom - barHeight;
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', (p.x - barWidth / 2).toFixed(1));
+                    rect.setAttribute('y', barY.toFixed(1));
+                    rect.setAttribute('width', barWidth.toFixed(1));
+                    rect.setAttribute('height', Math.max(2, barHeight).toFixed(1));
+                    rect.setAttribute('fill', 'var(--green)');
+                    rect.setAttribute('opacity', '0.45');
+                    rect.setAttribute('rx', '1');
+                    deltaContainer.appendChild(rect);
+                });
+            }
 
             let linePathStr = '';
             scaledPoints.forEach((p, i) => {
@@ -3061,7 +4903,7 @@
             for (let i = 0; i <= steps; i++) {
                 const timeVal = minTime + (i / steps) * timeRange;
                 const dateObj = new Date(timeVal);
-                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit', timeZone: 'UTC' });
+                const formattedDate = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: '2-digit' });
                 const label = document.createElement('span');
                 label.textContent = formattedDate;
                 labelsContainer.appendChild(label);
@@ -3115,13 +4957,18 @@
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
                 const dateObj = parseUTCDate(closestPt.date);
-                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : closestPt.date;
+                const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
+
+                let tooltipHtml = `
+                    <div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
+                    <div>${dict.views}: <strong>${formatFullNumber(closestPt.views)}</strong></div>
+                `;
+                if (closestPt.delta !== undefined && closestPt.delta > 0) {
+                    tooltipHtml += `<div style="color: var(--green); margin-top: 2px;">${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></div>`;
+                }
 
                 tooltip.style.display = 'block';
-                tooltip.innerHTML = `
-                    <div style="color: var(--blue); font-weight: bold; margin-bottom: 2px;">${formattedDate}</div>
-                    <div>${dict.views}: ${formatFullNumber(closestPt.views)}</div>
-                `;
+                tooltip.innerHTML = tooltipHtml;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
                 const posX = ((closestPt.x / 600) * rect.width);
@@ -3292,6 +5139,13 @@
                 toast.offsetHeight; // force reflow
                 toast.style.transform = 'translateY(0)';
                 toast.style.opacity = '1';
+
+                const hideToast = (t) => {
+                    t.style.opacity = '0';
+                    t.style.transform = 'translateY(100px)';
+                    setTimeout(() => { t.style.display = 'none'; }, 300);
+                };
+
                 yesBtn.addEventListener('click', () => {
                     localStorage.setItem('spicy-lang-suggested', 'true');
                     applyLanguage(browserLang);
@@ -3368,8 +5222,8 @@
                     overlay.innerHTML = `
                         <div style="max-width: 500px; width: 100%; background: var(--white); border: 1px solid var(--line); border-top: 4px solid ${accentColor}; padding: 40px 32px; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 50px ${glowColor}; animation: fadeIn 0.4s ease-out;">
                             <div style="font-size: 48px; margin-bottom: 20px; filter: drop-shadow(0 0 10px ${accentColor}44);">${icon}</div>
-                            <h1 style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;">${escapeHtml(title)}</h1>
-                            <p style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;">${escapeHtml(message)}</p>
+                            <h1 id="maintenance-title" style="font-size: clamp(24px, 4vw, 32px); font-weight: 800; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.04em; line-height: 1.2;"></h1>
+                            <p id="maintenance-message" style="font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 24px 0;"></p>
                             <div style="display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: ${accentColor}; border: 1px solid ${accentColor}33; padding: 6px 14px; border-radius: 4px; background: ${accentColor}0a;">
                                 <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${accentColor}; animation: pulse 1.5s infinite;"></span>
                                 Временные технические работы
@@ -3380,6 +5234,8 @@
                             @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
                         </style>
                     `;
+                    overlay.querySelector('#maintenance-title').textContent = title;
+                    overlay.querySelector('#maintenance-message').textContent = message;
                     document.body.appendChild(overlay);
                     document.body.style.overflow = 'hidden';
                 } else if (type === 'banner') {
@@ -3410,14 +5266,16 @@
                     toast.innerHTML = `
                         <div style="font-size: 20px; flex-shrink: 0; margin-top: 2px;">${icon}</div>
                         <div style="flex-grow: 1; padding-right: 12px;">
-                            <h4 style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">${escapeHtml(title)}</h4>
-                            <p style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;">${escapeHtml(message)}</p>
+                            <h4 id="toast-title" style="font-size: 13px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;"></h4>
+                            <p id="toast-message" style="font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5;"></p>
                         </div>
-                        <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+                        <button onclick="dismissSpicyNotification('${closedKey}')" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; align-self: flex-start; margin-top: -2px; padding: 0 4px; transition: color 0.15s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'" aria-label="Close" title="Close">✕</button>
                         <style>
                             @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
                         </style>
                     `;
+                    toast.querySelector('#toast-title').textContent = title;
+                    toast.querySelector('#toast-message').textContent = message;
                     document.body.appendChild(toast);
                     
                     window.dismissSpicyNotification = function(key) {
@@ -3439,7 +5297,7 @@
     <!-- Track Stats Modal -->
     <div id="track-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 640px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
-            <button id="close-track-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);">&times;</button>
+            <button id="close-track-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" id="track-modal-eyebrow" data-i18n="track_stats">Track Stats</div>
             <h2 id="track-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 4px; line-height: 1.1;">Track Title</h2>
             <div id="track-modal-artist" style="color: var(--muted); font-size: 13px; font-family: 'DM Mono', monospace; margin-bottom: 24px;">Artist Name</div>
@@ -3463,23 +5321,259 @@
                             <stop offset="100%" stop-color="var(--blue)" stop-opacity="0" />
                         </linearGradient>
                     </defs>
+                    <g id="track-chart-delta-bars"></g>
                     <path id="track-chart-area-path" d="" fill="url(#trackArea)" />
                     <path id="track-chart-line-path" d="" fill="none" stroke="var(--blue)" stroke-width="3" vector-effect="non-scaling-stroke" />
                 </svg>
                 <div class="chart-labels" id="track-chart-labels" style="display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px;">
                 </div>
             </div>
+
+            <button id="track-modal-play-btn" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--green); color: #101114; border: none; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>▶</span> <span data-i18n="play_preview">Play Preview</span>
+            </button>
         </div>
     </div>
+
+    <!-- 30-Sec Audio Preview Floating Mini-Player -->
+    <div id="mini-audio-player">
+        <div class="player-eq-container">
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+        </div>
+        <div class="player-track-details">
+            <div class="player-track-name" id="player-track-name">Track Title</div>
+            <div class="player-artist-name" id="player-artist-name">Artist Name</div>
+        </div>
+        <div class="player-controls">
+            <button id="player-play-btn" onclick="if(currentAudioTrack) toggleTrackPreview(currentAudioTrack.title, currentAudioTrack.artist, this)" style="background: var(--green); color: #101114; border: 0; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;">▶</button>
+            <button onclick="stopAudioPreview()" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;" title="Close player">✕</button>
+        </div>
+        <div class="player-progress-bar">
+            <div class="player-progress-fill" id="player-progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- Shareable Story / Card Generator Modal -->
+    <div id="card-generator-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.6); backdrop-filter: blur(10px); z-index: 9999; align-items: center; justify-content: center; transition: opacity 0.2s ease;" onclick="if(event.target === this) closeCardGeneratorModal()">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 28px; width: 100%; max-width: 680px; box-shadow: 8px 8px 0 var(--ink); position: relative; margin: 16px; max-height: 90vh; overflow-y: auto;">
+            <button onclick="closeCardGeneratorModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
+            <div class="eyebrow" data-i18n="share_card">Share Card</div>
+            <h2 data-i18n="card_generator_title" style="font-size: 22px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.2;">Shareable Story Card Generator</h2>
+
+            <div class="card-preview-container">
+                <canvas id="share-card-canvas"></canvas>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div>
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;" data-i18n="card_format">Format</div>
+                    <div class="card-btn-group" id="card-opt-format">
+                        <button class="card-opt-btn active" data-val="story" onclick="setCardFormat('story')" data-i18n="format_story">Story 9:16</button>
+                        <button class="card-opt-btn" data-val="post" onclick="setCardFormat('post')" data-i18n="format_post">Post 1:1</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;" data-i18n="card_period">Timeframe</div>
+                    <div class="card-btn-group" id="card-opt-period">
+                        <button class="card-opt-btn active" data-val="7d" onclick="setCardPeriod('7d')" data-i18n="period_7d">7 Days</button>
+                        <button class="card-opt-btn" data-val="30d" onclick="setCardPeriod('30d')" data-i18n="period_30d">30 Days</button>
+                        <button class="card-opt-btn" data-val="total" onclick="setCardPeriod('total')" data-i18n="period_total">All Time</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;" data-i18n="card_theme">Theme Style</div>
+                    <div class="card-btn-group" id="card-opt-theme">
+                        <button class="card-opt-btn active" data-val="neon" onclick="setCardTheme('neon')">Neon</button>
+                        <button class="card-opt-btn" data-val="brutal" onclick="setCardTheme('brutal')">Brutal</button>
+                        <button class="card-opt-btn" data-val="cyber" onclick="setCardTheme('cyber')">Cyber</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="card-copy-btn" onclick="copyShareCardToClipboard()" style="padding: 10px 18px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; font-weight: bold; background: var(--paper-dark); color: var(--ink); border: 1px solid var(--line); cursor: pointer;" data-i18n="copy_image">Copy Image 📋</button>
+                <button onclick="downloadShareCard()" style="padding: 10px 18px; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; font-weight: bold; background: var(--green); color: #101114; border: none; cursor: pointer;" data-i18n="download_png">Download PNG ↓</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Language Suggestion Toast -->
     <div id="lang-suggest-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; max-width: 320px; background: var(--white); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 18px; z-index: 10000; flex-direction: column; gap: 12px; transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(100px); opacity: 0; color: var(--ink);">
-        <div style="font-size: 13px; font-weight: 700; line-height: 1.4;" id="lang-suggest-text">
+        <div style="font-size: 13px; font-weight: 700; line-height: 1.4;" id="lang-suggest-text" data-i18n="lang_switch">
             Switch language?
         </div>
         <div style="display: flex; gap: 8px;">
-            <button id="lang-suggest-yes" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: var(--green); color: var(--paper); border: none; cursor: pointer;">Yes</button>
-            <button id="lang-suggest-no" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: transparent; color: var(--ink); border: 1px solid var(--ink); cursor: pointer;">Keep EN</button>
+            <button id="lang-suggest-yes" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: var(--green); color: var(--paper); border: none; cursor: pointer;" data-i18n="lang_yes">Yes</button>
+            <button id="lang-suggest-no" style="flex: 1; padding: 8px; font-size: 10px; font-family: 'DM Mono', monospace; text-transform: uppercase; font-weight: bold; background: transparent; color: var(--ink); border: 1px solid var(--ink); cursor: pointer;" data-i18n="lang_no">Keep EN</button>
         </div>
     </div>
+    <!-- REMINDER FOR AI AGENTS & DEVS: When making changes, DO NOT FORGET to update the version number and add an entry with the date to the changelog! -->
+
+    <!-- Changelog Modal -->
+    <div id="changelog-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 5000; align-items: center; justify-content: center; transition: opacity 0.2s ease;" onclick="if(event.target === this) this.style.display='none'">
+        <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 500px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
+            <button onclick="document.getElementById('changelog-modal').style.display='none'" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
+            <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="updates">Updates</div>
+            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
+
+            <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.3.0 (2026-08-02)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added 30-Sec Audio Preview Mini-Player with interactive track play buttons, iTunes search lookup, and animated wave equalizer.</li>
+                        <li>Added Shareable Story & Card Generator for creator stats (9:16 Instagram Stories & 1:1 Telegram Post formats) with Retina Canvas rendering, custom themes, instant PNG export, and clipboard copying.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.20 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added Animate UI style GitHub Stars button badge in top header with live stargazers counter and spring animation.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.19 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added optional 24h Growth histogram bars overlay on user activity chart and track history charts.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.18 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed ReferenceError for svgElement in profile chart milestone calculations.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.17 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed JS syntax error in profile activity chart script preventing page metrics load.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.16 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added vertical date gridlines (weeks & 1st of month) and milestone/anniversary markers (⭐ views, 🎵 tracks, 🎂 anniversaries) on activity charts.</li>
+                        <li>Fixed mobile track table overflow and layout cutoff on phone screens in creator profile.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.15 (2026-07-31)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added multi-metric profile chart support (toggle Views, Tracks, or Dual series).</li>
+                        <li>Dynamic track count history calculation based on earliest track appearance dates.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.14 (2026-07-30)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Made interactive lists and table rows keyboard-accessible for improved screen reader support.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.13 (2026-07-29)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved accessibility of the favorite star and compare checkboxes for screen readers and keyboard navigation.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.12 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed 7-day growth calculation to use timestamps in user.html Catalog Analytics.</li>
+                        <li>Added XSS sanitization for track titles in Top Track Shares.</li>
+                    </ul>
+                </div>
+                                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.11 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed an issue where deleted tracks remained on user profiles. Now tracks missing for 2 consecutive scrapes will be removed.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.10 (2026-07-28)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added global focus styles for keyboard navigation to improve accessibility.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.9 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved mobile layout across all pages.</li>
+                        <li>Made the changelog button more obvious in the footer.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.8 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added full localization for previously untranslated strings (themes, loading states, modals) across all supported languages.</li>
+                        <li>Improved security by restricting HTML injection during language switching.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.7 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed issue where the auto language suggestion toast would not dismiss correctly.</li>
+                        <li>Fixed the author comparison selection window appearing partially on mobile devices even when closed.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.6 (2026-07-27)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added changelog modal.</li>
+                        <li>Added reminder for developers and AI agents to update version and changelog.</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.2.5 (Previous Update)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>General bugfixes and UI improvements.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                <button type="button" onclick="document.getElementById('changelog-modal').style.display='none'" style="border: 1px solid var(--ink); background: transparent; padding: 10px 16px; font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--ink);" data-i18n="close_btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global escape key handler to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const cardModal = document.getElementById('card-generator-modal');
+                if (cardModal && cardModal.style.display === 'flex') {
+                    closeCardGeneratorModal();
+                    return;
+                }
+
+                const trackModal = document.getElementById('track-modal');
+                if (trackModal && trackModal.style.display === 'flex') {
+                    trackModal.style.display = 'none';
+                    const tooltip = document.getElementById('track-chart-tooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                    return;
+                }
+
+                const changelogModal = document.getElementById('changelog-modal');
+                if (changelogModal && changelogModal.style.display === 'flex') {
+                    changelogModal.style.display = 'none';
+                    return;
+                }
+            }
+        });
+    </script>
 </body>
 </html>
