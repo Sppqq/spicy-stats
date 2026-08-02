@@ -1158,6 +1158,22 @@
             gap: 10px;
             flex-shrink: 0;
         }
+        .player-volume-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .player-volume-slider {
+            width: 70px;
+            height: 4px;
+            accent-color: var(--green);
+            cursor: pointer;
+            border-radius: 2px;
+            background: var(--line);
+        }
+        @media (max-width: 500px) {
+            .player-volume-slider { width: 45px; }
+        }
         .player-progress-bar {
             width: 100%;
             height: 4px;
@@ -4272,6 +4288,43 @@
         let isAudioPlaying = false;
         const previewCache = new Map();
 
+        function getAudioVolume() {
+            const saved = localStorage.getItem('spicy-audio-volume');
+            return saved !== null ? parseFloat(saved) : 0.25;
+        }
+
+        function setAudioVolume(val) {
+            const vol = parseFloat(val);
+            localStorage.setItem('spicy-audio-volume', vol);
+            if (currentAudio) {
+                currentAudio.volume = vol;
+            }
+            updateVolumeIcon(vol);
+        }
+
+        function updateVolumeIcon(vol) {
+            const icon = document.getElementById('player-volume-icon');
+            const slider = document.getElementById('player-volume-slider');
+            if (slider && Math.abs(parseFloat(slider.value) - vol) > 0.01) {
+                slider.value = vol;
+            }
+            if (icon) {
+                if (vol === 0) icon.textContent = '🔇';
+                else if (vol < 0.4) icon.textContent = '🔉';
+                else icon.textContent = '🔊';
+            }
+        }
+
+        function toggleMuteAudio() {
+            const current = getAudioVolume();
+            if (current > 0) {
+                window.lastAudioVolume = current;
+                setAudioVolume(0);
+            } else {
+                setAudioVolume(window.lastAudioVolume || 0.25);
+            }
+        }
+
         async function toggleTrackPreview(title, artist, btnEl) {
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
@@ -4317,7 +4370,9 @@
 
                 currentAudioTrack = { title, artist, url: previewUrl };
                 currentAudio = new Audio(previewUrl);
-                currentAudio.volume = 0.8;
+                const initVol = getAudioVolume();
+                currentAudio.volume = initVol;
+                updateVolumeIcon(initVol);
 
                 currentAudio.addEventListener('timeupdate', () => {
                     if (currentAudio && currentAudio.duration) {
@@ -4385,6 +4440,7 @@
                 }
                 if (titleEl) titleEl.textContent = currentAudioTrack.title;
                 if (artistEl) artistEl.textContent = currentAudioTrack.artist;
+                updateVolumeIcon(getAudioVolume());
             } else {
                 player.classList.remove('visible', 'playing');
             }
@@ -4955,6 +5011,10 @@
         </div>
         <div class="player-controls">
             <button id="player-play-btn" onclick="if(currentAudioTrack) toggleTrackPreview(currentAudioTrack.title, currentAudioTrack.artist, this)" style="background: var(--green); color: #101114; border: 0; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;">▶</button>
+            <div class="player-volume-wrap">
+                <span id="player-volume-icon" onclick="toggleMuteAudio()" title="Mute/Unmute" style="font-size: 13px; cursor: pointer; user-select: none; color: var(--muted);">🔉</span>
+                <input type="range" id="player-volume-slider" class="player-volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="setAudioVolume(this.value)" title="Volume">
+            </div>
             <button onclick="stopAudioPreview()" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;" title="Close player">✕</button>
         </div>
         <div class="player-progress-bar">
