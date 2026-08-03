@@ -13,3 +13,6 @@
 ## 2026-08-01 - Global Escape Key to Close Modals
 **Learning:** Modals that lack an `Escape` key close mechanism fail critical keyboard accessibility requirements, trapping keyboard-only users who must awkwardly tab through all modal contents to find the close button.
 **Action:** Always implement a global `keydown` event listener for the `Escape` key that checks for currently open modals and properly triggers their respective close functions to ensure smooth, accessible navigation.
+## 2026-08-02 - Accessible Tab Interfaces
+**Learning:** Standard `<nav>` and `<button>` elements used for tab switching lack semantic meaning for screen readers, making it difficult for users to understand the interface structure and currently active tab.
+**Action:** Always implement ARIA tab semantics: add `role="tablist"` to the container, `role="tab"` with `aria-controls` to the buttons, `role="tabpanel"` with `aria-labelledby` to the content panes, and dynamically toggle `aria-selected="true/false"` on the buttons using JavaScript when switching tabs.
