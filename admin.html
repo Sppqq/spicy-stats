@@ -598,15 +598,15 @@
             </section>
 
             <!-- Navigation Sub-Tabs -->
-            <nav style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--line); padding-bottom: 12px; margin-top: 16px;">
-                <button class="tab-btn" id="tab-btn-database" onclick="switchTab('database')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--blue); cursor: pointer; padding: 6px 12px; border-bottom: 2px solid var(--blue); margin-bottom: -14px;">👥 Database</button>
-                <button class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
-                <button class="tab-btn" id="tab-btn-metadata" onclick="switchTab('metadata')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔗 Metadata</button>
-                <button class="tab-btn" id="tab-btn-notifications" onclick="switchTab('notifications')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔔 Notifications</button>
+            <nav role="tablist" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid var(--line); padding-bottom: 12px; margin-top: 16px;">
+                <button role="tab" aria-controls="tab-content-database" aria-selected="true" class="tab-btn" id="tab-btn-database" onclick="switchTab('database')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--blue); cursor: pointer; padding: 6px 12px; border-bottom: 2px solid var(--blue); margin-bottom: -14px;">👥 Database</button>
+                <button role="tab" aria-controls="tab-content-commands" aria-selected="false" class="tab-btn" id="tab-btn-commands" onclick="switchTab('commands')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">⚡ Commands</button>
+                <button role="tab" aria-controls="tab-content-metadata" aria-selected="false" class="tab-btn" id="tab-btn-metadata" onclick="switchTab('metadata')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔗 Metadata</button>
+                <button role="tab" aria-controls="tab-content-notifications" aria-selected="false" class="tab-btn" id="tab-btn-notifications" onclick="switchTab('notifications')" style="background: transparent; border: 0; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: bold; color: var(--muted); cursor: pointer; padding: 6px 12px; transition: color 0.2s;">🔔 Notifications</button>
             </nav>
 
             <!-- Tab 1: Database -->
-            <div id="tab-content-database" class="tab-content" style="display: block;">
+            <div role="tabpanel" aria-labelledby="tab-btn-database" id="tab-content-database" class="tab-content" style="display: block;">
                 <!-- User Database Table -->
                 <section class="panel">
                     <div class="panel-heading">
@@ -636,7 +636,7 @@
             </div>
 
             <!-- Tab 2: Commands -->
-            <div id="tab-content-commands" class="tab-content" style="display: none;">
+            <div role="tabpanel" aria-labelledby="tab-btn-commands" id="tab-content-commands" class="tab-content" style="display: none;">
                 <!-- Actions Panel -->
                 <section class="panel">
                     <div class="panel-heading">
@@ -708,7 +708,7 @@
 
 
             <!-- Tab 4: Metadata Editor -->
-            <div id="tab-content-metadata" class="tab-content" style="display: none;">
+            <div role="tabpanel" aria-labelledby="tab-btn-metadata" id="tab-content-metadata" class="tab-content" style="display: none;">
                 <section class="panel">
                     <div class="panel-heading" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
                         <div>
@@ -746,7 +746,7 @@
             </div>
 
             <!-- Tab 5: Notification & Maintenance settings -->
-            <div id="tab-content-notifications" class="tab-content" style="display: none;">
+            <div role="tabpanel" aria-labelledby="tab-btn-notifications" id="tab-content-notifications" class="tab-content" style="display: none;">
                 <section class="panel">
                     <div class="panel-heading" style="border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
                         <div>
@@ -1416,6 +1416,7 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.style.color = 'var(--muted)';
                 btn.style.backgroundColor = 'transparent';
+                btn.setAttribute('aria-selected', 'false');
             });
             
             // Show active tab content
@@ -1426,6 +1427,7 @@
             if (activeBtn) {
                 activeBtn.style.color = 'var(--white)';
                 activeBtn.style.backgroundColor = 'var(--ink)';
+                activeBtn.setAttribute('aria-selected', 'true');
             }
 
             // Load metadata if switching
