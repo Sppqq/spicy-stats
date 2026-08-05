@@ -1,11 +1,12 @@
 // File: sw.js
-const CACHE_NAME = 'spicy-monitor-cache-v1.2.20';
+const CACHE_NAME = 'spicy-monitor-cache-v1.2.21';
 const STATIC_ASSETS = [
   '/',
   '/dashboard.html',
   '/user.html',
   '/admin.html',
-  '/icon.png'
+  '/icon.png',
+  '/api.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -41,18 +42,20 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip caching for API queries to ensure real-time data loading
-  if (url.pathname.includes('/api')) {
+  if (url.pathname.includes('/api/')) {
     return;
   }
 
-  // Handle SPA-like rewrites for service worker caching
+  // Handle SPA-like rewrites for service worker caching (navigation requests only)
   let requestTarget = event.request;
-  if (url.pathname.startsWith('/user/')) {
-    requestTarget = new Request('/user.html');
-  } else if (url.pathname === '/admin') {
-    requestTarget = new Request('/admin.html');
-  } else if (url.pathname === '/') {
-    requestTarget = new Request('/dashboard.html');
+  if (event.request.mode === 'navigate') {
+    if (url.pathname.startsWith('/user/')) {
+      requestTarget = new Request('/user.html');
+    } else if (url.pathname === '/admin') {
+      requestTarget = new Request('/admin.html');
+    } else if (url.pathname === '/') {
+      requestTarget = new Request('/dashboard.html');
+    }
   }
 
   event.respondWith(
