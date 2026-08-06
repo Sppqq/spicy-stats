@@ -378,7 +378,7 @@
 
         .track {
             display: grid;
-            grid-template-columns: 24px 28px minmax(0, 1fr) auto;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
             gap: 10px;
             align-items: center;
             padding: 12px 8px;
@@ -1053,7 +1053,7 @@
 
             .panel { overflow-x: hidden; max-width: 100%; box-sizing: border-box; }
             .tracks { padding: 4px 6px 8px; }
-            .track { grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 6px; padding: 11px 4px; }
+            .track { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 6px; padding: 11px 4px; }
             .track-number { font-size: 10px; }
             .track-title { font-size: 12px; }
             .track-artist { font-size: 10px; }
@@ -4344,6 +4344,50 @@
             return Math.ceil((views + 1) / 500000000) * 500000000;
         }
 
+        function formatEstimatedArrival(growth, currentViews, targetViews, dict) {
+            if (!growth || growth <= 0) {
+                return `❄ ${dict.static_creator || 'No growth recorded'} (+0 ${dict.views_per_day || 'views/day'})`;
+            }
+            const needed = Math.max(0, targetViews - currentViews);
+            if (needed === 0) return `🎉 ${dict.milestone_reached || 'Milestone reached!'}`;
+
+            const days = needed / growth;
+            const totalMs = days * 24 * 60 * 60 * 1000;
+            const arrivalTime = new Date(Date.now() + totalMs);
+
+            const monthsShort = dict.months_short || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNum = String(arrivalTime.getDate()).padStart(2, '0');
+            const monthStr = monthsShort[arrivalTime.getMonth()];
+            const hoursStr = String(arrivalTime.getHours()).padStart(2, '0');
+            const minsStr = String(arrivalTime.getMinutes()).padStart(2, '0');
+
+            const formattedDate = `${dayNum} ${monthStr} ${arrivalTime.getFullYear()} ${dict.at_time || 'at'} ${hoursStr}:${minsStr}`;
+
+            let timeRemainingStr = '';
+            if (days < 1 / 24) {
+                const totalSec = Math.round(days * 24 * 60 * 60);
+                const mins = Math.floor(totalSec / 60);
+                const secs = totalSec % 60;
+                if (mins > 0) {
+                    timeRemainingStr = `${mins} ${mins === 1 ? dict.minute : dict.minutes}`;
+                    if (secs > 0) timeRemainingStr += ` ${secs} ${secs === 1 ? dict.second : dict.seconds}`;
+                } else {
+                    timeRemainingStr = `${secs} ${secs === 1 ? dict.second : dict.seconds}`;
+                }
+            } else if (days < 1) {
+                const totalMin = Math.round(days * 24 * 60);
+                const hrs = Math.floor(totalMin / 60);
+                const mins = totalMin % 60;
+                timeRemainingStr = `${hrs} ${hrs === 1 ? dict.hour : dict.hours}`;
+                if (mins > 0) timeRemainingStr += ` ${mins} ${mins === 1 ? dict.minute : dict.minutes}`;
+            } else {
+                const dayUnit = days.toFixed(1) === '1.0' ? dict.day : dict.days;
+                timeRemainingStr = `${days.toFixed(1)} ${dayUnit}`;
+            }
+
+            return `⚡ ${dict.estimated || 'Estimated:'} <strong>${formattedDate}</strong> (${timeRemainingStr} ${dict.remaining || 'remaining'}) (+${formatViews(growth)} ${dict.views_per_day || 'views/day'})`;
+        }
+
         function renderMilestone() {
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
@@ -4384,53 +4428,7 @@
 
             const estimateEl = document.getElementById('milestone-estimate');
             if (estimateEl) {
-                if (growth > 0) {
-                    const days = viewsNeeded / growth;
-                    const totalMs = days * 24 * 60 * 60 * 1000;
-                    const arrivalTime = new Date(Date.now() + totalMs);
-                    const timeHH = String(arrivalTime.getHours()).padStart(2, '0');
-                    const timeMM = String(arrivalTime.getMinutes()).padStart(2, '0');
-                    const arrivalStr = `${dict.at_time} ${timeHH}:${timeMM}`;
-
-                    let timeStr = '';
-                    if (days < 1/24) {
-                        const totalSec = Math.round(days * 24 * 60 * 60);
-                        const mins = Math.floor(totalSec / 60);
-                        const secs = totalSec % 60;
-                        if (mins > 0) {
-                            const minUnit = mins === 1 ? dict.minute : dict.minutes;
-                            timeStr = `${mins} ${minUnit}`;
-                            if (secs > 0) {
-                                const secUnit = secs === 1 ? dict.second : dict.seconds;
-                                timeStr += ` ${secs} ${secUnit}`;
-                            }
-                        } else {
-                            const secUnit = secs === 1 ? dict.second : dict.seconds;
-                            timeStr = `${secs} ${secUnit}`;
-                        }
-                    } else if (days < 1) {
-                        const totalMin = Math.round(days * 24 * 60);
-                        const hrs = Math.floor(totalMin / 60);
-                        const mins = totalMin % 60;
-                        if (hrs > 0) {
-                            const hrUnit = hrs === 1 ? dict.hour : dict.hours;
-                            timeStr = `${hrs} ${hrUnit}`;
-                            if (mins > 0) {
-                                const minUnit = mins === 1 ? dict.minute : dict.minutes;
-                                timeStr += ` ${mins} ${minUnit}`;
-                            }
-                        } else {
-                            const minUnit = mins === 1 ? dict.minute : dict.minutes;
-                            timeStr = `${mins} ${minUnit}`;
-                        }
-                    } else {
-                        const dayUnit = days.toFixed(1) === '1.0' ? dict.day : dict.days;
-                        timeStr = `${days.toFixed(1)} ${dayUnit}`;
-                    }
-                    estimateEl.innerHTML = `⚡ ${dict.estimated} <strong>${timeStr} ${dict.remaining}</strong> ${arrivalStr} (${dict.at_rate} +${formatViews(growth)} ${dict.views_per_day || 'views/day'})`;
-                } else {
-                    estimateEl.innerHTML = `❄ ${dict.static_creator} (+0 ${dict.views_per_day || 'views/day'})`;
-                }
+                estimateEl.innerHTML = formatEstimatedArrival(growth, views, nextMilestone, dict);
             }
         }
 
@@ -4521,6 +4519,8 @@
             const modalTitle = document.getElementById('track-modal-title');
             const modalArtist = document.getElementById('track-modal-artist');
             const modalViews = document.getElementById('track-modal-views');
+            const modalGrowth = document.getElementById('track-modal-growth');
+            const trackEstimateEl = document.getElementById('track-modal-estimate');
             const modalPlayBtn = document.getElementById('track-modal-play-btn');
 
             if (!modal) return;
@@ -4531,6 +4531,20 @@
             modalTitle.textContent = title;
             modalArtist.textContent = artist;
             modalViews.textContent = formatFullNumber(currentViews);
+
+            if (modalGrowth) {
+                let growthSign = growth > 0 ? '+' : '';
+                let growthColor = growth > 0 ? 'var(--positive-text)' : (growth < 0 ? 'var(--coral)' : 'var(--muted)');
+                modalGrowth.textContent = `${growthSign}${formatFullNumber(growth)}`;
+                modalGrowth.style.color = growthColor;
+            }
+
+            if (trackEstimateEl) {
+                const currentLang = localStorage.getItem('spicy-lang') || 'en';
+                const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+                const nextTrackMilestone = getNextMilestone(currentViews);
+                trackEstimateEl.innerHTML = formatEstimatedArrival(growth, currentViews, nextTrackMilestone, dict);
+            }
 
             if (modalPlayBtn) {
                 const safeTitle = (title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -5270,11 +5284,19 @@
             <h2 id="track-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 4px; line-height: 1.1;">Track Title</h2>
             <div id="track-modal-artist" style="color: var(--muted); font-size: 13px; font-family: 'DM Mono', monospace; margin-bottom: 24px;">Artist Name</div>
 
-            <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                 <div style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
                     <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="views">Views</div>
                     <div id="track-modal-views" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
                 </div>
+                <div style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
+                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="growth_24h">24h growth</div>
+                    <div id="track-modal-growth" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
+                </div>
+            </div>
+
+            <div class="mini-accent-box" id="track-modal-estimate" style="font-size: 11px; margin-bottom: 20px; padding: 10px 12px; background: var(--paper-dark); border-left: 3px solid var(--blue); font-family: 'DM Mono', monospace;">
+                ...
             </div>
 
             <div class="chart-wrap" style="position: relative; padding: 0; margin-bottom: 16px;">
