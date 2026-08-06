@@ -1455,16 +1455,42 @@
                 </div>
 
                 <!-- Settings Selector -->
-                <div style="position: relative; display: flex; align-items: center; z-index: 1010;">
+                <div style="position: relative; display: flex; align-items: center; z-index: 1010;" id="settings-selector">
                     <button class="theme-toggle" id="settings-toggle" type="button" aria-label="Settings" style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; font-size: 16px;">
                         ⚙️
                     </button>
-                    <div class="theme-dropdown" id="settings-dropdown" style="width: max-content; min-width: 160px; padding: 6px; display: flex; flex-direction: column; gap: 4px;">
-                        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 4px 8px 2px;" data-i18n="preferences">Preferences</div>
-                        <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 7px 10px; border-radius: 6px;">
-                            <input type="checkbox" id="setting-toggle-ticker" style="cursor: pointer; margin: 0; accent-color: var(--blue);">
-                            <span data-i18n="show_ticker">Show Live Ticker</span>
+                    <div class="theme-dropdown" id="settings-dropdown" style="width: max-content; min-width: 220px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
+                        <div id="settings-ticker-section" style="border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 2px;">
+                            <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 2px 4px 4px;" data-i18n="preferences">Preferences</div>
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 6px 8px; border-radius: 6px;">
+                                <input type="checkbox" id="setting-toggle-ticker" style="cursor: pointer; margin: 0; accent-color: var(--blue);">
+                                <span data-i18n="show_ticker">Show Live Ticker</span>
+                            </label>
+                        </div>
+
+                        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 2px 4px 4px; border-bottom: 1px solid var(--line);" data-i18n="anomalies_title">Anomaly Filtering</div>
+                        
+                        <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 6px 8px; border-radius: 6px;">
+                            <input type="checkbox" id="setting-filter-anomalies" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                            <span data-i18n="anomaly_enable" style="font-weight: 700;">Filter Anomalies</span>
                         </label>
+                        
+                        <div style="padding-left: 14px; display: flex; flex-direction: column; gap: 4px; transition: opacity 0.2s;" id="anomaly-suboptions">
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-spikes" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_spikes">Spike Glitches</span>
+                            </label>
+                            
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-drops" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_drops">Drop Glitches</span>
+                            </label>
+                            
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-growth" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_growth">24h Growth Spikes</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -2006,6 +2032,11 @@
                 add_success: "Success! @{name} has been queued.",
                 preferences: "Preferences",
                 show_ticker: "Show Live Ticker",
+                anomalies_title: "Anomaly Filtering",
+                anomaly_enable: "Filter Anomalies",
+                anomaly_spikes: "Spike Glitches",
+                anomaly_drops: "Drop Glitches",
+                anomaly_growth: "24h Growth Spikes",
                 data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Auto",
                 theme_auto_desc: "Follows your device",
@@ -2797,7 +2828,7 @@
         }
 
 
-        // Settings Selector (Ticker Toggle Preference)
+        // Settings Selector (Ticker & Anomaly Preferences)
         function initSettings() {
             const toggle = document.getElementById('settings-toggle');
             const dropdown = document.getElementById('settings-dropdown');
@@ -2813,7 +2844,7 @@
                 });
 
                 dropdown.addEventListener('click', (e) => {
-                    e.stopPropagation(); // prevent closing when clicking checkbox
+                    e.stopPropagation();
                 });
 
                 document.addEventListener('click', () => {
@@ -2834,6 +2865,67 @@
                         if (tickerContainer) tickerContainer.style.display = 'none';
                     }
                 });
+            }
+
+            // Anomaly settings
+            const masterCheckbox = document.getElementById('setting-filter-anomalies');
+            const spikesCheckbox = document.getElementById('setting-anomaly-spikes');
+            const dropsCheckbox = document.getElementById('setting-anomaly-drops');
+            const growthCheckbox = document.getElementById('setting-anomaly-growth');
+
+            if (masterCheckbox) {
+                const filterEnabled = localStorage.getItem('spicy-filter-anomalies') !== 'false';
+                masterCheckbox.checked = filterEnabled;
+
+                const spikesEnabled = localStorage.getItem('spicy-anomaly-spikes') !== 'false';
+                const dropsEnabled = localStorage.getItem('spicy-anomaly-drops') !== 'false';
+                const growthEnabled = localStorage.getItem('spicy-anomaly-growth') !== 'false';
+
+                if (spikesCheckbox) spikesCheckbox.checked = spikesEnabled;
+                if (dropsCheckbox) dropsCheckbox.checked = dropsEnabled;
+                if (growthCheckbox) growthCheckbox.checked = growthEnabled;
+
+                const updateSuboptionsState = () => {
+                    const active = masterCheckbox.checked;
+                    [spikesCheckbox, dropsCheckbox, growthCheckbox].forEach(cb => {
+                        if (cb) {
+                            cb.disabled = !active;
+                            if (cb.parentElement) cb.parentElement.style.opacity = active ? '1' : '0.45';
+                        }
+                    });
+                };
+                updateSuboptionsState();
+
+                const triggerReRender = () => {
+                    if (typeof renderChart === 'function') renderChart();
+                    if (typeof renderTrackChart === 'function' && currentTrackData) renderTrackChart(currentTrackData);
+                    if (typeof renderCompareChart === 'function') renderCompareChart();
+                };
+
+                masterCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('spicy-filter-anomalies', masterCheckbox.checked);
+                    updateSuboptionsState();
+                    triggerReRender();
+                });
+
+                if (spikesCheckbox) {
+                    spikesCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-spikes', spikesCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
+                if (dropsCheckbox) {
+                    dropsCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-drops', dropsCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
+                if (growthCheckbox) {
+                    growthCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-growth', growthCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
             }
         }
 

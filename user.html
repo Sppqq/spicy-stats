@@ -1409,6 +1409,38 @@
                     </div>
                 </div>
 
+                <!-- Settings Selector -->
+                <div style="position: relative; display: flex; align-items: center; z-index: 1010;" id="settings-selector">
+                    <button class="theme-toggle" id="settings-toggle" type="button" aria-label="Settings" style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; font-size: 16px;">
+                        ⚙️
+                    </button>
+                    <div class="theme-dropdown" id="settings-dropdown" style="width: max-content; min-width: 220px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 2px 4px 4px; border-bottom: 1px solid var(--line);" data-i18n="anomalies_title">Anomaly Filtering</div>
+                        
+                        <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 6px 8px; border-radius: 6px;">
+                            <input type="checkbox" id="setting-filter-anomalies" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                            <span data-i18n="anomaly_enable" style="font-weight: 700;">Filter Anomalies</span>
+                        </label>
+                        
+                        <div style="padding-left: 14px; display: flex; flex-direction: column; gap: 4px; transition: opacity 0.2s;" id="anomaly-suboptions">
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-spikes" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_spikes">Spike Glitches</span>
+                            </label>
+                            
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-drops" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_drops">Drop Glitches</span>
+                            </label>
+                            
+                            <label class="lang-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
+                                <input type="checkbox" id="setting-anomaly-growth" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                                <span data-i18n="anomaly_growth">24h Growth Spikes</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <a href="https://github.com/Sppqq/spicy-stats" target="_blank" rel="noopener noreferrer" class="github-stars-btn" id="github-stars-btn" title="Star Spicy Stats on GitHub">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                     <span>Star</span>
@@ -1777,6 +1809,7 @@
             checkNotifications();
             initTheme();
             initLanguage();
+            initSettings();
             initLiveIndicator();
             showEasterEgg();
             checkLanguageSuggestion();
@@ -1958,7 +1991,12 @@
                 top_share: "Top track share",
                 avg_views: "Avg views / track",
                 active_tracks: "Active tracks (24h)",
-                total_growth: "Total growth",
+                preferences: "Preferences",
+                anomalies_title: "Anomaly Filtering",
+                anomaly_enable: "Filter Anomalies",
+                anomaly_spikes: "Spike Glitches",
+                anomaly_drops: "Drop Glitches",
+                anomaly_growth: "24h Growth Spikes",
                 next_milestone: "Next Milestone",
                 to_go: "to go for",
                 estimated: "Estimated:",
@@ -3011,6 +3049,91 @@
         }
 
 
+        // Settings Selector (Anomaly Preferences)
+        function initSettings() {
+            const toggle = document.getElementById('settings-toggle');
+            const dropdown = document.getElementById('settings-dropdown');
+
+            if (toggle && dropdown) {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.getElementById('theme-dropdown')?.classList.remove('open');
+                    document.getElementById('lang-dropdown')?.classList.remove('open');
+                    dropdown.classList.toggle('open');
+                });
+
+                dropdown.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+
+                document.addEventListener('click', () => {
+                    dropdown.classList.remove('open');
+                });
+            }
+
+            // Anomaly settings
+            const masterCheckbox = document.getElementById('setting-filter-anomalies');
+            const spikesCheckbox = document.getElementById('setting-anomaly-spikes');
+            const dropsCheckbox = document.getElementById('setting-anomaly-drops');
+            const growthCheckbox = document.getElementById('setting-anomaly-growth');
+
+            if (masterCheckbox) {
+                const filterEnabled = localStorage.getItem('spicy-filter-anomalies') !== 'false';
+                masterCheckbox.checked = filterEnabled;
+
+                const spikesEnabled = localStorage.getItem('spicy-anomaly-spikes') !== 'false';
+                const dropsEnabled = localStorage.getItem('spicy-anomaly-drops') !== 'false';
+                const growthEnabled = localStorage.getItem('spicy-anomaly-growth') !== 'false';
+
+                if (spikesCheckbox) spikesCheckbox.checked = spikesEnabled;
+                if (dropsCheckbox) dropsCheckbox.checked = dropsEnabled;
+                if (growthCheckbox) growthCheckbox.checked = growthEnabled;
+
+                const updateSuboptionsState = () => {
+                    const active = masterCheckbox.checked;
+                    [spikesCheckbox, dropsCheckbox, growthCheckbox].forEach(cb => {
+                        if (cb) {
+                            cb.disabled = !active;
+                            if (cb.parentElement) cb.parentElement.style.opacity = active ? '1' : '0.45';
+                        }
+                    });
+                };
+                updateSuboptionsState();
+
+                const triggerReRender = () => {
+                    if (typeof renderChart === 'function') renderChart();
+                    if (typeof renderTrackChart === 'function' && typeof currentTrackData !== 'undefined' && currentTrackData) {
+                        renderTrackChart(currentTrackData);
+                    }
+                };
+
+                masterCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('spicy-filter-anomalies', masterCheckbox.checked);
+                    updateSuboptionsState();
+                    triggerReRender();
+                });
+
+                if (spikesCheckbox) {
+                    spikesCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-spikes', spikesCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
+                if (dropsCheckbox) {
+                    dropsCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-drops', dropsCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
+                if (growthCheckbox) {
+                    growthCheckbox.addEventListener('change', () => {
+                        localStorage.setItem('spicy-anomaly-growth', growthCheckbox.checked);
+                        triggerReRender();
+                    });
+                }
+            }
+        }
+
         // Animate live dot
         function initLiveIndicator() {
             const dot = document.querySelector('.live-dot');
@@ -3472,6 +3595,12 @@
         function removeChartAnomalies(pts, key = 'views') {
             if (!pts || pts.length <= 3) return pts;
 
+            const filterEnabled = localStorage.getItem('spicy-filter-anomalies') !== 'false';
+            if (!filterEnabled) return pts;
+
+            const allowDrops = localStorage.getItem('spicy-anomaly-drops') !== 'false';
+            const allowSpikes = localStorage.getItem('spicy-anomaly-spikes') !== 'false';
+
             const result = [pts[0]];
             for (let i = 1; i < pts.length - 1; i++) {
                 const prev = pts[i - 1][key];
@@ -3479,11 +3608,11 @@
                 const next = pts[i + 1][key];
 
                 // Single point drop anomaly (e.g. curr is near zero while prev & next are high)
-                if (prev > 100 && curr < prev * 0.15 && next > prev * 0.7) {
+                if (allowDrops && prev > 100 && curr < prev * 0.15 && next > prev * 0.7) {
                     continue;
                 }
                 // Single point spike anomaly (e.g. curr is > 3x prev AND > 3x next)
-                if (prev > 0 && curr > prev * 3 && curr > next * 3) {
+                if (allowSpikes && prev > 0 && curr > prev * 3 && curr > next * 3) {
                     continue;
                 }
 
@@ -3500,6 +3629,9 @@
         function cleanHistogramDeltas(items) {
             if (!items || items.length < 2) return { cleanedPoints: items || [], maxDelta: 1 };
 
+            const filterEnabled = localStorage.getItem('spicy-filter-anomalies') !== 'false';
+            const allowGrowthFilter = localStorage.getItem('spicy-anomaly-growth') !== 'false';
+
             const cleaned = items.map(item => ({ ...item }));
 
             for (let i = 0; i < cleaned.length; i++) {
@@ -3511,31 +3643,35 @@
                 const currViews = cleaned[i].views;
                 let rawDelta = Math.max(0, currViews - prevViews);
 
-                const dateStrPrev = cleaned[i - 1].date || cleaned[i - 1].timestamp || cleaned[i - 1].x;
-                const dateStrCurr = cleaned[i].date || cleaned[i].timestamp || cleaned[i].x;
-                const dPrev = parseUTCDate(dateStrPrev);
-                const dCurr = parseUTCDate(dateStrCurr);
+                if (filterEnabled && allowGrowthFilter) {
+                    const dateStrPrev = cleaned[i - 1].date || cleaned[i - 1].timestamp || cleaned[i - 1].x;
+                    const dateStrCurr = cleaned[i].date || cleaned[i].timestamp || cleaned[i].x;
+                    const dPrev = parseUTCDate(dateStrPrev);
+                    const dCurr = parseUTCDate(dateStrCurr);
 
-                if (dPrev && dCurr) {
-                    const hoursDiff = (dCurr.getTime() - dPrev.getTime()) / (1000 * 3600);
-                    if (hoursDiff > 28 && rawDelta > 0) {
-                        rawDelta = Math.round(rawDelta * (24 / hoursDiff));
+                    if (dPrev && dCurr) {
+                        const hoursDiff = (dCurr.getTime() - dPrev.getTime()) / (1000 * 3600);
+                        if (hoursDiff > 28 && rawDelta > 0) {
+                            rawDelta = Math.round(rawDelta * (24 / hoursDiff));
+                        }
                     }
                 }
 
                 cleaned[i].delta = rawDelta;
             }
 
-            // Remove isolated single-point delta spikes
-            for (let i = 1; i < cleaned.length - 1; i++) {
-                const prevD = cleaned[i - 1].delta;
-                const currD = cleaned[i].delta;
-                const nextD = cleaned[i + 1].delta;
+            if (filterEnabled && allowGrowthFilter) {
+                // Remove isolated single-point delta spikes
+                for (let i = 1; i < cleaned.length - 1; i++) {
+                    const prevD = cleaned[i - 1].delta;
+                    const currD = cleaned[i].delta;
+                    const nextD = cleaned[i + 1].delta;
 
-                if (currD > 50 && prevD > 0 && nextD > 0 && currD > prevD * 3.5 && currD > nextD * 3.5) {
-                    cleaned[i].delta = Math.round((prevD + nextD) / 2);
-                } else if (currD > 100 && prevD === 0 && nextD > 0 && currD > nextD * 4) {
-                    cleaned[i].delta = nextD;
+                    if (currD > 50 && prevD > 0 && nextD > 0 && currD > prevD * 3.5 && currD > nextD * 3.5) {
+                        cleaned[i].delta = Math.round((prevD + nextD) / 2);
+                    } else if (currD > 100 && prevD === 0 && nextD > 0 && currD > nextD * 4) {
+                        cleaned[i].delta = nextD;
+                    }
                 }
             }
 
@@ -3543,14 +3679,18 @@
             let maxDelta = 1;
 
             if (positiveDeltas.length > 0) {
-                const p95Idx = Math.floor(positiveDeltas.length * 0.95);
-                const p95 = positiveDeltas[p95Idx] || positiveDeltas[positiveDeltas.length - 1];
-                const trueMax = positiveDeltas[positiveDeltas.length - 1];
+                if (filterEnabled && allowGrowthFilter) {
+                    const p95Idx = Math.floor(positiveDeltas.length * 0.95);
+                    const p95 = positiveDeltas[p95Idx] || positiveDeltas[positiveDeltas.length - 1];
+                    const trueMax = positiveDeltas[positiveDeltas.length - 1];
 
-                if (trueMax > p95 * 2.5 && p95 > 0) {
-                    maxDelta = p95 * 1.5;
+                    if (trueMax > p95 * 2.5 && p95 > 0) {
+                        maxDelta = p95 * 1.5;
+                    } else {
+                        maxDelta = trueMax;
+                    }
                 } else {
-                    maxDelta = trueMax;
+                    maxDelta = positiveDeltas[positiveDeltas.length - 1];
                 }
             }
 
