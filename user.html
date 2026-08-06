@@ -501,6 +501,20 @@
             font-size: 10px;
         }
 
+        #profile-chart-tooltip, #track-chart-tooltip {
+            background: var(--paper-dark) !important;
+            color: var(--ink) !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        [data-theme="light"] #profile-chart-tooltip, [data-theme="light"] #track-chart-tooltip {
+            background: #1c1c1e !important;
+            color: #ffffff !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
         /* Controls */
         [data-theme] input, [data-theme] select { accent-color: var(--green); }
 
@@ -3453,6 +3467,70 @@
             return result;
         }
 
+        /**
+         * Cleans anomalies from 24h Growth histogram delta values.
+         * Filter out transient delta spikes, normalize offline time gaps, and compute robust maxDelta.
+         */
+        function cleanHistogramDeltas(items) {
+            if (!items || items.length < 2) return { cleanedPoints: items || [], maxDelta: 1 };
+
+            const cleaned = items.map(item => ({ ...item }));
+
+            for (let i = 0; i < cleaned.length; i++) {
+                if (i === 0) {
+                    cleaned[i].delta = 0;
+                    continue;
+                }
+                const prevViews = cleaned[i - 1].views;
+                const currViews = cleaned[i].views;
+                let rawDelta = Math.max(0, currViews - prevViews);
+
+                const dateStrPrev = cleaned[i - 1].date || cleaned[i - 1].timestamp || cleaned[i - 1].x;
+                const dateStrCurr = cleaned[i].date || cleaned[i].timestamp || cleaned[i].x;
+                const dPrev = parseUTCDate(dateStrPrev);
+                const dCurr = parseUTCDate(dateStrCurr);
+
+                if (dPrev && dCurr) {
+                    const hoursDiff = (dCurr.getTime() - dPrev.getTime()) / (1000 * 3600);
+                    if (hoursDiff > 28 && rawDelta > 0) {
+                        rawDelta = Math.round(rawDelta * (24 / hoursDiff));
+                    }
+                }
+
+                cleaned[i].delta = rawDelta;
+            }
+
+            // Remove isolated single-point delta spikes
+            for (let i = 1; i < cleaned.length - 1; i++) {
+                const prevD = cleaned[i - 1].delta;
+                const currD = cleaned[i].delta;
+                const nextD = cleaned[i + 1].delta;
+
+                if (currD > 50 && prevD > 0 && nextD > 0 && currD > prevD * 3.5 && currD > nextD * 3.5) {
+                    cleaned[i].delta = Math.round((prevD + nextD) / 2);
+                } else if (currD > 100 && prevD === 0 && nextD > 0 && currD > nextD * 4) {
+                    cleaned[i].delta = nextD;
+                }
+            }
+
+            const positiveDeltas = cleaned.map(p => p.delta).filter(d => d > 0).sort((a, b) => a - b);
+            let maxDelta = 1;
+
+            if (positiveDeltas.length > 0) {
+                const p95Idx = Math.floor(positiveDeltas.length * 0.95);
+                const p95 = positiveDeltas[p95Idx] || positiveDeltas[positiveDeltas.length - 1];
+                const trueMax = positiveDeltas[positiveDeltas.length - 1];
+
+                if (trueMax > p95 * 2.5 && p95 > 0) {
+                    maxDelta = p95 * 1.5;
+                } else {
+                    maxDelta = trueMax;
+                }
+            }
+
+            return { cleanedPoints: cleaned, maxDelta: Math.max(1, maxDelta) };
+        }
+
         function renderChart() {
             const svgViewsArea = document.getElementById('profile-chart-area-path');
             const svgViewsLine = document.getElementById('profile-chart-line-path');
@@ -3613,12 +3691,13 @@
             if (deltaContainer) deltaContainer.innerHTML = '';
 
             if (chartMetrics.delta && deltaContainer && scaledPoints.length >= 2) {
-                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.65);
+                const { cleanedPoints, maxDelta } = cleanHistogramDeltas(scaledPoints);
+                const barWidth = Math.max(3, (cleanedPoints.length > 0 ? chartWidth / cleanedPoints.length : 10) * 0.65);
 
-                scaledPoints.forEach(p => {
+                cleanedPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.45);
+                    const effectiveDelta = Math.min(p.delta, maxDelta);
+                    const barHeight = (effectiveDelta / maxDelta) * (chartHeight * 0.45);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -3952,8 +4031,8 @@
                 tooltip.id = 'profile-chart-tooltip';
                 tooltip.style.position = 'absolute';
                 tooltip.style.display = 'none';
-                tooltip.style.background = 'var(--ink)';
-                tooltip.style.color = 'var(--white)';
+                tooltip.style.background = 'var(--paper-dark)';
+                tooltip.style.color = 'var(--ink)';
                 tooltip.style.padding = '8px 12px';
                 tooltip.style.fontSize = '11px';
                 tooltip.style.fontFamily = "'DM Mono', monospace";
@@ -4534,14 +4613,15 @@
             });
 
             const deltaContainer = document.getElementById('track-chart-delta-bars');
-            if (deltaContainer) {
+            if (deltaContainer && scaledPoints.length >= 2) {
                 deltaContainer.innerHTML = '';
-                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+                const { cleanedPoints, maxDelta } = cleanHistogramDeltas(scaledPoints);
+                const barWidth = Math.max(2, (cleanedPoints.length > 0 ? chartWidth / cleanedPoints.length : 10) * 0.65);
 
-                scaledPoints.forEach(p => {
+                cleanedPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const effectiveDelta = Math.min(p.delta, maxDelta);
+                    const barHeight = (effectiveDelta / maxDelta) * (chartHeight * 0.35);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -4591,8 +4671,8 @@
                 tooltip.id = 'track-chart-tooltip';
                 tooltip.style.position = 'absolute';
                 tooltip.style.display = 'none';
-                tooltip.style.background = 'var(--ink)';
-                tooltip.style.color = 'var(--white)';
+                tooltip.style.background = 'var(--paper-dark)';
+                tooltip.style.color = 'var(--ink)';
                 tooltip.style.padding = '8px 12px';
                 tooltip.style.fontSize = '11px';
                 tooltip.style.fontFamily = "'DM Mono', monospace";
