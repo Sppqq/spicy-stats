@@ -16,3 +16,6 @@
 ## 2026-08-02 - Accessible Tab Interfaces
 **Learning:** Standard `<nav>` and `<button>` elements used for tab switching lack semantic meaning for screen readers, making it difficult for users to understand the interface structure and currently active tab.
 **Action:** Always implement ARIA tab semantics: add `role="tablist"` to the container, `role="tab"` with `aria-controls` to the buttons, `role="tabpanel"` with `aria-labelledby` to the content panes, and dynamically toggle `aria-selected="true/false"` on the buttons using JavaScript when switching tabs.
+## 2024-08-05 - Dynamic Form Feedback
+**Learning:** Dynamic text changes via JavaScript (e.g. error/success messages on form submission) are invisible to screen readers without ARIA live regions.
+**Action:** Always add `aria-live="polite"` and `aria-atomic="true"` to containers that act as feedback fields for asynchronous operations.
