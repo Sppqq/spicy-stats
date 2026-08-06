@@ -2144,6 +2144,12 @@
                 avg_views: "Ср. просмотров на трек",
                 active_tracks: "Активные треки (24ч)",
                 total_growth: "Общий рост",
+                preferences: "Настройки",
+                anomalies_title: "Фильтрация аномалий",
+                anomaly_enable: "Удалять аномалии",
+                anomaly_spikes: "Пиковые всплески",
+                anomaly_drops: "Провалы / выпадения",
+                anomaly_growth: "Аномалии 24ч роста",
                 next_milestone: "Следующий юбилей",
                 to_go: "осталось до",
                 estimated: "Оценка:",
@@ -2292,6 +2298,12 @@
                 avg_views: "Сер. переглядів на трек",
                 active_tracks: "Активні треки (24г)",
                 total_growth: "Загальне зростання",
+                preferences: "Налаштування",
+                anomalies_title: "Фільтрація аномалій",
+                anomaly_enable: "Видаляти аномалії",
+                anomaly_spikes: "Пікові сплески",
+                anomaly_drops: "Провали / випадання",
+                anomaly_growth: "Аномалії 24г зростання",
                 next_milestone: "Наступний ювілей",
                 to_go: "залишилося до",
                 estimated: "Оцінка:",
@@ -2438,6 +2450,12 @@
                 avg_views: "Durchschn. Aufrufe / Track",
                 active_tracks: "Aktive Tracks (24h)",
                 total_growth: "Gesamtwachstum",
+                preferences: "Einstellungen",
+                anomalies_title: "Anomalie-Filterung",
+                anomaly_enable: "Anomalien filtern",
+                anomaly_spikes: "Spitzenspitzen",
+                anomaly_drops: "Einbrüche / Ausfälle",
+                anomaly_growth: "24h-Wachstumsanomalien",
                 next_milestone: "Nächster Meilenstein",
                 to_go: "verbleibend bis",
                 estimated: "Geschätzt:",
@@ -2584,6 +2602,12 @@
                 avg_views: "Visualizzazioni medie / brano",
                 active_tracks: "Brani attivi (24h)",
                 total_growth: "Crescita totale",
+                preferences: "Preferenze",
+                anomalies_title: "Filtro anomalie",
+                anomaly_enable: "Filtra anomalie",
+                anomaly_spikes: "Picchi isolati",
+                anomaly_drops: "Cali isolati",
+                anomaly_growth: "Anomalie crescita 24h",
                 next_milestone: "Prossimo traguardo",
                 to_go: "mancanti per",
                 estimated: "Stimato:",
@@ -2730,6 +2754,12 @@
                 avg_views: "Śr. wyświetleń / utwór",
                 active_tracks: "Aktywne utwory (24h)",
                 total_growth: "Całkowity wzrost",
+                preferences: "Preferencje",
+                anomalies_title: "Filtrowanie anomalii",
+                anomaly_enable: "Filtruj anomalie",
+                anomaly_spikes: "Piki i skoki",
+                anomaly_drops: "Spadki do zera",
+                anomaly_growth: "Anomalie wzrostu 24h",
                 next_milestone: "Kolejny cel",
                 to_go: "do",
                 estimated: "Szacowano:",
@@ -4470,11 +4500,9 @@
                 };
                 const safeTitle = (song.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const safeArtist = (song.artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const isPlayingThis = currentAudioTrack && currentAudioTrack.title === song.title && currentAudioTrack.artist === song.artist && isAudioPlaying;
 
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
-                    <button type="button" class="track-play-btn ${isPlayingThis ? 'playing' : ''}" onclick="event.stopPropagation(); toggleTrackPreview('${safeTitle}', '${safeArtist}', this)" aria-label="${isPlayingThis ? 'Pause preview' : 'Play preview'}" title="${isPlayingThis ? 'Pause preview' : 'Play preview'}">${isPlayingThis ? '❚❚' : '▶'}</button>
                     <div class="track-info">
                         <div class="track-title" title="${safeTitle}">${song.title}</div>
                         <div class="track-artist" title="${safeArtist}">${song.artist}</div>
@@ -4497,6 +4525,9 @@
 
             if (!modal) return;
 
+            window.currentModalTrackTitle = title;
+            window.currentModalTrackArtist = artist;
+
             modalTitle.textContent = title;
             modalArtist.textContent = artist;
             modalViews.textContent = formatFullNumber(currentViews);
@@ -4508,10 +4539,17 @@
                     e.stopPropagation();
                     toggleTrackPreview(safeTitle, safeArtist);
                 };
+                const isThisPlaying = isAudioPlaying && currentAudioTrack && currentAudioTrack.title === title && currentAudioTrack.artist === artist;
+                const currentLang = localStorage.getItem('spicy-lang') || 'en';
+                const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+                if (isThisPlaying) {
+                    modalPlayBtn.innerHTML = `<span>❚❚</span> <span>${dict.pause_preview || 'Pause Preview'}</span>`;
+                    modalPlayBtn.style.background = 'var(--coral)';
+                } else {
+                    modalPlayBtn.innerHTML = `<span>▶</span> <span>${dict.play_preview || 'Play Preview'}</span>`;
+                    modalPlayBtn.style.background = 'var(--green)';
+                }
             }
-
-            // Start 30-sec audio preview when clicking row
-            toggleTrackPreview(title, artist);
 
             // Clear chart paths while loading
             document.getElementById('track-chart-area-path').setAttribute('d', '');
@@ -4680,6 +4718,20 @@
             const playBtn = document.getElementById('player-play-btn');
             const titleEl = document.getElementById('player-track-name');
             const artistEl = document.getElementById('player-artist-name');
+            const modalPlayBtn = document.getElementById('track-modal-play-btn');
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+            if (modalPlayBtn && window.currentModalTrackTitle) {
+                const isThisPlaying = isAudioPlaying && currentAudioTrack && currentAudioTrack.title === window.currentModalTrackTitle && currentAudioTrack.artist === window.currentModalTrackArtist;
+                if (isThisPlaying) {
+                    modalPlayBtn.innerHTML = `<span>❚❚</span> <span>${dict.pause_preview || 'Pause Preview'}</span>`;
+                    modalPlayBtn.style.background = 'var(--coral)';
+                } else {
+                    modalPlayBtn.innerHTML = `<span>▶</span> <span>${dict.play_preview || 'Play Preview'}</span>`;
+                    modalPlayBtn.style.background = 'var(--green)';
+                }
+            }
 
             if (!player) return;
 
@@ -4698,7 +4750,6 @@
             } else {
                 player.classList.remove('visible', 'playing');
             }
-            renderTracks();
         }
 
         function showMiniPlayerLoading(title, artist) {
