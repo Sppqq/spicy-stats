@@ -1516,7 +1516,7 @@
                             </button>
                             <button type="button" class="metric-btn" data-metric="delta" style="background: transparent; border: 1px solid transparent; padding: 4px 8px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; color: var(--muted); border-radius: 3px; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 4px;">
                                 <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
-                                <span data-i18n="metric_delta">24h Growth</span>
+                                <span data-i18n="metric_delta">Growth</span>
                             </button>
                         </div>
 
@@ -1990,13 +1990,13 @@
                 best_track: "Best track",
                 top_share: "Top track share",
                 avg_views: "Avg views / track",
-                active_tracks: "Active tracks (24h)",
+                active_tracks: "Active tracks",
                 preferences: "Preferences",
                 anomalies_title: "Anomaly Filtering",
                 anomaly_enable: "Filter Anomalies",
                 anomaly_spikes: "Spike Glitches",
                 anomaly_drops: "Drop Glitches",
-                anomaly_growth: "24h Growth Spikes",
+                anomaly_growth: "Growth Spikes",
                 next_milestone: "Next Milestone",
                 to_go: "to go for",
                 estimated: "Estimated:",
@@ -2150,7 +2150,9 @@
                 anomaly_enable: "Удалять аномалии",
                 anomaly_spikes: "Пиковые всплески",
                 anomaly_drops: "Провалы / выпадения",
-                anomaly_growth: "Аномалии 24ч роста",
+                anomaly_growth: "Аномалии прироста",
+                metric_delta: "Прирост",
+                growth_delta: "Прирост",
                 next_milestone: "Следующий юбилей",
                 to_go: "осталось до",
                 estimated: "Оценка:",
@@ -2304,7 +2306,9 @@
                 anomaly_enable: "Видаляти аномалії",
                 anomaly_spikes: "Пікові сплески",
                 anomaly_drops: "Провали / випадання",
-                anomaly_growth: "Аномалії 24г зростання",
+                anomaly_growth: "Аномалії приросту",
+                metric_delta: "Приріст",
+                growth_delta: "Приріст",
                 next_milestone: "Наступний ювілей",
                 to_go: "залишилося до",
                 estimated: "Оцінка:",
@@ -2456,7 +2460,9 @@
                 anomaly_enable: "Anomalien filtern",
                 anomaly_spikes: "Spitzenspitzen",
                 anomaly_drops: "Einbrüche / Ausfälle",
-                anomaly_growth: "24h-Wachstumsanomalien",
+                anomaly_growth: "Zuwachs-Anomalien",
+                metric_delta: "Zuwachs",
+                growth_delta: "Zuwachs",
                 next_milestone: "Nächster Meilenstein",
                 to_go: "verbleibend bis",
                 estimated: "Geschätzt:",
@@ -2608,7 +2614,9 @@
                 anomaly_enable: "Filtra anomalie",
                 anomaly_spikes: "Picchi isolati",
                 anomaly_drops: "Cali isolati",
-                anomaly_growth: "Anomalie crescita 24h",
+                anomaly_growth: "Anomalie crescita",
+                metric_delta: "Crescita",
+                growth_delta: "Crescita",
                 next_milestone: "Prossimo traguardo",
                 to_go: "mancanti per",
                 estimated: "Stimato:",
@@ -2760,7 +2768,9 @@
                 anomaly_enable: "Filtruj anomalie",
                 anomaly_spikes: "Piki i skoki",
                 anomaly_drops: "Spadki do zera",
-                anomaly_growth: "Anomalie wzrostu 24h",
+                anomaly_growth: "Anomalie przyrostu",
+                metric_delta: "Przyrost",
+                growth_delta: "Przyrost",
                 next_milestone: "Kolejny cel",
                 to_go: "do",
                 estimated: "Szacowano:",
@@ -4292,7 +4302,7 @@
                 if (chartMetrics.delta) {
                     content += `<div style="display: flex; align-items: center; gap: 6px;">
                         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green);"></span>
-                        <span>${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></span>
+                        <span>${dict.growth_delta || dict.metric_delta || 'Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></span>
                     </div>`;
                 }
 
@@ -4947,7 +4957,7 @@
                     <div>${dict.views}: <strong>${formatFullNumber(closestPt.views)}</strong></div>
                 `;
                 if (closestPt.delta !== undefined && closestPt.delta > 0) {
-                    tooltipHtml += `<div style="color: var(--green); margin-top: 2px;">${dict.growth_24h || '24h Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></div>`;
+                    tooltipHtml += `<div style="color: var(--green); margin-top: 2px;">${dict.growth_delta || dict.metric_delta || 'Growth'}: <strong>+${formatFullNumber(closestPt.delta)}</strong></div>`;
                 }
 
                 tooltip.style.display = 'block';
