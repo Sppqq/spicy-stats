@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Spicy Monitor — Real-time performance tracking and audience growth analytics for your favorite creators, tracks, and audio catalogs.">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/png" href="/icon.png">
     <title>Spicy Monitor — Dashboard</title>
 
@@ -520,6 +522,20 @@
             color: var(--muted);
             font-family: 'DM Mono', monospace;
             font-size: 10px;
+        }
+
+        #chart-tooltip {
+            background: var(--paper-dark) !important;
+            color: var(--ink) !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        [data-theme="light"] #chart-tooltip {
+            background: #1c1c1e !important;
+            color: #ffffff !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
 
         .author-list { padding: 6px 12px 12px; }
@@ -1668,6 +1684,49 @@
     </div>
 
     <script>
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
+        const API_BASE = isDevEnv
+             ? 'https://dev-api.glyph-labs.site/api'
+             : 'https://spicy-api.glyph-labs.site/api';
+
+        function generateSignature(path, timestamp) {
+            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+            const str = `${timestamp}:${path}:${salt}`;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return (hash >>> 0).toString(16);
+        }
+
+        async function spicyFetch(urlStr, options = {}) {
+            let path = '';
+            if (urlStr.startsWith('http')) {
+                path = new URL(urlStr).pathname;
+            } else {
+                path = urlStr.split('?')[0];
+            }
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = generateSignature(path, timestamp);
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            options.headers = {
+                ...(options.headers || {}),
+                "X-Spicy-Timestamp": timestamp,
+                "X-Spicy-Signature": signature,
+                "X-Spicy-Lang": currentLang
+            };
+            return fetch(urlStr, options);
+        }
         // State
         let dashboardData = null;
         let allUsersDetailed = [];
@@ -2974,7 +3033,7 @@
 
             const items = events.map(ev => {
                 let timeStr = timeAgo(ev.created_at);
-                let txt = formatTickerText(localizeTickerText(ev));
+                let txt = formatTickerText(escapeHtml(localizeTickerText(ev)));
                 if (ev.action_type === 'milestone_reached') {
                     return `<span style="color: var(--green); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
                 } else if (ev.action_type === 'new_track') {
@@ -3249,7 +3308,7 @@
                 legendItem.className = 'legend-item';
                 legendItem.innerHTML = `
                     <span class="legend-color" style="background: ${color}"></span>
-                    <span style="font-weight: bold; color: var(--ink);">@${u.username}</span>
+                    <span style="font-weight: bold; color: var(--ink);">@${escapeHtml(u.username)}</span>
                     <span style="color: var(--muted);">(${formatViews(u.views)})</span>
                 `;
                 legend.appendChild(legendItem);
@@ -3337,7 +3396,7 @@
                 row.innerHTML = `
                     <span class="rank" style="font-size: 14px; font-weight: 800; color: var(--green);">🏆</span>
                     <span>
-                        <div class="author-name">@${u.username}</div>
+                        <div class="author-name">@${escapeHtml(u.username)}</div>
                         <div class="milestone-progress-container">
                             <div class="milestone-progress-bar" style="width: ${item.pct.toFixed(1)}%"></div>
                         </div>
@@ -3406,7 +3465,7 @@
                 row.innerHTML = `
                     <span class="rank">${rank}</span>
                     <span>
-                        <div class="author-name">@${u.username}</div>
+                        <div class="author-name">@${escapeHtml(u.username)}</div>
                         <div class="author-subtitle">
                             ${u.total_songs === null || u.total_songs === undefined
                                 ? (TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en']?.track_count_unavail || 'Track count unavailable')
@@ -3611,12 +3670,12 @@
                 row.innerHTML = `
                     <td class="cell-number">${u.rank || (idx + 1)}</td>
                     <td class="cell-actions" onclick="event.stopPropagation();">
-                        <button type="button" class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${u.username}')" aria-label="Toggle favorite" aria-pressed="${isFavorite(u.username)}">★</button>
-                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${u.username}', this.checked)" aria-label="Compare @${u.username}">
+                        <button type="button" class="star-btn ${isFavorite(u.username) ? 'active' : ''}" onclick="toggleFavorite('${escapeHtml(u.username)}')" aria-label="Toggle favorite" aria-pressed="${isFavorite(u.username)}">★</button>
+                        <input type="checkbox" class="compare-check" ${selectedCompareUsers.includes(u.username) ? 'checked' : ''} onchange="toggleCompareSelection('${escapeHtml(u.username)}', this.checked)" aria-label="Compare @${escapeHtml(u.username)}">
                     </td>
                     <td class="table-user">
-                        <div>@${u.username}</div>
-                        ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${u._matchedTrack}</div>` : ''}
+                        <div>@${escapeHtml(u.username)}</div>
+                        ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${escapeHtml(u._matchedTrack)}</div>` : ''}
                     </td>
                     <td>${formatFullNumber(Number(u.views || 0))}</td>
                     <td class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">

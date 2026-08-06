@@ -1,22 +1,22 @@
 // Build trigger: v1.0.1 - Notifications Update
+function timingSafeEqualStr(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const aLen = a.length;
+    const bLen = b.length;
+    let result = aLen === bLen ? 0 : 1;
+    const len = Math.min(aLen, bLen);
+    for (let i = 0; i < len; i++) {
+        result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0 && aLen === bLen;
+}
+
 function verifyAdminSecret(secret, env) {
     const expectedSecret = env?.ADMIN_SECRET || env?.IMPORT_SECRET;
     if (!expectedSecret || !secret) return false;
-
-    const a = String(secret);
-    const b = String(expectedSecret);
-
-    // Constant-time string comparison to prevent timing attacks
-    let mismatch = a.length === b.length ? 0 : 1;
-    // Iterate over the length of the expected secret to avoid leaking the secret's length
-    for (let i = 0; i < b.length; i++) {
-        const charA = i < a.length ? a.charCodeAt(i) : 0;
-        const charB = b.charCodeAt(i);
-        mismatch |= charA ^ charB;
-    }
-
-    return mismatch === 0;
+    return timingSafeEqualStr(secret, expectedSecret);
 }
+
 
 // ==========================================
 // ГЛОБАЛЬНЫЙ КЭШ ДЛЯ CPU-ОПТИМИЗАЦИИ (МЕМОИЗАЦИЯ)
@@ -179,8 +179,16 @@ const allowedOrigins = [
 
 function getCorsHeaders(request, env) {
     const origin = request.headers.get("Origin") || "";
-    let isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".glyph-labs.site");
-    if (env && env.APIURL && env.APIURL === origin) isAllowed = true;
+    let isAllowed = false;
+    if (allowedOrigins.includes(origin)) {
+        isAllowed = true;
+    } else if (/^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/i.test(origin)) {
+        isAllowed = true;
+    } else if (/^https:\/\/([a-zA-Z0-9-]+\.)*glyph-labs\.site$/i.test(origin)) {
+        isAllowed = true;
+    } else if (env && env.APIURL && env.APIURL === origin) {
+        isAllowed = true;
+    }
     return {
         "Access-Control-Allow-Origin": isAllowed ? origin : "https://spicy-stats.glyph-labs.site",
         "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
@@ -264,7 +272,7 @@ export default {
             else if (url.pathname === "/api/admin/notification-settings" && request.method === "POST") response = await handleSaveNotificationSettings(request, env);
             else response = new Response(JSON.stringify({ error: "API Endpoint Not Found" }), { status: 404, headers: { "Content-Type": "application/json" } });
         } catch (err) {
-            response = new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+            response = new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { "Content-Type": "application/json" } });
         }
 
         const finalHeaders = new Headers(response.headers);
@@ -737,6 +745,11 @@ async function handleAdminSyncProdDb(request, env) {
     if (!env.DB_PROD) return new Response(JSON.stringify({ error: "DB_PROD binding is not configured in Cloudflare settings." }), { status: 400, headers: getCorsHeaders(request, env) });
     if (!table) return new Response(JSON.stringify({ error: "Table parameter required." }), { status: 400, headers: getCorsHeaders(request, env) });
 
+    const allowedTables = ["users", "snapshots", "snapshot_songs", "track_metadata", "audit_logs"];
+    if (!allowedTables.includes(table)) {
+        return new Response(JSON.stringify({ error: "Invalid table parameter." }), { status: 400, headers: getCorsHeaders(request, env) });
+    }
+
     const pageSize = 2000;
     const startRowid = Number(lastRowid) || 0;
 
@@ -775,8 +788,6 @@ async function handleAdminSyncProdDb(request, env) {
             insertStmt = "INSERT INTO audit_logs (id, action_type, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)";
             mapFn = l => [l.id, l.action_type, l.details, l.ip_address, l.created_at];
             keyField = "id";
-        } else {
-            return new Response(JSON.stringify({ error: "Invalid table." }), { status: 400, headers: getCorsHeaders(request, env) });
         }
 
         const { results: chunk } = await env.DB_PROD.prepare(query).bind(startRowid, pageSize).all();
@@ -1097,7 +1108,7 @@ async function handleImport(request, env) {
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
 }
 
-function handleExport() {
+function handleExport(request, env) {
     return new Response(JSON.stringify({ error: "Exports restricted. Contact admin." }), { status: 403, headers: getCorsHeaders(request, env) });
 }
 

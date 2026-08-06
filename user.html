@@ -30,6 +30,43 @@
     <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
     <script src="/api.js"></script>
+    <script>
+        if (typeof spicyFetch === 'undefined') {
+            const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
+            window.API_BASE = isDevEnv
+                ? 'https://dev-api.glyph-labs.site/api'
+                : 'https://spicy-api.glyph-labs.site/api';
+
+            window.generateSignature = function(path, timestamp) {
+                const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+                const str = `${timestamp}:${path}:${salt}`;
+                let hash = 5381;
+                for (let i = 0; i < str.length; i++) {
+                    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+                }
+                return (hash >>> 0).toString(16);
+            };
+
+            window.spicyFetch = async function(urlStr, options = {}) {
+                let path = '';
+                if (urlStr.startsWith('http')) {
+                    path = new URL(urlStr).pathname;
+                } else {
+                    path = urlStr.split('?')[0];
+                }
+                const timestamp = Math.floor(Date.now() / 1000).toString();
+                const signature = window.generateSignature(path, timestamp);
+                const currentLang = localStorage.getItem('spicy-lang') || 'en';
+                options.headers = {
+                    ...(options.headers || {}),
+                    "X-Spicy-Timestamp": timestamp,
+                    "X-Spicy-Signature": signature,
+                    "X-Spicy-Lang": currentLang
+                };
+                return fetch(urlStr, options);
+            };
+        }
+    </script>
 
 
     <script>
@@ -342,8 +379,8 @@
 
         .track {
             display: grid;
-            grid-template-columns: 28px minmax(0, 1fr) auto;
-            gap: 12px;
+            grid-template-columns: 24px 28px minmax(0, 1fr) auto;
+            gap: 10px;
             align-items: center;
             padding: 12px 8px;
             border-bottom: 1px solid var(--paper-dark);
@@ -465,6 +502,20 @@
             font-size: 10px;
         }
 
+        #profile-chart-tooltip, #track-chart-tooltip {
+            background: var(--paper-dark) !important;
+            color: var(--ink) !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        [data-theme="light"] #profile-chart-tooltip, [data-theme="light"] #track-chart-tooltip {
+            background: #1c1c1e !important;
+            color: #ffffff !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
         /* Controls */
         [data-theme] input, [data-theme] select { accent-color: var(--green); }
 
@@ -537,10 +588,11 @@
             position: absolute;
             top: calc(100% + 10px);
             right: 0;
-            width: min(468px, calc(100vw - 34px));
+            width: min(380px, calc(100vw - 24px));
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
             min-width: 0;
             padding: 12px;
-            overflow: hidden;
             border: 1px solid var(--line);
             border-radius: 18px;
             background: var(--menu-bg);
@@ -974,7 +1026,7 @@
 
             .panel { overflow-x: hidden; max-width: 100%; box-sizing: border-box; }
             .tracks { padding: 4px 6px 8px; }
-            .track { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; padding: 11px 4px; }
+            .track { grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 6px; padding: 11px 4px; }
             .track-number { font-size: 10px; }
             .track-title { font-size: 12px; }
             .track-artist { font-size: 10px; }
@@ -1047,6 +1099,141 @@
             letter-spacing: -0.02em;
         }
 
+        /* 30-Sec Audio Preview Mini-Player */
+        
+        .track-play-btn {
+            background: var(--paper);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            padding: 0;
+            line-height: 1;
+        }
+        .track-play-btn:hover {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+            transform: scale(1.08);
+        }
+        .track-play-btn.playing {
+            background: var(--green);
+            color: #101114;
+            border-color: var(--green);
+        }
+        
+        #mini-audio-player {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            width: calc(100% - 48px);
+            max-width: 580px;
+            background: var(--white);
+            border: 2px solid var(--ink);
+            box-shadow: 6px 6px 0 var(--ink);
+            z-index: 9990;
+            padding: 12px 18px;
+            box-sizing: border-box;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-family: 'Manrope', sans-serif;
+        }
+        #mini-audio-player.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .player-eq-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 18px;
+            width: 20px;
+            flex-shrink: 0;
+        }
+        .eq-bar {
+            width: 3px;
+            background: var(--green);
+            border-radius: 1px;
+            height: 4px;
+            transition: height 0.15s ease;
+        }
+        #mini-audio-player.playing .eq-bar:nth-child(1) { animation: eqAnim 0.6s infinite ease-in-out alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(2) { animation: eqAnim 0.8s infinite ease-in-out 0.2s alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(3) { animation: eqAnim 0.5s infinite ease-in-out 0.4s alternate; }
+        #mini-audio-player.playing .eq-bar:nth-child(4) { animation: eqAnim 0.7s infinite ease-in-out 0.1s alternate; }
+        @keyframes eqAnim {
+            0% { height: 4px; }
+            100% { height: 18px; }
+        }
+        .player-track-details {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .player-track-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-artist-name {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .player-volume-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .player-volume-slider {
+            width: 70px;
+            height: 4px;
+            accent-color: var(--green);
+            cursor: pointer;
+            border-radius: 2px;
+            background: var(--line);
+        }
+        @media (max-width: 500px) {
+            .player-volume-slider { width: 45px; }
+        }
+        .player-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--line);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        .player-progress-fill {
+            height: 100%;
+            background: var(--green);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
         @media (prefers-reduced-motion: reduce) {
             body::before, .theme-dropdown, .theme-option, .theme-toggle-arrow { transition: none !important; }
         }
@@ -1858,7 +2045,24 @@
                 no_history_data: "No history data available yet",
                 return_dashboard: "Return to Dashboard",
                 track_count_unavail: "Track count unavailable",
-                milestone_to_go: "to go to"
+                milestone_to_go: "to go to",
+                share_card: "Share Card",
+                play_preview: "Play Preview",
+                pause_preview: "Pause",
+                loading_preview: "Searching preview...",
+                preview_not_found: "Preview unavailable",
+                card_generator_title: "Shareable Story Card Generator",
+                card_format: "Format",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Timeframe",
+                period_7d: "7 Days",
+                period_30d: "30 Days",
+                period_total: "All Time",
+                card_theme: "Theme Style",
+                download_png: "Download PNG ↓",
+                copy_image: "Copy Image 📋",
+                copied: "Copied!"
             },
             ru: {
                 back: "← Вернуться на дашборд",
@@ -1989,7 +2193,24 @@
                 no_history_data: "Данные истории пока недоступны",
                 return_dashboard: "Вернуться на дашборд",
                 track_count_unavail: "Количество треков недоступно",
-                milestone_to_go: "осталось до"
+                milestone_to_go: "осталось до",
+                share_card: "Поделиться",
+                play_preview: "Слушать превью",
+                pause_preview: "Пауза",
+                loading_preview: "Поиск превью...",
+                preview_not_found: "Превью недоступно",
+                card_generator_title: "Генератор карточки достижений",
+                card_format: "Формат карточки",
+                format_story: "Story 9:16 (Stories)",
+                format_post: "Пост 1:1 (Квадрат)",
+                card_period: "Период",
+                period_7d: "7 дней",
+                period_30d: "30 дней",
+                period_total: "Всё время",
+                card_theme: "Стиль оформления",
+                download_png: "Скачать PNG ↓",
+                copy_image: "Копировать 📋",
+                copied: "Скопировано!"
             },
             uk: {
                 back: "← Повернутися на дашборд",
@@ -2118,7 +2339,24 @@
                 no_history_data: "Дані історії поки недоступні",
                 return_dashboard: "Повернутися на дашборд",
                 track_count_unavail: "Кількість треків недоступна",
-                milestone_to_go: "залишилося до"
+                milestone_to_go: "залишилося до",
+                share_card: "Поділитися",
+                play_preview: "Слухати прев'ю",
+                pause_preview: "Пауза",
+                loading_preview: "Пошук прев'ю...",
+                preview_not_found: "Прев'ю недоступне",
+                card_generator_title: "Генератор картки досягнень",
+                card_format: "Формат картки",
+                format_story: "Story 9:16 (Stories)",
+                format_post: "Пост 1:1 (Квадрат)",
+                card_period: "Період",
+                period_7d: "7 днів",
+                period_30d: "30 днів",
+                period_total: "Весь час",
+                card_theme: "Стиль оформлення",
+                download_png: "Завантажити PNG ↓",
+                copy_image: "Копіювати 📋",
+                copied: "Скопійовано!"
             },
             de: {
                 back: "← Zurück zum Dashboard",
@@ -2247,7 +2485,24 @@
                 no_history_data: "Noch keine Verlaufsdaten verfügbar",
                 return_dashboard: "Zurück zum Dashboard",
                 track_count_unavail: "Track-Anzahl nicht verfügbar",
-                milestone_to_go: "verbleibend bis"
+                milestone_to_go: "verbleibend bis",
+                share_card: "Karte teilen",
+                play_preview: "Vorschau abspielen",
+                pause_preview: "Pause",
+                loading_preview: "Suche Vorschau...",
+                preview_not_found: "Vorschau nicht verfügbar",
+                card_generator_title: "Story-Karten-Generator",
+                card_format: "Kartenformat",
+                format_story: "Story 9:16",
+                format_post: "Beitrag 1:1",
+                card_period: "Zeitraum",
+                period_7d: "7 Tage",
+                period_30d: "30 Tage",
+                period_total: "Gesamt",
+                card_theme: "Stil-Thema",
+                download_png: "PNG herunterladen ↓",
+                copy_image: "Bild kopieren 📋",
+                copied: "Kopiert!"
             },
             it: {
                 back: "← Torna al dashboard",
@@ -2376,7 +2631,27 @@
                 no_history_data: "Nessun dato cronologico ancora disponibile",
                 return_dashboard: "Ritorna alla Dashboard",
                 track_count_unavail: "Numero di brani non disponibile",
+                milestone_to_go: "mancanti per",
+                share_card: "Condividi scheda",
+                play_preview: "Ascolta anteprima",
+                pause_preview: "Pausa",
+                loading_preview: "Ricerca anteprima...",
+                preview_not_found: "Anteprima non disponibile",
+                card_generator_title: "Generatore di scheda da condividere",
+                card_format: "Formato scheda",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Periodo",
+                period_7d: "7 Giorni",
+                period_30d: "30 Giorni",
+                period_total: "Tutto il tempo",
+                card_theme: "Stile tema",
+                download_png: "Scarica PNG ↓",
+                copy_image: "Copia immagine 📋",
+                copied: "Copiato!"
+=======
                 milestone_to_go: "mancanti per"
+>>>>>>> bc081c2415bc89f85a5ab706168a1bb5aae8f9ea
             },
             pl: {
                 back: "← Powrót do panelu",
@@ -2458,7 +2733,24 @@
                 chart_sub_both_all: "Wyświetlenia i liczba utworów w całej historii śledzenia",
                 contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
                 credits: 'Specjalne podziękowania dla <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wkład',
-                data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>'
+                data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                share_card: "Udostępnij kartę",
+                play_preview: "Odtwórz próbkę",
+                pause_preview: "Pauza",
+                loading_preview: "Szukanie próbki...",
+                preview_not_found: "Próbka niedostępna",
+                card_generator_title: "Generator karty wyników",
+                card_format: "Format karty",
+                format_story: "Story 9:16",
+                format_post: "Post 1:1",
+                card_period: "Okres",
+                period_7d: "7 Dni",
+                period_30d: "30 Dni",
+                period_total: "Cały czas",
+                card_theme: "Motyw stylu",
+                download_png: "Pobierz PNG ↓",
+                copy_image: "Kopiuj obraz 📋",
+                copied: "Skopiowano!"
             }
         };
 
@@ -3176,6 +3468,70 @@
             return result;
         }
 
+        /**
+         * Cleans anomalies from 24h Growth histogram delta values.
+         * Filter out transient delta spikes, normalize offline time gaps, and compute robust maxDelta.
+         */
+        function cleanHistogramDeltas(items) {
+            if (!items || items.length < 2) return { cleanedPoints: items || [], maxDelta: 1 };
+
+            const cleaned = items.map(item => ({ ...item }));
+
+            for (let i = 0; i < cleaned.length; i++) {
+                if (i === 0) {
+                    cleaned[i].delta = 0;
+                    continue;
+                }
+                const prevViews = cleaned[i - 1].views;
+                const currViews = cleaned[i].views;
+                let rawDelta = Math.max(0, currViews - prevViews);
+
+                const dateStrPrev = cleaned[i - 1].date || cleaned[i - 1].timestamp || cleaned[i - 1].x;
+                const dateStrCurr = cleaned[i].date || cleaned[i].timestamp || cleaned[i].x;
+                const dPrev = parseUTCDate(dateStrPrev);
+                const dCurr = parseUTCDate(dateStrCurr);
+
+                if (dPrev && dCurr) {
+                    const hoursDiff = (dCurr.getTime() - dPrev.getTime()) / (1000 * 3600);
+                    if (hoursDiff > 28 && rawDelta > 0) {
+                        rawDelta = Math.round(rawDelta * (24 / hoursDiff));
+                    }
+                }
+
+                cleaned[i].delta = rawDelta;
+            }
+
+            // Remove isolated single-point delta spikes
+            for (let i = 1; i < cleaned.length - 1; i++) {
+                const prevD = cleaned[i - 1].delta;
+                const currD = cleaned[i].delta;
+                const nextD = cleaned[i + 1].delta;
+
+                if (currD > 50 && prevD > 0 && nextD > 0 && currD > prevD * 3.5 && currD > nextD * 3.5) {
+                    cleaned[i].delta = Math.round((prevD + nextD) / 2);
+                } else if (currD > 100 && prevD === 0 && nextD > 0 && currD > nextD * 4) {
+                    cleaned[i].delta = nextD;
+                }
+            }
+
+            const positiveDeltas = cleaned.map(p => p.delta).filter(d => d > 0).sort((a, b) => a - b);
+            let maxDelta = 1;
+
+            if (positiveDeltas.length > 0) {
+                const p95Idx = Math.floor(positiveDeltas.length * 0.95);
+                const p95 = positiveDeltas[p95Idx] || positiveDeltas[positiveDeltas.length - 1];
+                const trueMax = positiveDeltas[positiveDeltas.length - 1];
+
+                if (trueMax > p95 * 2.5 && p95 > 0) {
+                    maxDelta = p95 * 1.5;
+                } else {
+                    maxDelta = trueMax;
+                }
+            }
+
+            return { cleanedPoints: cleaned, maxDelta: Math.max(1, maxDelta) };
+        }
+
         function renderChart() {
             const svgViewsArea = document.getElementById('profile-chart-area-path');
             const svgViewsLine = document.getElementById('profile-chart-line-path');
@@ -3336,12 +3692,13 @@
             if (deltaContainer) deltaContainer.innerHTML = '';
 
             if (chartMetrics.delta && deltaContainer && scaledPoints.length >= 2) {
-                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(3, (chartWidth / scaledPoints.length) * 0.65);
+                const { cleanedPoints, maxDelta } = cleanHistogramDeltas(scaledPoints);
+                const barWidth = Math.max(3, (cleanedPoints.length > 0 ? chartWidth / cleanedPoints.length : 10) * 0.65);
 
-                scaledPoints.forEach(p => {
+                cleanedPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.45);
+                    const effectiveDelta = Math.min(p.delta, maxDelta);
+                    const barHeight = (effectiveDelta / maxDelta) * (chartHeight * 0.45);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -3675,8 +4032,8 @@
                 tooltip.id = 'profile-chart-tooltip';
                 tooltip.style.position = 'absolute';
                 tooltip.style.display = 'none';
-                tooltip.style.background = 'var(--ink)';
-                tooltip.style.color = 'var(--white)';
+                tooltip.style.background = 'var(--paper-dark)';
+                tooltip.style.color = 'var(--ink)';
                 tooltip.style.padding = '8px 12px';
                 tooltip.style.fontSize = '11px';
                 tooltip.style.fontFamily = "'DM Mono', monospace";
@@ -3944,11 +4301,13 @@
                         openTrackStats(song.title, song.artist, song.views, song.growth);
                     }
                 };
-                const safeTitle = (song.title || '').replace(/"/g, '&quot;');
-                const safeArtist = (song.artist || '').replace(/"/g, '&quot;');
+                const safeTitle = (song.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeArtist = (song.artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const isPlayingThis = currentAudioTrack && currentAudioTrack.title === song.title && currentAudioTrack.artist === song.artist && isAudioPlaying;
 
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
+                    <button type="button" class="track-play-btn ${isPlayingThis ? 'playing' : ''}" onclick="event.stopPropagation(); toggleTrackPreview('${safeTitle}', '${safeArtist}', this)" aria-label="${isPlayingThis ? 'Pause preview' : 'Play preview'}" title="${isPlayingThis ? 'Pause preview' : 'Play preview'}">${isPlayingThis ? '❚❚' : '▶'}</button>
                     <div class="track-info">
                         <div class="track-title" title="${safeTitle}">${song.title}</div>
                         <div class="track-artist" title="${safeArtist}">${song.artist}</div>
@@ -3967,8 +4326,7 @@
             const modalTitle = document.getElementById('track-modal-title');
             const modalArtist = document.getElementById('track-modal-artist');
             const modalViews = document.getElementById('track-modal-views');
-            const modalGrowth = document.getElementById('track-modal-growth');
-            const modalGrowthCard = document.getElementById('track-modal-growth-card');
+            const modalPlayBtn = document.getElementById('track-modal-play-btn');
 
             if (!modal) return;
 
@@ -3976,33 +4334,17 @@
             modalArtist.textContent = artist;
             modalViews.textContent = formatFullNumber(currentViews);
 
-            if (growth !== null && growth !== undefined) {
-                if (growth > 0) {
-                    modalGrowthCard.style.background = 'var(--green)';
-                    modalGrowthCard.style.color = '#101114';
-                    modalGrowthCard.style.border = 'none';
-                    modalGrowth.textContent = `+${formatFullNumber(growth)}`;
-                    modalGrowth.style.color = '#101114';
-                } else if (growth < 0) {
-                    modalGrowthCard.style.background = 'var(--coral)';
-                    modalGrowthCard.style.color = '#101114';
-                    modalGrowthCard.style.border = 'none';
-                    modalGrowth.textContent = `-${formatFullNumber(Math.abs(growth))}`;
-                    modalGrowth.style.color = '#101114';
-                } else {
-                    modalGrowthCard.style.background = 'var(--white)';
-                    modalGrowthCard.style.color = 'var(--ink)';
-                    modalGrowthCard.style.border = '1px solid var(--line)';
-                    modalGrowth.textContent = '0';
-                    modalGrowth.style.color = 'var(--muted)';
-                }
-            } else {
-                modalGrowthCard.style.background = 'var(--white)';
-                modalGrowthCard.style.color = 'var(--ink)';
-                modalGrowthCard.style.border = '1px solid var(--line)';
-                modalGrowth.textContent = '—';
-                modalGrowth.style.color = 'var(--muted)';
+            if (modalPlayBtn) {
+                const safeTitle = (title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeArtist = (artist || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                modalPlayBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleTrackPreview(safeTitle, safeArtist);
+                };
             }
+
+            // Start 30-sec audio preview when clicking row
+            toggleTrackPreview(title, artist);
 
             // Clear chart paths while loading
             document.getElementById('track-chart-area-path').setAttribute('d', '');
@@ -4023,6 +4365,198 @@
                 console.error(e);
                 document.getElementById('track-chart-labels').innerHTML = `<span style="width: 100%; text-align: center; color: var(--coral);">${(TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en).error_history || 'Error loading history'}</span>`;
             }
+        }
+
+        /* -------------------------------------------------------------
+         * 30-Sec Audio Preview State & Logic (iTunes Search API)
+         * ------------------------------------------------------------- */
+        let currentAudio = null;
+        let currentAudioTrack = null;
+        let isAudioPlaying = false;
+        const previewCache = new Map();
+
+        function getAudioVolume() {
+            const saved = localStorage.getItem('spicy-audio-volume');
+            return saved !== null ? parseFloat(saved) : 0.25;
+        }
+
+        function setAudioVolume(val) {
+            const vol = parseFloat(val);
+            localStorage.setItem('spicy-audio-volume', vol);
+            if (currentAudio) {
+                currentAudio.volume = vol;
+            }
+            updateVolumeIcon(vol);
+        }
+
+        function updateVolumeIcon(vol) {
+            const icon = document.getElementById('player-volume-icon');
+            const slider = document.getElementById('player-volume-slider');
+            if (slider && Math.abs(parseFloat(slider.value) - vol) > 0.01) {
+                slider.value = vol;
+            }
+            if (icon) {
+                if (vol === 0) icon.textContent = '🔇';
+                else if (vol < 0.4) icon.textContent = '🔉';
+                else icon.textContent = '🔊';
+            }
+        }
+
+        function toggleMuteAudio() {
+            const current = getAudioVolume();
+            if (current > 0) {
+                window.lastAudioVolume = current;
+                setAudioVolume(0);
+            } else {
+                setAudioVolume(window.lastAudioVolume || 0.25);
+            }
+        }
+
+        async function toggleTrackPreview(title, artist, btnEl) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            
+            // If clicking same track that is currently playing -> toggle pause/play
+            if (currentAudioTrack && currentAudioTrack.title === title && currentAudioTrack.artist === artist) {
+                if (isAudioPlaying) {
+                    pauseAudioPreview();
+                } else if (currentAudio) {
+                    currentAudio.play();
+                    isAudioPlaying = true;
+                    updatePlayerUI();
+                }
+                return;
+            }
+
+            // Stop existing audio playback
+            stopAudioPreview();
+
+            // Show loading in mini player
+            showMiniPlayerLoading(title, artist);
+
+            try {
+                const cacheKey = `${artist.toLowerCase()} - ${title.toLowerCase()}`;
+                let previewUrl = previewCache.get(cacheKey);
+
+                if (!previewUrl) {
+                    const query = `${artist} ${title}`;
+                    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=1`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0 && data.results[0].previewUrl) {
+                            previewUrl = data.results[0].previewUrl;
+                            previewCache.set(cacheKey, previewUrl);
+                        }
+                    }
+                }
+
+                if (!previewUrl) {
+                    showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+                    return;
+                }
+
+                currentAudioTrack = { title, artist, url: previewUrl };
+                currentAudio = new Audio(previewUrl);
+                const initVol = getAudioVolume();
+                currentAudio.volume = initVol;
+                updateVolumeIcon(initVol);
+
+                currentAudio.addEventListener('timeupdate', () => {
+                    if (currentAudio && currentAudio.duration) {
+                        const pct = (currentAudio.currentTime / currentAudio.duration) * 100;
+                        const fill = document.getElementById('player-progress-fill');
+                        if (fill) fill.style.width = `${pct}%`;
+                    }
+                });
+
+                currentAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    updatePlayerUI();
+                });
+
+                currentAudio.addEventListener('error', () => {
+                    showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+                });
+
+                await currentAudio.play();
+                isAudioPlaying = true;
+                updatePlayerUI();
+
+            } catch (e) {
+                console.error('Failed to play preview audio:', e);
+                showMiniPlayerError(dict.preview_not_found || 'Preview unavailable');
+            }
+        }
+
+        function pauseAudioPreview() {
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            isAudioPlaying = false;
+            updatePlayerUI();
+        }
+
+        function stopAudioPreview() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            currentAudioTrack = null;
+            isAudioPlaying = false;
+            const player = document.getElementById('mini-audio-player');
+            if (player) player.classList.remove('visible', 'playing');
+            renderTracks();
+        }
+
+        function updatePlayerUI() {
+            const player = document.getElementById('mini-audio-player');
+            const playBtn = document.getElementById('player-play-btn');
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+
+            if (!player) return;
+
+            if (currentAudioTrack) {
+                player.classList.add('visible');
+                if (isAudioPlaying) {
+                    player.classList.add('playing');
+                    if (playBtn) playBtn.textContent = '❚❚';
+                } else {
+                    player.classList.remove('playing');
+                    if (playBtn) playBtn.textContent = '▶';
+                }
+                if (titleEl) titleEl.textContent = currentAudioTrack.title;
+                if (artistEl) artistEl.textContent = currentAudioTrack.artist;
+                updateVolumeIcon(getAudioVolume());
+            } else {
+                player.classList.remove('visible', 'playing');
+            }
+            renderTracks();
+        }
+
+        function showMiniPlayerLoading(title, artist) {
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const player = document.getElementById('mini-audio-player');
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+            const fill = document.getElementById('player-progress-fill');
+            if (fill) fill.style.width = '0%';
+            if (player) {
+                player.classList.add('visible');
+                player.classList.remove('playing');
+            }
+            if (titleEl) titleEl.textContent = title;
+            if (artistEl) artistEl.textContent = dict.loading_preview || 'Searching preview...';
+        }
+
+        function showMiniPlayerError(msg) {
+            const titleEl = document.getElementById('player-track-name');
+            const artistEl = document.getElementById('player-artist-name');
+            if (artistEl) artistEl.textContent = msg;
+            setTimeout(() => {
+                if (!isAudioPlaying) stopAudioPreview();
+            }, 2500);
         }
 
         function renderTrackChart(points) {
@@ -4080,14 +4614,15 @@
             });
 
             const deltaContainer = document.getElementById('track-chart-delta-bars');
-            if (deltaContainer) {
+            if (deltaContainer && scaledPoints.length >= 2) {
                 deltaContainer.innerHTML = '';
-                const maxDelta = Math.max(...scaledPoints.map(p => p.delta)) || 1;
-                const barWidth = Math.max(2, (chartWidth / scaledPoints.length) * 0.65);
+                const { cleanedPoints, maxDelta } = cleanHistogramDeltas(scaledPoints);
+                const barWidth = Math.max(2, (cleanedPoints.length > 0 ? chartWidth / cleanedPoints.length : 10) * 0.65);
 
-                scaledPoints.forEach(p => {
+                cleanedPoints.forEach(p => {
                     if (p.delta <= 0) return;
-                    const barHeight = (p.delta / maxDelta) * (chartHeight * 0.35);
+                    const effectiveDelta = Math.min(p.delta, maxDelta);
+                    const barHeight = (effectiveDelta / maxDelta) * (chartHeight * 0.35);
                     const barY = height - paddingBottom - barHeight;
 
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -4137,8 +4672,8 @@
                 tooltip.id = 'track-chart-tooltip';
                 tooltip.style.position = 'absolute';
                 tooltip.style.display = 'none';
-                tooltip.style.background = 'var(--ink)';
-                tooltip.style.color = 'var(--white)';
+                tooltip.style.background = 'var(--paper-dark)';
+                tooltip.style.color = 'var(--ink)';
                 tooltip.style.padding = '8px 12px';
                 tooltip.style.fontSize = '11px';
                 tooltip.style.fontFamily = "'DM Mono', monospace";
@@ -4517,14 +5052,10 @@
             <h2 id="track-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 4px; line-height: 1.1;">Track Title</h2>
             <div id="track-modal-artist" style="color: var(--muted); font-size: 13px; font-family: 'DM Mono', monospace; margin-bottom: 24px;">Artist Name</div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px;">
                 <div style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
                     <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="views">Views</div>
                     <div id="track-modal-views" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
-                </div>
-                <div id="track-modal-growth-card" style="padding: 12px; border: 1px solid var(--line); background: var(--paper-dark);">
-                    <div style="font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted);" data-i18n="growth_24h">24h Growth</div>
-                    <div id="track-modal-growth" style="font-size: 20px; font-weight: 800; margin-top: 4px;">...</div>
                 </div>
             </div>
 
@@ -4543,8 +5074,38 @@
                 <div class="chart-labels" id="track-chart-labels" style="display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px;">
                 </div>
             </div>
+
+            <button id="track-modal-play-btn" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--green); color: #101114; border: none; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>▶</span> <span data-i18n="play_preview">Play Preview</span>
+            </button>
         </div>
     </div>
+
+    <!-- 30-Sec Audio Preview Floating Mini-Player -->
+    <div id="mini-audio-player">
+        <div class="player-eq-container">
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+        </div>
+        <div class="player-track-details">
+            <div class="player-track-name" id="player-track-name">Track Title</div>
+            <div class="player-artist-name" id="player-artist-name">Artist Name</div>
+        </div>
+        <div class="player-controls">
+            <button id="player-play-btn" onclick="if(currentAudioTrack) toggleTrackPreview(currentAudioTrack.title, currentAudioTrack.artist, this)" style="background: var(--green); color: #101114; border: 0; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;">▶</button>
+            <div class="player-volume-wrap">
+                <span id="player-volume-icon" onclick="toggleMuteAudio()" title="Mute/Unmute" style="font-size: 13px; cursor: pointer; user-select: none; color: var(--muted);">🔉</span>
+                <input type="range" id="player-volume-slider" class="player-volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="setAudioVolume(this.value)" title="Volume">
+            </div>
+            <button onclick="stopAudioPreview()" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;" title="Close player">✕</button>
+        </div>
+        <div class="player-progress-bar">
+            <div class="player-progress-fill" id="player-progress-fill"></div>
+        </div>
+    </div>
+
     <!-- Language Suggestion Toast -->
     <div id="lang-suggest-toast" style="display: none; position: fixed; bottom: 24px; right: 24px; max-width: 320px; background: var(--white); border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 18px; z-index: 10000; flex-direction: column; gap: 12px; transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(100px); opacity: 0; color: var(--ink);">
         <div style="font-size: 13px; font-weight: 700; line-height: 1.4;" id="lang-suggest-text" data-i18n="lang_switch">
@@ -4565,6 +5126,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.3.0 (2026-08-02)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added 30-Sec Audio Preview Mini-Player with interactive track play buttons, iTunes search lookup, and animated wave equalizer.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.2.20 (2026-07-31)</strong>

@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Spicy Monitor — Real-time performance tracking and audience growth analytics for your favorite creators, tracks, and audio catalogs.">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/png" href="/icon.png">
     <title>Spicy Monitor — Admin Panel</title>
 
@@ -988,6 +990,47 @@
     </div>
 
     <script>
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        const isDevEnv = (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') || window.location.hostname.startsWith('dev.') || window.location.hostname.includes('spicy-stats-dev') || window.location.hostname.includes('dev-api'));
+        const API_BASE = isDevEnv
+            ? 'https://dev-api.glyph-labs.site/api'
+            : 'https://spicy-api.glyph-labs.site/api';
+
+        function generateSignature(path, timestamp) {
+            const salt = "SpicyLyrics_API_Secured_2026_GlyphLabs";
+            const str = `${timestamp}:${path}:${salt}`;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return (hash >>> 0).toString(16);
+        }
+
+        async function spicyFetch(urlStr, options = {}) {
+            let path = '';
+            if (urlStr.startsWith('http')) {
+                path = new URL(urlStr).pathname;
+            } else {
+                path = urlStr.split('?')[0];
+            }
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            const signature = generateSignature(path, timestamp);
+            options.headers = {
+                ...(options.headers || {}),
+                "X-Spicy-Timestamp": timestamp,
+                "X-Spicy-Signature": signature
+            };
+            return fetch(urlStr, options);
+        }
         let adminSecret = '';
         let systemData = null;
         let userToDelete = '';
@@ -1097,7 +1140,7 @@
 
         // Authentication Handlers
         function checkAuth() {
-            const savedSecret = localStorage.getItem('spicy-admin-secret');
+            const savedSecret = sessionStorage.getItem('spicy-admin-secret');
             if (savedSecret) {
                 adminSecret = savedSecret;
                 document.getElementById('auth-overlay').style.display = 'none';
@@ -1127,7 +1170,7 @@
                 });
 
                 if (res.ok) {
-                    localStorage.setItem('spicy-admin-secret', secret);
+                    sessionStorage.setItem('spicy-admin-secret', secret);
                     adminSecret = secret;
                     document.getElementById('auth-overlay').style.display = 'none';
                     document.getElementById('admin-page').style.display = 'block';
@@ -1245,19 +1288,19 @@
             systemData.users.forEach(u => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="table-user">@${u.username}</td>
+                    <td class="table-user">@${escapeHtml(u.username)}</td>
                     <td>${formatFullNumber(u.views)}</td>
                     <td style="font-family: 'DM Mono', monospace;">${u.snap_count}</td>
                     <td style="font-family: 'DM Mono', monospace;">${u.song_count}</td>
                     <td class="table-muted">${timeAgo(u.last_updated)}</td>
                     <td style="text-align: right; white-space: nowrap;">
-                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${u.username}')">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${escapeHtml(u.username)}')">
                             Export
                         </button>
-                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${u.username}')">
+                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${escapeHtml(u.username)}')">
                             Scrape Now
                         </button>
-                        <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${u.username}')">
+                        <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${escapeHtml(u.username)}')">
                             Delete
                         </button>
                     </td>
@@ -1847,7 +1890,7 @@
         }
 
         function lockPanel() {
-            localStorage.removeItem('spicy-admin-secret');
+            sessionStorage.removeItem('spicy-admin-secret');
             adminSecret = '';
             checkAuth();
         }
