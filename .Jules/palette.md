@@ -16,3 +16,6 @@
 ## 2026-08-02 - Accessible Tab Interfaces
 **Learning:** Standard `<nav>` and `<button>` elements used for tab switching lack semantic meaning for screen readers, making it difficult for users to understand the interface structure and currently active tab.
 **Action:** Always implement ARIA tab semantics: add `role="tablist"` to the container, `role="tab"` with `aria-controls` to the buttons, `role="tabpanel"` with `aria-labelledby` to the content panes, and dynamically toggle `aria-selected="true/false"` on the buttons using JavaScript when switching tabs.
+## 2026-08-07 - Semantic Buttons for Icons
+**Learning:** Using `<span>` for clickable icons (like volume controls) breaks keyboard accessibility because they are not focusable or announced properly.
+**Action:** Use semantic `<button>` elements for all interactive icons and provide descriptive `aria-label` attributes.

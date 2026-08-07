@@ -1705,7 +1705,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.20 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.3.1 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -5341,12 +5341,12 @@
             <div class="player-artist-name" id="player-artist-name">Artist Name</div>
         </div>
         <div class="player-controls">
-            <button id="player-play-btn" onclick="if(currentAudioTrack) toggleTrackPreview(currentAudioTrack.title, currentAudioTrack.artist, this)" style="background: var(--green); color: #101114; border: 0; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;">▶</button>
+            <button id="player-play-btn" aria-label="Play or pause" onclick="if(currentAudioTrack) toggleTrackPreview(currentAudioTrack.title, currentAudioTrack.artist, this)" style="background: var(--green); color: #101114; border: 0; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0;">▶</button>
             <div class="player-volume-wrap">
-                <span id="player-volume-icon" onclick="toggleMuteAudio()" title="Mute/Unmute" style="font-size: 13px; cursor: pointer; user-select: none; color: var(--muted);">🔉</span>
-                <input type="range" id="player-volume-slider" class="player-volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="setAudioVolume(this.value)" title="Volume">
+                <button id="player-volume-icon" aria-label="Mute or unmute" onclick="toggleMuteAudio()" title="Mute/Unmute" style="background: transparent; border: 0; padding: 0; font-size: 13px; cursor: pointer; user-select: none; color: var(--muted);">🔉</button>
+                <input type="range" aria-label="Volume" id="player-volume-slider" class="player-volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="setAudioVolume(this.value)" title="Volume">
             </div>
-            <button onclick="stopAudioPreview()" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;" title="Close player">✕</button>
+            <button onclick="stopAudioPreview()" aria-label="Close player" style="background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;" title="Close player">✕</button>
         </div>
         <div class="player-progress-bar">
             <div class="player-progress-fill" id="player-progress-fill"></div>
@@ -5373,6 +5373,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.3.1 (2026-08-07)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved accessibility of the mini audio player by using semantic buttons and adding ARIA labels.</li>
+                    </ul>
+                </div>
+
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.3.0 (2026-08-02)</strong>
