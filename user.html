@@ -1033,6 +1033,102 @@
         [data-theme="steel"] .theme-option:hover, [data-theme="steel"] .lang-option:hover { background: rgba(255, 255, 255, 0.04) !important; }
         [data-theme="steel"] #profile-chart-tooltip, [data-theme="steel"] #track-chart-tooltip { background: var(--paper-dark) !important; border: 1px solid var(--line) !important; color: var(--ink) !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important; }
 
+        .profile-actions { display: flex; align-items: center; gap: 8px; }
+        .share-card-trigger { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 10px 28px color-mix(in srgb, var(--blue) 24%, transparent); }
+        .share-card-trigger:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 84%, var(--ink)); color: #fff; }
+
+        .chart-expand-btn {
+            width: 30px;
+            height: 30px;
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border: 1px solid var(--line);
+            border-radius: max(6px, var(--theme-control-radius));
+            background: transparent;
+            color: var(--muted);
+            transition: 160ms ease;
+        }
+        .chart-expand-btn:hover, .chart-expand-btn[aria-expanded="true"] { border-color: var(--blue); background: var(--menu-hover); color: var(--ink); }
+
+        .profile-chart.is-fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 1400;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            border: 0;
+            border-radius: 0;
+            background: var(--paper);
+            box-shadow: none;
+        }
+        .profile-chart.is-fullscreen .panel-heading { flex: 0 0 auto; padding: max(18px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 18px max(20px, env(safe-area-inset-left)); }
+        .profile-chart.is-fullscreen .chart-wrap { min-height: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px clamp(18px, 4vw, 64px) max(22px, env(safe-area-inset-bottom)); }
+        .profile-chart.is-fullscreen .chart { height: min(62dvh, 620px); touch-action: none; }
+        body.chart-fullscreen-open, body.share-card-open { overflow: hidden; }
+
+        .chart-crosshair { position: absolute; top: 8px; bottom: 30px; width: 1px; display: none; pointer-events: none; z-index: 4; background: color-mix(in srgb, var(--ink) 42%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--paper) 35%, transparent); }
+        .chart-crosshair::after { content: ''; position: absolute; top: var(--point-y, 50%); left: 50%; width: 7px; height: 7px; border: 2px solid var(--paper); border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); transform: translate(-50%, -50%); }
+
+        .share-card-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: color-mix(in srgb, var(--paper) 52%, transparent);
+            backdrop-filter: blur(22px) saturate(0.8);
+            -webkit-backdrop-filter: blur(22px) saturate(0.8);
+        }
+        .share-card-modal.open { display: flex; animation: share-modal-in 220ms ease-out both; }
+        @keyframes share-modal-in { from { opacity: 0; } to { opacity: 1; } }
+
+        .share-card-sheet {
+            width: min(1040px, 100%);
+            max-height: calc(100dvh - 40px);
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: max(16px, var(--theme-card-radius));
+            background: var(--white);
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.32);
+        }
+        .share-card-stage {
+            min-height: 0;
+            display: grid;
+            place-items: center;
+            padding: clamp(18px, 3vw, 34px);
+            overflow: auto;
+            background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 9%, transparent), transparent 48%), var(--paper-dark);
+        }
+        #profile-share-canvas { display: block; width: auto; max-width: 100%; max-height: min(74dvh, 720px); border-radius: 14px; background: #0b0d10; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34); }
+        .share-card-panel { min-width: 0; display: flex; flex-direction: column; gap: 22px; padding: 28px; overflow-y: auto; border-left: 1px solid var(--line); }
+        .share-card-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+        .share-card-panel h2 { margin: 4px 0 0; font-size: clamp(22px, 3vw, 32px); line-height: 0.98; letter-spacing: -0.055em; }
+        .share-close-btn { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: max(8px, var(--theme-control-radius)); background: transparent; color: var(--muted); font-size: 19px; }
+        .share-close-btn:hover { border-color: var(--blue); color: var(--ink); }
+
+        .share-control-group { display: grid; gap: 9px; }
+        .share-control-label { color: var(--muted); font: 700 9px/1 'DM Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+        .share-segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 4px; border: 1px solid var(--line); border-radius: max(10px, var(--theme-control-radius)); background: var(--paper); }
+        .share-segmented.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .share-segmented input { position: absolute; opacity: 0; pointer-events: none; }
+        .share-segmented label { min-height: 36px; display: grid; place-items: center; padding: 7px 8px; border-radius: max(7px, calc(var(--theme-control-radius) - 2px)); color: var(--muted); font: 600 10px/1.15 'DM Mono', monospace; text-align: center; cursor: pointer; transition: 150ms ease; }
+        .share-segmented input:checked + label { background: var(--ink); color: var(--paper); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16); }
+        .share-segmented input:focus-visible + label { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+        .share-card-actions { display: grid; gap: 8px; margin-top: auto; }
+        .share-action-btn { min-height: 44px; border: 1px solid var(--line); border-radius: max(9px, var(--theme-control-radius)); background: var(--paper); color: var(--ink); font: 700 10px/1 'DM Mono', monospace; letter-spacing: 0.02em; transition: 160ms ease; }
+        .share-action-btn:hover { border-color: var(--blue); transform: translateY(-1px); }
+        .share-action-btn.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+        .share-action-btn:disabled { cursor: wait; opacity: 0.58; transform: none; }
+        .share-card-status { min-height: 16px; color: var(--muted); font: 10px/1.4 'DM Mono', monospace; text-align: center; }
+        .mobile-profile-actions { display: none; }
+
         /* Media Queries */
         @media (max-width: 850px) {
             .profile-header, .profile-content { align-items: flex-start; flex-direction: column; }
@@ -1041,6 +1137,7 @@
         }
 
         @media (max-width: 620px) {
+            body { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
             .page { padding: 12px; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
             .profile-title { align-items: flex-start; flex-direction: column; }
             .topbar .live-status { display: none; }
@@ -1061,14 +1158,60 @@
             .track-views { font-size: 10px; }
             .track-growth { font-size: 9px; }
 
+            .profile-header { padding: 46px 0 24px; }
+            .profile-header > div > .back-button, .profile-actions { display: none; }
+            .profile-title { margin-top: 0 !important; }
+            .profile-avatar { width: 74px; height: 74px; font-size: 22px; }
+            .profile-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+            .profile-stat { min-height: 94px; padding: 12px 10px 13px; }
+            .profile-stat-label { font-size: 8px; line-height: 1.25; }
+            .profile-stat-value { font-size: clamp(18px, 6vw, 28px); letter-spacing: -0.06em; }
+
             .chart-wrap { padding: 12px 10px 10px; }
-            .chart { height: 140px; }
+            .chart { height: 178px; touch-action: pan-y; }
 
             .panel-heading { flex-direction: column; align-items: flex-start !important; gap: 10px; }
-            .metric-selector { width: 100%; justify-content: space-between; }
+            .profile-chart .panel-heading > div:nth-child(2) { width: 100%; gap: 7px !important; flex-wrap: nowrap !important; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; }
+            .profile-chart .panel-heading > div:nth-child(2)::-webkit-scrollbar { display: none; }
+            .metric-selector { flex: 0 0 auto; }
             .metric-btn { flex: 1; justify-content: center; }
-            .timeframe-selector { width: 100%; justify-content: space-between; }
-            .timeframe-btn { flex: 1; text-align: center; padding: 6px; }
+            .timeframe-selector { flex: 0 0 auto; }
+            .timeframe-btn { flex: 0 0 auto; text-align: center; padding: 6px; }
+
+            .profile-chart.is-fullscreen .panel-heading { padding: max(16px, env(safe-area-inset-top)) 14px 12px; }
+            .profile-chart.is-fullscreen .chart-wrap { padding: 16px 10px max(12px, env(safe-area-inset-bottom)); }
+            .profile-chart.is-fullscreen .chart { height: min(58dvh, 520px); }
+            .profile-chart.is-fullscreen .chart-expand-btn {
+                position: fixed;
+                top: max(14px, env(safe-area-inset-top));
+                right: max(14px, env(safe-area-inset-right));
+                z-index: 4;
+                width: 38px;
+                height: 38px;
+                border-color: var(--blue);
+                background: color-mix(in srgb, var(--bg) 88%, transparent);
+                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+
+            .share-card-modal { align-items: flex-end; padding: 0; }
+            .share-card-sheet { width: 100%; max-height: 96dvh; grid-template-columns: 1fr; grid-template-rows: minmax(220px, 1fr) auto; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 20px 20px 0 0; }
+            .share-card-stage { padding: 16px; }
+            #profile-share-canvas { max-height: 54dvh; }
+            .share-card-panel { gap: 14px; padding: 18px 18px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); border-left: 0; }
+            .share-card-panel h2 { font-size: 23px; }
+            .share-card-panel-head .eyebrow { margin-bottom: 3px !important; }
+            .share-control-group { gap: 6px; }
+            .share-segmented label { min-height: 32px; font-size: 9px; }
+            .share-card-actions { grid-template-columns: 1fr 1fr; }
+            .share-card-actions .primary { grid-column: 1 / -1; }
+
+            .mobile-profile-actions { position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); left: 12px; z-index: 1250; display: grid; grid-template-columns: 0.8fr 1.4fr 0.8fr; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 15px; background: var(--menu-bg); box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.06); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); }
+            .mobile-profile-action { min-width: 0; height: 50px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 11px; background: transparent; color: var(--muted); font: 700 9px/1 'DM Mono', monospace; overflow: hidden; }
+            .mobile-profile-action span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mobile-profile-action.primary { background: var(--blue); color: #fff; }
+            .mobile-profile-action:active { transform: scale(0.97); }
 
             .mini-stats-grid { grid-template-columns: 1fr; }
         }
@@ -1511,9 +1654,14 @@
                     </div>
                 </div>
 
-                <button class="back-button" id="export-json-btn" data-i18n="export_json">
-                    Export JSON ↓
-                </button>
+                <div class="profile-actions">
+                    <button class="back-button share-card-trigger" id="share-card-trigger" type="button" onclick="openShareCard()" data-i18n="share_card">
+                        Share card
+                    </button>
+                    <button class="back-button" id="export-json-btn" data-i18n="export_json">
+                        Export JSON ↓
+                    </button>
+                </div>
             </section>
 
             <section class="profile-stats">
@@ -1568,6 +1716,9 @@
                             <span data-i18n="toggle_milestones">Milestones</span>
                         </button>
                         <div class="panel-meta" id="profile-chart-growth-header" style="font-weight: 700; font-family: 'DM Mono', monospace;">+0.0%</div>
+                        <button class="chart-expand-btn" id="chart-expand-btn" type="button" onclick="toggleProfileChartFullscreen()" aria-label="Open chart fullscreen" aria-expanded="false" title="Fullscreen chart">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -1756,11 +1907,87 @@
         </main>
     </div>
 
+    <nav class="mobile-profile-actions" aria-label="Profile quick actions">
+        <button class="mobile-profile-action" type="button" onclick="goBack()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            <span>Back</span>
+        </button>
+        <button class="mobile-profile-action primary" type="button" onclick="openShareCard()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+            <span data-i18n="share_card">Share card</span>
+        </button>
+        <button class="mobile-profile-action" type="button" onclick="toggleProfileChartFullscreen()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg>
+            <span>Chart</span>
+        </button>
+    </nav>
+
+    <div class="share-card-modal" id="share-card-modal" aria-hidden="true">
+        <div class="share-card-sheet" role="dialog" aria-modal="true" aria-labelledby="share-card-title">
+            <div class="share-card-stage">
+                <canvas id="profile-share-canvas" width="1080" height="1920" aria-label="Generated profile statistics card preview"></canvas>
+            </div>
+            <div class="share-card-panel">
+                <div class="share-card-panel-head">
+                    <div>
+                        <div class="eyebrow" style="margin-bottom: 7px;">Spicy / Creator kit</div>
+                        <h2 id="share-card-title" data-i18n="card_generator_title">Shareable Story Card Generator</h2>
+                    </div>
+                    <button class="share-close-btn" type="button" onclick="closeShareCard()" aria-label="Close share card generator">&times;</button>
+                </div>
+
+                <div class="share-control-group">
+                    <span class="share-control-label" data-i18n="card_format">Format</span>
+                    <div class="share-segmented">
+                        <input type="radio" name="share-format" id="share-format-story" value="story" checked>
+                        <label for="share-format-story" data-i18n="format_story">Story 9:16</label>
+                        <input type="radio" name="share-format" id="share-format-post" value="post">
+                        <label for="share-format-post" data-i18n="format_post">Post 1:1</label>
+                    </div>
+                </div>
+
+                <div class="share-control-group">
+                    <span class="share-control-label" data-i18n="card_period">Timeframe</span>
+                    <div class="share-segmented three">
+                        <input type="radio" name="share-period" id="share-period-7" value="7">
+                        <label for="share-period-7" data-i18n="period_7d">7 Days</label>
+                        <input type="radio" name="share-period" id="share-period-30" value="30" checked>
+                        <label for="share-period-30" data-i18n="period_30d">30 Days</label>
+                        <input type="radio" name="share-period" id="share-period-all" value="all">
+                        <label for="share-period-all" data-i18n="period_total">All Time</label>
+                    </div>
+                </div>
+
+                <div class="share-control-group">
+                    <span class="share-control-label" data-i18n="card_theme">Theme Style</span>
+                    <div class="share-segmented three">
+                        <input type="radio" name="share-theme" id="share-theme-carbon" value="carbon" checked>
+                        <label for="share-theme-carbon">Carbon</label>
+                        <input type="radio" name="share-theme" id="share-theme-paper" value="paper">
+                        <label for="share-theme-paper">Paper</label>
+                        <input type="radio" name="share-theme" id="share-theme-electric" value="electric">
+                        <label for="share-theme-electric">Electric</label>
+                    </div>
+                </div>
+
+                <div class="share-card-actions">
+                    <button class="share-action-btn primary" id="share-native-btn" type="button" onclick="shareProfileCard()">Share card</button>
+                    <button class="share-action-btn" id="share-download-btn" type="button" onclick="downloadProfileCard()" data-i18n="download_png">Download PNG ↓</button>
+                    <button class="share-action-btn" id="share-copy-btn" type="button" onclick="copyProfileCard()" data-i18n="copy_image">Copy Image</button>
+                </div>
+                <div class="share-card-status" id="share-card-status" aria-live="polite"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let profileData = null;
         let username = null;
         let chartTimeframe = 30;
         let chartMetrics = { views: true, tracks: false, delta: false };
+        let shareCardRenderId = 0;
+        let lastShareCardBlob = null;
+        let shareCardReturnFocus = null;
         try {
             const savedMetrics = localStorage.getItem('spicy-chart-metrics');
             if (savedMetrics) {
@@ -4291,11 +4518,20 @@
 
             chartWrap.style.position = 'relative';
 
-            svgElement.addEventListener('mousemove', (e) => {
+            let crosshair = document.getElementById('profile-chart-crosshair');
+            if (!crosshair) {
+                crosshair = document.createElement('div');
+                crosshair.id = 'profile-chart-crosshair';
+                crosshair.className = 'chart-crosshair';
+                chartWrap.appendChild(crosshair);
+            }
+
+            const showPointDetails = (e) => {
                 const rect = svgElement.getBoundingClientRect();
                 if (!rect.width || !rect.height) return;
 
-                const mouseX = ((e.clientX - rect.left) / rect.width) * 800;
+                const clientX = Number.isFinite(e.clientX) ? e.clientX : rect.left;
+                const mouseX = ((clientX - rect.left) / rect.width) * 800;
 
                 let closestPt = scaledPoints[0];
                 let closestIdx = 0;
@@ -4312,8 +4548,9 @@
 
                 // Check distance in DOM pixels -- hide tooltip if mouse is farther than 35px from nearest point
                 const distPx = Math.abs(closestPt.x - mouseX) * (rect.width / 800);
-                if (distPx > 35) {
+                if (e.pointerType !== 'touch' && distPx > 35) {
                     tooltip.style.display = 'none';
+                    crosshair.style.display = 'none';
                     return;
                 }
 
@@ -4356,18 +4593,33 @@
                 const activeY = chartMetrics.views ? closestPt.yViews : closestPt.yTracks;
                 const posY = ((activeY / 190) * rect.height) - 10;
 
+                crosshair.style.display = 'block';
+                crosshair.style.left = `${posX}px`;
+                crosshair.style.setProperty('--point-y', `${Math.max(0, Math.min(rect.height, posY))}px`);
+
                 let left = posX + 20;
                 if (left + tooltipRect.width > rect.width) {
                     left = posX - tooltipRect.width - 20;
                 }
 
-                tooltip.style.left = `${left}px`;
-                tooltip.style.top = `${posY}px`;
-            });
+                tooltip.style.left = `${Math.max(4, left)}px`;
+                tooltip.style.top = `${Math.max(4, Math.min(rect.height - tooltipRect.height - 4, posY))}px`;
+            };
 
-            svgElement.addEventListener('mouseleave', () => {
+            svgElement.onpointermove = showPointDetails;
+            svgElement.onpointerdown = (e) => {
+                if (e.pointerType === 'touch' && document.querySelector('.profile-chart')?.classList.contains('is-fullscreen')) {
+                    e.preventDefault();
+                }
+                showPointDetails(e);
+            };
+
+            const hidePointDetails = () => {
                 tooltip.style.display = 'none';
-            });
+                crosshair.style.display = 'none';
+            };
+            svgElement.onpointerleave = hidePointDetails;
+            svgElement.onpointercancel = hidePointDetails;
         }
 
         const MILESTONES = [
@@ -5115,6 +5367,454 @@
             if (activeCountEl) activeCountEl.textContent = `${activeTracks} / ${profileData.total_songs}`;
             if (growthPct) growthPct.textContent = `${growthSign}${growthPercent.toFixed(1)}%`;
         }
+
+        function getShareCardValue(name, fallback) {
+            return document.querySelector(`input[name="${name}"]:checked`)?.value || fallback;
+        }
+
+        function getShareCardPalette(name) {
+            const palettes = {
+                carbon: { bg: '#090b0f', surface: '#141820', surface2: '#1b2029', text: '#f4f1e8', muted: '#9299a6', line: '#2c333d', accent: '#c2fb38', secondary: '#7486ff', negative: '#ff7968' },
+                paper: { bg: '#eeeae0', surface: '#fffdf8', surface2: '#e1dcd0', text: '#191b20', muted: '#666b74', line: '#c8c1b5', accent: '#3f58dc', secondary: '#80a824', negative: '#d85d4d' },
+                electric: { bg: '#080817', surface: '#12122b', surface2: '#1c1b3b', text: '#f4f1ff', muted: '#aaa4c1', line: '#34335f', accent: '#49f6ae', secondary: '#9a80ff', negative: '#ff5f91' }
+            };
+            return palettes[name] || palettes.carbon;
+        }
+
+        function canvasRoundRect(ctx, x, y, width, height, radius) {
+            const r = Math.min(radius, width / 2, height / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + width, y, x + width, y + height, r);
+            ctx.arcTo(x + width, y + height, x, y + height, r);
+            ctx.arcTo(x, y + height, x, y, r);
+            ctx.arcTo(x, y, x + width, y, r);
+            ctx.closePath();
+        }
+
+        function fitCanvasText(ctx, text, maxWidth, startSize, minSize = 24) {
+            let size = startSize;
+            while (size > minSize) {
+                ctx.font = `800 ${size}px Manrope, sans-serif`;
+                if (ctx.measureText(text).width <= maxWidth) break;
+                size -= 2;
+            }
+            return size;
+        }
+
+        function truncateCanvasText(ctx, text, maxWidth) {
+            const value = String(text || '');
+            if (ctx.measureText(value).width <= maxWidth) return value;
+            let result = value;
+            while (result.length > 1 && ctx.measureText(`${result}…`).width > maxWidth) result = result.slice(0, -1);
+            return `${result}…`;
+        }
+
+        function loadShareCardImage(src) {
+            if (!src) return Promise.resolve(null);
+            return new Promise(resolve => {
+                const image = new Image();
+                const timeout = window.setTimeout(() => resolve(null), 3500);
+                image.crossOrigin = 'anonymous';
+                image.onload = () => { window.clearTimeout(timeout); resolve(image); };
+                image.onerror = () => { window.clearTimeout(timeout); resolve(null); };
+                image.src = src;
+            });
+        }
+
+        function getSharePeriodData(period) {
+            const allPoints = Array.isArray(profileData?.chart_data) ? profileData.chart_data : [];
+            if (!allPoints.length) return { points: [], growth: Number(profileData?.growth24h || 0), label: 'Latest' };
+
+            const lastDate = parseUTCDate(allPoints[allPoints.length - 1].x) || new Date();
+            let points = allPoints;
+            if (period !== 'all') {
+                const cutoff = lastDate.getTime() - (Number(period) * 86400000);
+                points = allPoints.filter(point => {
+                    const date = parseUTCDate(point.x);
+                    return date && date.getTime() >= cutoff;
+                });
+                if (points.length < 2) points = allPoints.slice(-Math.min(allPoints.length, 2));
+            }
+
+            const first = points[0];
+            const last = points[points.length - 1];
+            const firstViews = Number(first?.views ?? first?.y ?? 0);
+            const lastViews = Number(last?.views ?? last?.y ?? profileData.total_views ?? 0);
+            const currentLang = localStorage.getItem('spicy-lang') || 'en';
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const label = period === '7' ? dict.period_7d : (period === '30' ? dict.period_30d : dict.period_total);
+            return { points, growth: lastViews - firstViews, label: label || `${period} days` };
+        }
+
+        function drawShareSparkline(ctx, points, rect, palette) {
+            const values = points.map(point => Number(point.views ?? point.y ?? 0));
+            if (values.length < 2) {
+                ctx.strokeStyle = palette.line;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 10]);
+                ctx.beginPath();
+                ctx.moveTo(rect.x, rect.y + rect.height / 2);
+                ctx.lineTo(rect.x + rect.width, rect.y + rect.height / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                return;
+            }
+
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const range = Math.max(1, max - min);
+            const coords = values.map((value, index) => ({
+                x: rect.x + (index / (values.length - 1)) * rect.width,
+                y: rect.y + rect.height - ((value - min) / range) * rect.height
+            }));
+
+            const fill = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.height);
+            fill.addColorStop(0, `${palette.accent}55`);
+            fill.addColorStop(1, `${palette.accent}00`);
+            ctx.beginPath();
+            ctx.moveTo(coords[0].x, rect.y + rect.height);
+            coords.forEach(point => ctx.lineTo(point.x, point.y));
+            ctx.lineTo(coords[coords.length - 1].x, rect.y + rect.height);
+            ctx.closePath();
+            ctx.fillStyle = fill;
+            ctx.fill();
+
+            ctx.beginPath();
+            coords.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+            ctx.strokeStyle = palette.accent;
+            ctx.lineWidth = 7;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            const latest = coords[coords.length - 1];
+            ctx.beginPath();
+            ctx.arc(latest.x, latest.y, 9, 0, Math.PI * 2);
+            ctx.fillStyle = palette.bg;
+            ctx.fill();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = palette.accent;
+            ctx.stroke();
+        }
+
+        function setShareCardBusy(busy) {
+            ['share-native-btn', 'share-download-btn', 'share-copy-btn'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) button.disabled = busy;
+            });
+        }
+
+        function setShareCardStatus(message, isError = false) {
+            const status = document.getElementById('share-card-status');
+            if (!status) return;
+            status.textContent = message || '';
+            status.style.color = isError ? 'var(--coral)' : 'var(--muted)';
+        }
+
+        function canvasToBlob(canvas) {
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to create PNG.')), 'image/png', 1);
+            });
+        }
+
+        async function renderProfileShareCard() {
+            if (!profileData) return null;
+            const canvas = document.getElementById('profile-share-canvas');
+            if (!canvas) return null;
+
+            const renderId = ++shareCardRenderId;
+            const format = getShareCardValue('share-format', 'story');
+            const period = getShareCardValue('share-period', '30');
+            const palette = getShareCardPalette(getShareCardValue('share-theme', 'carbon'));
+            const compact = format === 'post';
+            canvas.width = 1080;
+            canvas.height = compact ? 1080 : 1920;
+            const width = canvas.width;
+            const height = canvas.height;
+            const ctx = canvas.getContext('2d');
+            const margin = 72;
+
+            setShareCardBusy(true);
+            setShareCardStatus('Rendering high-resolution card…');
+            lastShareCardBlob = null;
+            try {
+                if (document.fonts?.ready) await document.fonts.ready;
+                const avatarSrc = document.querySelector('#profile-avatar img')?.src || '';
+                const avatarImage = await loadShareCardImage(avatarSrc);
+                if (renderId !== shareCardRenderId) return null;
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = palette.bg;
+                ctx.fillRect(0, 0, width, height);
+
+                const ambient = ctx.createRadialGradient(width * 0.86, height * 0.08, 0, width * 0.86, height * 0.08, width * 0.78);
+                ambient.addColorStop(0, `${palette.secondary}50`);
+                ambient.addColorStop(0.48, `${palette.secondary}14`);
+                ambient.addColorStop(1, `${palette.secondary}00`);
+                ctx.fillStyle = ambient;
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.strokeStyle = `${palette.line}6f`;
+                ctx.lineWidth = 1;
+                for (let x = 0; x <= width; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
+                for (let y = 0; y <= height; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+
+                canvasRoundRect(ctx, margin, 58, 46, 46, 12);
+                ctx.fillStyle = palette.accent;
+                ctx.fill();
+                ctx.fillStyle = palette.bg;
+                ctx.font = '900 25px Manrope, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('S', margin + 23, 90);
+                ctx.textAlign = 'left';
+                ctx.fillStyle = palette.text;
+                ctx.font = '800 25px Manrope, sans-serif';
+                ctx.fillText('SPICY MONITOR', margin + 62, 82);
+                ctx.fillStyle = palette.muted;
+                ctx.font = '700 13px "DM Mono", monospace';
+                ctx.fillText('LIVE CREATOR ANALYTICS', margin + 62, 103);
+                ctx.textAlign = 'right';
+                ctx.fillText(compact ? 'POST / 01' : 'STORY / 01', width - margin, 88);
+                ctx.textAlign = 'left';
+
+                const heroY = compact ? 154 : 190;
+                const avatarSize = compact ? 118 : 154;
+                canvasRoundRect(ctx, margin, heroY, avatarSize, avatarSize, compact ? 28 : 36);
+                ctx.save();
+                ctx.clip();
+                if (avatarImage) {
+                    const sourceSize = Math.min(avatarImage.naturalWidth, avatarImage.naturalHeight);
+                    const sx = (avatarImage.naturalWidth - sourceSize) / 2;
+                    const sy = (avatarImage.naturalHeight - sourceSize) / 2;
+                    ctx.drawImage(avatarImage, sx, sy, sourceSize, sourceSize, margin, heroY, avatarSize, avatarSize);
+                } else {
+                    const avatarGradient = ctx.createLinearGradient(margin, heroY, margin + avatarSize, heroY + avatarSize);
+                    avatarGradient.addColorStop(0, palette.secondary);
+                    avatarGradient.addColorStop(1, palette.accent);
+                    ctx.fillStyle = avatarGradient;
+                    ctx.fillRect(margin, heroY, avatarSize, avatarSize);
+                    ctx.fillStyle = palette.bg;
+                    ctx.font = `900 ${compact ? 40 : 50}px Manrope, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText((profileData.username || username || '--').slice(0, 2).toUpperCase(), margin + avatarSize / 2, heroY + avatarSize * 0.66);
+                    ctx.textAlign = 'left';
+                }
+                ctx.restore();
+                ctx.strokeStyle = palette.line;
+                ctx.lineWidth = 2;
+                canvasRoundRect(ctx, margin, heroY, avatarSize, avatarSize, compact ? 28 : 36);
+                ctx.stroke();
+
+                const profileX = margin + avatarSize + 34;
+                const maxNameWidth = width - margin - profileX;
+                const displayName = `@${profileData.username || username}`;
+                const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 56 : 70, 34);
+                ctx.fillStyle = palette.text;
+                ctx.font = `800 ${nameSize}px Manrope, sans-serif`;
+                ctx.fillText(displayName, profileX, heroY + avatarSize * 0.52);
+                const rankText = document.getElementById('profile-rank')?.textContent?.split('/').pop()?.trim() || 'Tracked creator';
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 17 : 20}px "DM Mono", monospace`;
+                ctx.fillText(`${rankText.toUpperCase()}  •  ${getSharePeriodData(period).label.toUpperCase()}`, profileX, heroY + avatarSize * 0.75);
+
+                const periodData = getSharePeriodData(period);
+                const viewsY = compact ? 346 : 430;
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 15 : 18}px "DM Mono", monospace`;
+                ctx.fillText('TOTAL VIEWS', margin, viewsY);
+                const viewsText = formatViews(Number(profileData.total_views || 0));
+                ctx.fillStyle = palette.text;
+                ctx.font = `800 ${compact ? 102 : 148}px Manrope, sans-serif`;
+                ctx.fillText(viewsText, margin, viewsY + (compact ? 94 : 135));
+
+                const statY = compact ? 474 : 660;
+                const statGap = 16;
+                const statWidth = (width - margin * 2 - statGap) / 2;
+                const statHeight = compact ? 126 : 160;
+                const growthPositive = periodData.growth >= 0;
+                const statItems = [
+                    { label: `${periodData.label} growth`, value: `${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, color: growthPositive ? palette.accent : palette.negative },
+                    { label: 'Tracked catalog', value: `${Number(profileData.total_songs || 0)} tracks`, color: palette.text }
+                ];
+                statItems.forEach((item, index) => {
+                    const x = margin + index * (statWidth + statGap);
+                    canvasRoundRect(ctx, x, statY, statWidth, statHeight, 24);
+                    ctx.fillStyle = palette.surface;
+                    ctx.fill();
+                    ctx.strokeStyle = palette.line;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = palette.muted;
+                    ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
+                    ctx.fillText(item.label.toUpperCase(), x + 26, statY + (compact ? 34 : 43));
+                    ctx.fillStyle = item.color;
+                    ctx.font = `800 ${compact ? 34 : 46}px Manrope, sans-serif`;
+                    ctx.fillText(item.value, x + 26, statY + (compact ? 89 : 113));
+                });
+
+                const chartY = compact ? 626 : 886;
+                const chartHeight = compact ? 280 : 530;
+                canvasRoundRect(ctx, margin, chartY, width - margin * 2, chartHeight, 30);
+                ctx.fillStyle = palette.surface;
+                ctx.fill();
+                ctx.strokeStyle = palette.line;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
+                ctx.fillText('MOMENTUM / VIEW HISTORY', margin + 30, chartY + 40);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = growthPositive ? palette.accent : palette.negative;
+                ctx.fillText(`${growthPositive ? 'UP' : 'DOWN'} ${formatViews(Math.abs(periodData.growth))}`, width - margin - 30, chartY + 40);
+                ctx.textAlign = 'left';
+                drawShareSparkline(ctx, periodData.points, { x: margin + 32, y: chartY + 76, width: width - margin * 2 - 64, height: chartHeight - 116 }, palette);
+
+                const topSong = [...(profileData.songs || [])].sort((a, b) => Number(b.views || 0) - Number(a.views || 0))[0];
+                const footerY = height - (compact ? 66 : 112);
+                if (!compact && topSong) {
+                    const topY = chartY + chartHeight + 72;
+                    ctx.fillStyle = palette.muted;
+                    ctx.font = '700 16px "DM Mono", monospace';
+                    ctx.fillText('CATALOG LEADER', margin, topY);
+                    ctx.fillStyle = palette.text;
+                    ctx.font = '800 42px Manrope, sans-serif';
+                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2), margin, topY + 58);
+                    ctx.fillStyle = palette.muted;
+                    ctx.font = '600 20px Manrope, sans-serif';
+                    ctx.fillText(`${truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 190)}  •  ${formatViews(Number(topSong.views || 0))} views`, margin, topY + 94);
+                }
+
+                ctx.strokeStyle = palette.line;
+                ctx.beginPath();
+                ctx.moveTo(margin, footerY - 28);
+                ctx.lineTo(width - margin, footerY - 28);
+                ctx.stroke();
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 12 : 15}px "DM Mono", monospace`;
+                ctx.fillText('SPICY-STATS.GLYPH-LABS.SITE', margin, footerY);
+                ctx.textAlign = 'right';
+                ctx.fillText(new Date().toLocaleDateString(getLocale(), { year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase(), width - margin, footerY);
+                ctx.textAlign = 'left';
+
+                lastShareCardBlob = await canvasToBlob(canvas);
+                if (renderId === shareCardRenderId) setShareCardStatus(`${compact ? '1080 × 1080' : '1080 × 1920'} PNG ready`);
+                return lastShareCardBlob;
+            } catch (error) {
+                console.error('Share card render failed', error);
+                setShareCardStatus('Could not render the card. Please try again.', true);
+                return null;
+            } finally {
+                if (renderId === shareCardRenderId) setShareCardBusy(false);
+            }
+        }
+
+        async function openShareCard() {
+            if (!profileData) return;
+            shareCardReturnFocus = document.activeElement;
+            const modal = document.getElementById('share-card-modal');
+            if (!modal) return;
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('share-card-open');
+
+            if (!modal.dataset.bound) {
+                modal.dataset.bound = 'true';
+                modal.querySelectorAll('input[type="radio"]').forEach(input => input.addEventListener('change', renderProfileShareCard));
+                modal.addEventListener('click', event => { if (event.target === modal) closeShareCard(); });
+            }
+            modal.querySelector('.share-close-btn')?.focus({ preventScroll: true });
+            await renderProfileShareCard();
+        }
+
+        function closeShareCard() {
+            const modal = document.getElementById('share-card-modal');
+            if (!modal) return;
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('share-card-open');
+            if (shareCardReturnFocus?.focus) shareCardReturnFocus.focus({ preventScroll: true });
+        }
+
+        async function getLatestShareCardBlob() {
+            return lastShareCardBlob || await renderProfileShareCard();
+        }
+
+        function getShareCardFilename() {
+            const safeName = String(profileData?.username || username || 'creator').replace(/[^a-z0-9_-]+/gi, '-');
+            const period = getShareCardValue('share-period', '30');
+            return `spicy-${safeName}-${period}d.png`;
+        }
+
+        async function downloadProfileCard() {
+            const blob = await getLatestShareCardBlob();
+            if (!blob) return;
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = getShareCardFilename();
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            setShareCardStatus('PNG downloaded');
+        }
+
+        async function copyProfileCard() {
+            const blob = await getLatestShareCardBlob();
+            if (!blob) return;
+            try {
+                if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('Image clipboard unavailable');
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                const dict = TRANSLATIONS[localStorage.getItem('spicy-lang') || 'en'] || TRANSLATIONS.en;
+                setShareCardStatus(dict.copied || 'Copied');
+            } catch (error) {
+                setShareCardStatus('Image copy is unavailable here — PNG downloaded instead.');
+                await downloadProfileCard();
+            }
+        }
+
+        async function shareProfileCard() {
+            const blob = await getLatestShareCardBlob();
+            if (!blob) return;
+            const file = new File([blob], getShareCardFilename(), { type: 'image/png' });
+            const profileUrl = `https://spicy-stats.glyph-labs.site/user/${encodeURIComponent(profileData.username || username)}`;
+            try {
+                if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+                    await navigator.share({ files: [file], title: `@${profileData.username} — Spicy Monitor`, text: 'Live creator stats from Spicy Monitor', url: profileUrl });
+                    setShareCardStatus('Share sheet opened');
+                } else {
+                    await downloadProfileCard();
+                    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(profileUrl);
+                    setShareCardStatus('PNG downloaded and profile link copied');
+                }
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    console.error('Share failed', error);
+                    setShareCardStatus('Sharing is unavailable — use Download PNG.', true);
+                }
+            }
+        }
+
+        function toggleProfileChartFullscreen(forceState) {
+            const panel = document.querySelector('.profile-chart');
+            if (!panel) return;
+            const shouldOpen = typeof forceState === 'boolean' ? forceState : !panel.classList.contains('is-fullscreen');
+            panel.classList.toggle('is-fullscreen', shouldOpen);
+            document.body.classList.toggle('chart-fullscreen-open', shouldOpen);
+            const button = document.getElementById('chart-expand-btn');
+            if (button) {
+                button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+                button.setAttribute('aria-label', shouldOpen ? 'Close fullscreen chart' : 'Open chart fullscreen');
+            }
+            document.getElementById('profile-chart-tooltip')?.style.setProperty('display', 'none');
+            window.requestAnimationFrame(() => renderChart());
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            if (document.getElementById('share-card-modal')?.classList.contains('open')) closeShareCard();
+            else if (document.querySelector('.profile-chart')?.classList.contains('is-fullscreen')) toggleProfileChartFullscreen(false);
+        });
 
         function goBack() {
             if (window.location.pathname.endsWith('.html') || window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io')) {

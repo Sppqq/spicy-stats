@@ -1100,6 +1100,7 @@
 
         [data-theme] .theme-option.active .theme-check { border-color: var(--blue); background: var(--blue); color: var(--paper); }
         .theme-dropdown-footer { display: flex; justify-content: space-between; gap: 12px; padding: 12px 6px 3px; letter-spacing: 0.06em; }
+        .mobile-dashboard-actions { display: none; }
 
         /* Media Queries */
         @media (max-width: 850px) {
@@ -1108,12 +1109,50 @@
         }
 
         @media (max-width: 620px) {
+            body { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
             .page { padding: 17px; }
             .topbar-right .live-status { display: none; }
             .database-head { align-items: flex-start; flex-direction: column; gap: 14px; }
+            .database-head > div:last-child { width: 100%; }
             .search { width: 100%; }
-            .table-wrap { overflow-x: auto; }
-            table { min-width: 680px; }
+            .table-wrap { overflow: visible; }
+            .database { border: 0; background: transparent; box-shadow: none; }
+            .database-head { padding: 18px 0; border-bottom: 0; }
+            .database-head #add-author-btn, .database-head #compare-btn-trigger { display: none !important; }
+            table, tbody { display: block; width: 100%; min-width: 0; }
+            thead { display: none; }
+            #database-tbody { display: grid; gap: 10px; }
+            #database-tbody tr {
+                position: relative;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-areas:
+                    "user user"
+                    "views growth"
+                    "tracks tracks7"
+                    "updated actions";
+                overflow: hidden;
+                border: 1px solid var(--line);
+                border-radius: max(12px, var(--theme-card-radius));
+                background: var(--white);
+                box-shadow: var(--theme-panel-shadow);
+                transform: translateZ(0);
+            }
+            #database-tbody tr:active { transform: scale(0.985); }
+            #database-tbody td { min-width: 0; padding: 12px 14px; border: 0; }
+            #database-tbody td[data-mobile-label] { display: grid; gap: 5px; border-top: 1px solid var(--paper-dark); font: 700 15px/1.1 'DM Mono', monospace; }
+            #database-tbody td[data-mobile-label]::before { content: attr(data-mobile-label); color: var(--muted); font: 700 8px/1 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+            #database-tbody .cell-number { position: absolute; top: 15px; right: 14px; z-index: 2; padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-dark); color: var(--muted); font: 700 9px/1 'DM Mono', monospace; }
+            #database-tbody .table-user { grid-area: user; padding: 18px 58px 17px 16px; font-size: 17px; letter-spacing: -0.025em; }
+            #database-tbody td:nth-child(4) { grid-area: views; }
+            #database-tbody td:nth-child(5) { grid-area: growth; }
+            #database-tbody td:nth-child(6) { grid-area: tracks; }
+            #database-tbody td:nth-child(7) { grid-area: tracks7; }
+            #database-tbody td:nth-child(8) { grid-area: updated; align-content: center; }
+            #database-tbody .cell-actions { grid-area: actions; display: flex; align-items: center; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--paper-dark); }
+            #database-tbody .cell-actions .star-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+            #database-tbody .cell-actions .compare-check { width: 28px; height: 28px; margin: 0; }
+            #database-tbody .mobile-empty-cell { grid-column: 1 / -1; padding: 30px 16px; text-align: center; }
             .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
             .theme-toggle-swatch { width: 24px; height: 24px; }
             .theme-toggle-kicker { display: none; }
@@ -1124,6 +1163,29 @@
 
             .chart-wrap { padding: 12px 10px 10px; }
             .chart { height: 140px; }
+
+            .mobile-dashboard-actions {
+                position: fixed;
+                right: 12px;
+                bottom: max(10px, env(safe-area-inset-bottom));
+                left: 12px;
+                z-index: 1250;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 5px;
+                padding: 5px;
+                border: 1px solid var(--line);
+                border-radius: 15px;
+                background: var(--menu-bg);
+                box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.06);
+                backdrop-filter: blur(22px) saturate(1.3);
+                -webkit-backdrop-filter: blur(22px) saturate(1.3);
+            }
+            .mobile-dashboard-action { min-width: 0; height: 50px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 11px; background: transparent; color: var(--muted); font: 700 9px/1 'DM Mono', monospace; overflow: hidden; }
+            .mobile-dashboard-action span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mobile-dashboard-action.primary { background: var(--blue); color: #fff; }
+            .mobile-dashboard-action.active { background: var(--ink); color: var(--paper); }
+            .mobile-dashboard-action:active { transform: scale(0.97); }
         }
 
         @media (max-width: 440px) {
@@ -1685,6 +1747,21 @@
             </footer>
         </main>
     </div>
+
+    <nav class="mobile-dashboard-actions" aria-label="Dashboard quick actions">
+        <button class="mobile-dashboard-action" type="button" onclick="focusMobileSearch()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <span data-i18n="search_place">Search</span>
+        </button>
+        <button class="mobile-dashboard-action primary" type="button" onclick="openMobileAddAuthor()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="add_author">Add Author</span>
+        </button>
+        <button class="mobile-dashboard-action" id="mobile-compare-action" type="button" onclick="toggleMobileCompare()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>
+            <span data-i18n="compare_btn">Compare</span>
+        </button>
+    </nav>
 
     <!-- Add Author Modal -->
     <div id="add-author-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
@@ -3257,7 +3334,7 @@
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
                         ${dict.loading_metrics || 'Loading live metrics...'}
                     </td>
                 </tr>
@@ -3279,7 +3356,7 @@
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                    <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
                         ${dict.error_loading || 'Error loading data. Please reload the page.'}
                     </td>
                 </tr>
@@ -3776,7 +3853,7 @@
             if (filteredUsers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
                             ${dict.no_results}
                         </td>
                     </tr>
@@ -3843,11 +3920,11 @@
                         <div>@${escapeHtml(u.username)}</div>
                         ${u._matchedTrack ? `<div style="font-size: 10px; color: var(--muted); font-weight: normal; margin-top: 3px;">🎵 ${escapeHtml(u._matchedTrack)}</div>` : ''}
                     </td>
-                    <td>${formatFullNumber(Number(u.views || 0))}</td>
-                    <td class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">
+                    <td data-mobile-label="${escapeHtml(dict.th_views || 'Views')}">${formatFullNumber(Number(u.views || 0))}</td>
+                    <td data-mobile-label="${escapeHtml(dict.th_growth || '24h growth')}" class="${growthClass}" style="color: ${growthColor}; font-family: 'DM Mono', monospace;">
                         ${growthText}
                     </td>
-                    <td>
+                    <td data-mobile-label="${escapeHtml(dict.th_tracks || 'Tracks')}">
                         <div style="font-weight: 500;">
                             ${u.total_songs === null || u.total_songs === undefined ? '—' : Number(u.total_songs)}
                         </div>
@@ -3855,14 +3932,48 @@
                             ? `<div style="font-size: 10px; color: var(--muted); margin-top: 2px;">~${formatViews(Math.round(Number(u.views || 0) / Number(u.total_songs)))}/tr</div>`
                             : ''}
                     </td>
-                    <td class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
+                    <td data-mobile-label="${escapeHtml(dict.th_7d || '7d tracks')}" class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
                         ${tracksGrowthSign}${formatFullNumber(tracksGrowthVal)}
                     </td>
-                    <td class="table-muted">${timeAgo(u.last_updated)}</td>
+                    <td data-mobile-label="${escapeHtml(dict.th_updated || 'Updated')}" class="table-muted">${timeAgo(u.last_updated)}</td>
                 `;
                 tbody.appendChild(row);
             });
         }
+
+        function focusMobileSearch() {
+            const search = document.getElementById('search-input');
+            if (!search) return;
+            search.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            window.setTimeout(() => search.focus({ preventScroll: true }), 320);
+        }
+
+        function openMobileAddAuthor() {
+            const modal = document.getElementById('add-author-modal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            window.setTimeout(() => document.getElementById('new-username')?.focus(), 80);
+        }
+
+        function syncMobileCompareAction() {
+            const action = document.getElementById('mobile-compare-action');
+            if (!action) return;
+            const active = document.body.classList.contains('compare-mode');
+            action.classList.toggle('active', active);
+            action.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+
+        function toggleMobileCompare() {
+            const active = document.body.classList.toggle('compare-mode');
+            document.getElementById('compare-btn-trigger')?.classList.toggle('compare-active', active);
+            if (!active) clearCompareSelection();
+            syncMobileCompareAction();
+            if (active) {
+                document.querySelector('.database')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        new MutationObserver(syncMobileCompareAction).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
         function updateSortIndicators() {
             const columns = ['username', 'views', 'growth', 'tracks', 'tracks_growth_7d', 'last_updated'];
