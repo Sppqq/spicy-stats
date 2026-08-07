@@ -48,9 +48,7 @@ function getPrimaryArtist(artistStr) {
     return res;
 }
 
-// In-memory rate limiting with Cloudflare Rate Limiter binding support
-const rateLimitMap = new Map();
-
+// Rate limiting via Cloudflare Rate Limiter binding
 async function isRateLimited(env, ip, limit, windowMs) {
     if (env && env.RATE_LIMITER && typeof env.RATE_LIMITER.limit === 'function') {
         try {
@@ -60,25 +58,6 @@ async function isRateLimited(env, ip, limit, windowMs) {
             console.error("Rate limiter binding error:", e);
         }
     }
-
-    const now = Date.now();
-    if (rateLimitMap.size > 10000) rateLimitMap.clear();
-
-    if (!rateLimitMap.has(ip)) {
-        rateLimitMap.set(ip, [now]);
-        return false;
-    }
-
-    const timestamps = rateLimitMap.get(ip);
-    const activeTimestamps = timestamps.filter(ts => now - ts < windowMs);
-
-    if (activeTimestamps.length >= limit) {
-        rateLimitMap.set(ip, activeTimestamps);
-        return true;
-    }
-
-    activeTimestamps.push(now);
-    rateLimitMap.set(ip, activeTimestamps);
     return false;
 }
 
