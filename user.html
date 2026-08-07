@@ -1068,7 +1068,7 @@
         .profile-chart.is-fullscreen .chart { height: min(62dvh, 620px); touch-action: none; }
         body.chart-fullscreen-open, body.share-card-open { overflow: hidden; }
 
-        .chart-crosshair { position: absolute; top: 8px; bottom: 30px; width: 1px; display: none; pointer-events: none; z-index: 4; background: color-mix(in srgb, var(--ink) 42%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--paper) 35%, transparent); }
+        .chart-crosshair { position: absolute; top: 0; bottom: auto; width: 1px; height: 0; display: none; pointer-events: none; z-index: 4; background: color-mix(in srgb, var(--ink) 42%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--paper) 35%, transparent); }
         .chart-crosshair::after { content: ''; position: absolute; top: var(--point-y, 50%); left: 50%; width: 7px; height: 7px; border: 2px solid var(--paper); border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); transform: translate(-50%, -50%); }
 
         .share-card-modal {
@@ -1892,7 +1892,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.2.20 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.3.0 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -1988,6 +1988,7 @@
         let shareCardRenderId = 0;
         let lastShareCardBlob = null;
         let shareCardReturnFocus = null;
+        const shareCardImageCache = new Map();
         try {
             const savedMetrics = localStorage.getItem('spicy-chart-metrics');
             if (savedMetrics) {
@@ -2363,7 +2364,6 @@
                 monitored_profiles: "Monitored profiles",
                 across_profiles: "Across all profiles",
                 views_24h_suffix: "views 24h",
-                compare_selected: "Compare selected",
                 loading_profile: "Loading profile details...",
                 error: "Error",
                 loading_tracks: "Loading tracks...",
@@ -2519,7 +2519,6 @@
                 monitored_profiles: "Отслеживаемые профили",
                 across_profiles: "По всем профилям",
                 views_24h_suffix: "просмотров за 24ч",
-                compare_selected: "Сравнить выбранные",
                 loading_profile: "Загрузка данных профиля...",
                 error: "Ошибка",
                 loading_tracks: "Загрузка треков...",
@@ -2673,7 +2672,6 @@
                 monitored_profiles: "Відстежувані профілі",
                 across_profiles: "По всім профілям",
                 views_24h_suffix: "переглядів за 24г",
-                compare_selected: "Порівняти вибрані",
                 loading_profile: "Завантаження даних профілю...",
                 error: "Помилка",
                 loading_tracks: "Завантаження треків...",
@@ -2827,7 +2825,6 @@
                 monitored_profiles: "Überwachte Profile",
                 across_profiles: "Über alle Profile",
                 views_24h_suffix: "Aufrufe in 24h",
-                compare_selected: "Ausgewählte vergleichen",
                 loading_profile: "Profildetails werden geladen...",
                 error: "Fehler",
                 loading_tracks: "Tracks werden geladen...",
@@ -2981,7 +2978,6 @@
                 monitored_profiles: "Profili monitorati",
                 across_profiles: "Su tutti i profili",
                 views_24h_suffix: "visualizzazioni in 24h",
-                compare_selected: "Confronta selezionati",
                 loading_profile: "Caricamento dettagli profilo...",
                 error: "Errore",
                 loading_tracks: "Caricamento brani...",
@@ -3630,34 +3626,51 @@
             `;
         }
 
+        function getProfileAvatarCandidates() {
+            if (!profileData?.discord_id) return [];
+            const candidates = [];
+            if (profileData.discord_avatar) {
+                if (profileData.discord_avatar.startsWith('http')) {
+                    candidates.push(profileData.discord_avatar);
+                } else {
+                    const ext = profileData.discord_avatar.startsWith('a_') ? 'gif' : 'webp';
+                    candidates.push(`https://cdn.discordapp.com/avatars/${profileData.discord_id}/${profileData.discord_avatar}.${ext}?size=256`);
+                }
+            }
+            try {
+                const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
+                candidates.push(`https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`);
+            } catch (_) {
+                candidates.push('https://cdn.discordapp.com/embed/avatars/0.png');
+            }
+            return [...new Set(candidates)];
+        }
+
+        function renderProfileAvatarFallback(avatarEl, initials) {
+            avatarEl.textContent = initials;
+            avatarEl.style.padding = '';
+            avatarEl.style.background = '';
+            avatarEl.style.overflow = '';
+        }
+
+        async function renderProfileAvatar(avatarEl, initials) {
+            renderProfileAvatarFallback(avatarEl, initials);
+            const avatarImage = await loadProfileAvatarImage();
+            if (!avatarImage || !profileData) return;
+            avatarImage.alt = profileData.username || username;
+            avatarImage.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:0;display:block;';
+            avatarEl.replaceChildren(avatarImage);
+            avatarEl.style.padding = '0';
+            avatarEl.style.background = 'linear-gradient(135deg, var(--blue), var(--green))';
+            avatarEl.style.overflow = 'hidden';
+        }
+
         function renderProfile(rankText) {
             if (!profileData) return;
 
             const initials = username.substring(0, 2).toUpperCase();
             const avatarEl = document.getElementById('profile-avatar');
-            if (profileData.discord_id) {
-                let avatarUrl = '';
-                if (profileData.discord_avatar) {
-                    if (profileData.discord_avatar.startsWith('http')) {
-                        avatarUrl = profileData.discord_avatar;
-                    } else {
-                        const ext = profileData.discord_avatar.startsWith('a_') ? 'gif' : 'webp';
-                        avatarUrl = `https://cdn.discordapp.com/avatars/${profileData.discord_id}/${profileData.discord_avatar}.${ext}?size=256`;
-                    }
-                } else {
-                    const defaultIndex = Number((BigInt(profileData.discord_id) >> 22n) % 6n);
-                    avatarUrl = `https://cdn.discordapp.com/embed/avatars/${defaultIndex}.png`;
-                }
-                avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${profileData.username}" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0;">`;
-                avatarEl.style.padding = '0';
-                avatarEl.style.background = 'transparent';
-                avatarEl.style.overflow = 'hidden';
-            } else {
-                avatarEl.textContent = initials;
-                avatarEl.style.padding = '';
-                avatarEl.style.background = '';
-                avatarEl.style.overflow = '';
-            }
+            renderProfileAvatar(avatarEl, initials);
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
@@ -4528,6 +4541,7 @@
 
             const showPointDetails = (e) => {
                 const rect = svgElement.getBoundingClientRect();
+                const wrapRect = chartWrap.getBoundingClientRect();
                 if (!rect.width || !rect.height) return;
 
                 const clientX = Number.isFinite(e.clientX) ? e.clientX : rect.left;
@@ -4589,21 +4603,31 @@
                 tooltip.innerHTML = content;
 
                 const tooltipRect = tooltip.getBoundingClientRect();
-                const posX = ((closestPt.x / 800) * rect.width);
                 const activeY = chartMetrics.views ? closestPt.yViews : closestPt.yTracks;
-                const posY = ((activeY / 190) * rect.height) - 10;
+                const svgPoint = svgElement.createSVGPoint();
+                svgPoint.x = closestPt.x;
+                svgPoint.y = activeY;
+                const screenMatrix = svgElement.getScreenCTM();
+                const screenPoint = screenMatrix
+                    ? svgPoint.matrixTransform(screenMatrix)
+                    : { x: rect.left + (closestPt.x / 800) * rect.width, y: rect.top + (activeY / 190) * rect.height };
+                const posX = screenPoint.x - wrapRect.left;
+                const posY = screenPoint.y - wrapRect.top;
+                const isTouchPointer = e.pointerType === 'touch';
 
-                crosshair.style.display = 'block';
+                crosshair.style.display = isTouchPointer ? 'block' : 'none';
                 crosshair.style.left = `${posX}px`;
-                crosshair.style.setProperty('--point-y', `${Math.max(0, Math.min(rect.height, posY))}px`);
+                crosshair.style.top = `${rect.top - wrapRect.top}px`;
+                crosshair.style.height = `${rect.height}px`;
+                crosshair.style.setProperty('--point-y', `${Math.max(0, Math.min(rect.height, screenPoint.y - rect.top))}px`);
 
                 let left = posX + 20;
-                if (left + tooltipRect.width > rect.width) {
+                if (left + tooltipRect.width > wrapRect.width) {
                     left = posX - tooltipRect.width - 20;
                 }
 
                 tooltip.style.left = `${Math.max(4, left)}px`;
-                tooltip.style.top = `${Math.max(4, Math.min(rect.height - tooltipRect.height - 4, posY))}px`;
+                tooltip.style.top = `${Math.max(4, Math.min(wrapRect.height - tooltipRect.height - 4, posY - tooltipRect.height / 2))}px`;
             };
 
             svgElement.onpointermove = showPointDetails;
@@ -5410,16 +5434,60 @@
             return `${result}…`;
         }
 
+        function hasMeaningfulAvatarPixels(image) {
+            try {
+                const sample = document.createElement('canvas');
+                sample.width = 24;
+                sample.height = 24;
+                const sampleCtx = sample.getContext('2d', { willReadFrequently: true });
+                sampleCtx.drawImage(image, 0, 0, sample.width, sample.height);
+                const pixels = sampleCtx.getImageData(0, 0, sample.width, sample.height).data;
+                let visible = 0;
+                let brightnessTotal = 0;
+                let minBrightness = 255;
+                let maxBrightness = 0;
+                for (let i = 0; i < pixels.length; i += 4) {
+                    if (pixels[i + 3] < 32) continue;
+                    const brightness = (pixels[i] * 0.2126) + (pixels[i + 1] * 0.7152) + (pixels[i + 2] * 0.0722);
+                    visible += 1;
+                    brightnessTotal += brightness;
+                    minBrightness = Math.min(minBrightness, brightness);
+                    maxBrightness = Math.max(maxBrightness, brightness);
+                }
+                if (visible < sample.width * sample.height * 0.08) return false;
+                const averageBrightness = brightnessTotal / visible;
+                return averageBrightness >= 12 || maxBrightness - minBrightness >= 8;
+            } catch (_) {
+                return false;
+            }
+        }
+
         function loadShareCardImage(src) {
             if (!src) return Promise.resolve(null);
-            return new Promise(resolve => {
+            if (shareCardImageCache.has(src)) return shareCardImageCache.get(src);
+            const request = new Promise(resolve => {
                 const image = new Image();
-                const timeout = window.setTimeout(() => resolve(null), 3500);
+                const timeout = window.setTimeout(() => resolve(null), 6000);
                 image.crossOrigin = 'anonymous';
-                image.onload = () => { window.clearTimeout(timeout); resolve(image); };
+                image.referrerPolicy = 'no-referrer';
+                image.onload = () => {
+                    window.clearTimeout(timeout);
+                    resolve(hasMeaningfulAvatarPixels(image) ? image : null);
+                };
                 image.onerror = () => { window.clearTimeout(timeout); resolve(null); };
                 image.src = src;
             });
+            shareCardImageCache.set(src, request);
+            request.then(image => { if (!image) shareCardImageCache.delete(src); });
+            return request;
+        }
+
+        async function loadProfileAvatarImage() {
+            for (const src of getProfileAvatarCandidates()) {
+                const image = await loadShareCardImage(src);
+                if (image) return image;
+            }
+            return null;
         }
 
         function getSharePeriodData(period) {
@@ -5540,8 +5608,7 @@
             lastShareCardBlob = null;
             try {
                 if (document.fonts?.ready) await document.fonts.ready;
-                const avatarSrc = document.querySelector('#profile-avatar img')?.src || '';
-                const avatarImage = await loadShareCardImage(avatarSrc);
+                const avatarImage = await loadProfileAvatarImage();
                 if (renderId !== shareCardRenderId) return null;
 
                 ctx.clearRect(0, 0, width, height);
@@ -5583,17 +5650,17 @@
                 canvasRoundRect(ctx, margin, heroY, avatarSize, avatarSize, compact ? 28 : 36);
                 ctx.save();
                 ctx.clip();
+                const avatarGradient = ctx.createLinearGradient(margin, heroY, margin + avatarSize, heroY + avatarSize);
+                avatarGradient.addColorStop(0, palette.secondary);
+                avatarGradient.addColorStop(1, palette.accent);
+                ctx.fillStyle = avatarGradient;
+                ctx.fillRect(margin, heroY, avatarSize, avatarSize);
                 if (avatarImage) {
                     const sourceSize = Math.min(avatarImage.naturalWidth, avatarImage.naturalHeight);
                     const sx = (avatarImage.naturalWidth - sourceSize) / 2;
                     const sy = (avatarImage.naturalHeight - sourceSize) / 2;
                     ctx.drawImage(avatarImage, sx, sy, sourceSize, sourceSize, margin, heroY, avatarSize, avatarSize);
                 } else {
-                    const avatarGradient = ctx.createLinearGradient(margin, heroY, margin + avatarSize, heroY + avatarSize);
-                    avatarGradient.addColorStop(0, palette.secondary);
-                    avatarGradient.addColorStop(1, palette.accent);
-                    ctx.fillStyle = avatarGradient;
-                    ctx.fillRect(margin, heroY, avatarSize, avatarSize);
                     ctx.fillStyle = palette.bg;
                     ctx.font = `900 ${compact ? 40 : 50}px Manrope, sans-serif`;
                     ctx.textAlign = 'center';
@@ -6111,9 +6178,13 @@
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
 
                 <div style="margin-bottom: 16px;">
-                    <strong style="color: var(--ink);">v1.3.0 (2026-08-02)</strong>
+                    <strong style="color: var(--ink);">v1.3.0 (2026-08-07)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
                         <li>Added 30-Sec Audio Preview Mini-Player with interactive track play buttons, iTunes search lookup, and animated wave equalizer.</li>
+                        <li>Added high-resolution Story and Post creator cards with reliable avatar export.</li>
+                        <li>Rebuilt the mobile author database and added a full-screen touch chart.</li>
+                        <li>Fixed profile chart hover alignment and removed the duplicate desktop crosshair.</li>
+                        <li>Removed profile comparison mode and its related controls.</li>
                     </ul>
                 </div>
 
