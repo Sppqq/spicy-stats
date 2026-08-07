@@ -36,7 +36,7 @@
     <script>
         // Apply the saved appearance before the first paint to avoid a theme flash.
         (() => {
-            const validThemes = new Set(['auto', 'dark', 'light', 'cyber', 'glass', 'terminal', 'nordic', 'cupertino', 'steel']);
+            const validThemes = new Set(['auto', 'dark', 'light', 'cyber', 'glass', 'terminal', 'nordic', 'cupertino', 'steel', 'magma', 'sakura']);
             let mode = 'auto';
 
             try {
@@ -775,6 +775,53 @@
             --menu-active: rgba(120, 148, 173, 0.13);
         }
 
+        [data-theme="magma"] {
+            --paper: #160c0a;
+            --paper-dark: #25120e;
+            --ink: #fff1e6;
+            --muted: #c19584;
+            --line: #4f2a20;
+            --blue: #ff7a3d;
+            --green: #ffd166;
+            --coral: #ff4f4f;
+            --white: #1e0f0c;
+            --positive-text: #ffd166;
+            --theme-card-radius: 12px;
+            --theme-control-radius: 8px;
+            --theme-panel-shadow: 0 22px 64px rgba(61, 15, 4, 0.28);
+            --theme-atmosphere:
+                radial-gradient(circle at 10% -6%, rgba(255, 122, 61, 0.24), transparent 34%),
+                radial-gradient(circle at 92% 18%, rgba(255, 79, 79, 0.12), transparent 30%),
+                linear-gradient(145deg, transparent 56%, rgba(255, 209, 102, 0.04));
+            --menu-bg: rgba(35, 16, 12, 0.97);
+            --menu-hover: rgba(255, 122, 61, 0.10);
+            --menu-active: rgba(255, 209, 102, 0.11);
+        }
+
+        [data-theme="sakura"] {
+            --paper: #fbf3f6;
+            --paper-dark: #f1e2e8;
+            --ink: #35242d;
+            --muted: #876f7b;
+            --line: #dec2cd;
+            --blue: #9b4f7a;
+            --green: #4f8065;
+            --coral: #df647d;
+            --white: #fffafb;
+            --positive-text: #3f7357;
+            --theme-card-radius: 16px;
+            --theme-control-radius: 11px;
+            --theme-panel-shadow: 0 20px 52px rgba(104, 54, 78, 0.10);
+            --theme-atmosphere:
+                radial-gradient(circle at 12% 2%, rgba(223, 100, 125, 0.14), transparent 34%),
+                radial-gradient(circle at 90% 14%, rgba(155, 79, 122, 0.09), transparent 28%),
+                linear-gradient(150deg, transparent 58%, rgba(79, 128, 101, 0.045));
+            --menu-bg: rgba(255, 250, 251, 0.97);
+            --menu-hover: rgba(155, 79, 122, 0.065);
+            --menu-active: rgba(223, 100, 125, 0.10);
+            color-scheme: light;
+        }
+
         /* Controls and Checkboxes */
         [data-theme] input, [data-theme] select { accent-color: var(--green); }
 
@@ -959,6 +1006,170 @@
             color: var(--ink);
         }
 
+        .lang-selector > .theme-toggle { min-width: 68px; padding: 0 9px; gap: 6px; }
+        .lang-selector > .theme-toggle[aria-expanded="true"] { border-color: var(--blue); background: var(--menu-hover); }
+        .lang-toggle-flag { width: 20px; height: 14px; flex: 0 0 20px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); border-radius: 3px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16); }
+        #lang-toggle-label { min-width: 16px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+        .lang-toggle-caret { width: 8px; height: 8px; margin-left: auto; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; opacity: 0.6; transition: transform 180ms ease; }
+        #lang-toggle[aria-expanded="true"] .lang-toggle-caret { transform: rotate(180deg); }
+
+        [data-theme] .lang-panel {
+            width: min(320px, calc(100vw - 24px));
+            padding: 0;
+            display: grid;
+            gap: 0;
+            overflow: hidden;
+            border-radius: max(14px, var(--theme-card-radius));
+        }
+
+        .lang-panel-head { display: grid; gap: 4px; padding: 17px 18px 15px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--menu-active) 48%, transparent); }
+        .lang-panel-eyebrow { color: var(--blue); font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; }
+        .lang-panel-head strong { font-size: 17px; letter-spacing: -0.035em; line-height: 1.2; }
+        .lang-panel-head small { color: var(--muted); font-size: 10px; line-height: 1.45; text-wrap: pretty; }
+        .lang-list { display: grid; gap: 3px; padding: 6px; }
+
+        .lang-panel .lang-option {
+            display: grid;
+            grid-template-columns: 36px minmax(0, 1fr) 20px;
+            align-items: center;
+            gap: 10px;
+            min-height: 52px;
+            padding: 7px 9px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--ink);
+            font-family: 'Manrope', sans-serif;
+            text-align: left;
+            text-transform: none;
+            cursor: pointer;
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .lang-panel .lang-option:hover { transform: translateY(-1px); border-color: var(--line); background: var(--menu-hover); }
+        .lang-panel .lang-option:active { transform: scale(0.985); }
+        .lang-marker { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-dark); color: var(--muted); }
+        .lang-toggle-flag::before, .lang-marker::before { content: ""; display: block; background-position: center; background-repeat: no-repeat; background-size: cover; }
+        .lang-toggle-flag::before { width: 100%; height: 100%; }
+        .lang-marker::before { width: 24px; height: 16px; border: 1px solid rgba(0, 0, 0, 0.13); border-radius: 3px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
+        .flag-en::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 36'%3E%3Cpath fill='%23012169' d='M0 0h60v36H0z'/%3E%3Cpath stroke='%23fff' stroke-width='8' d='m0 0 60 36M60 0 0 36'/%3E%3Cpath stroke='%23c8102e' stroke-width='4' d='m0 0 60 36M60 0 0 36'/%3E%3Cpath stroke='%23fff' stroke-width='12' d='M30 0v36M0 18h60'/%3E%3Cpath stroke='%23c8102e' stroke-width='7' d='M30 0v36M0 18h60'/%3E%3C/svg%3E"); }
+        .flag-ru::before { background-image: linear-gradient(to bottom, #fff 0 33.333%, #1c57a5 33.333% 66.666%, #d52b1e 66.666% 100%); }
+        .flag-uk::before { background-image: linear-gradient(to bottom, #0057b8 0 50%, #ffd700 50% 100%); }
+        .flag-de::before { background-image: linear-gradient(to bottom, #171717 0 33.333%, #dd0000 33.333% 66.666%, #ffce00 66.666% 100%); }
+        .flag-it::before { background-image: linear-gradient(to right, #009246 0 33.333%, #fff 33.333% 66.666%, #ce2b37 66.666% 100%); }
+        .flag-pl::before { background-image: linear-gradient(to bottom, #fff 0 50%, #dc143c 50% 100%); }
+        .lang-option-copy { min-width: 0; display: grid; gap: 2px; }
+        .lang-option-copy strong { overflow: hidden; font-size: 11px; font-weight: 700; letter-spacing: -0.015em; text-overflow: ellipsis; white-space: nowrap; }
+        .lang-option-copy small { overflow: hidden; color: var(--muted); font: 8px/1.3 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+        .lang-check { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: transparent; font: 700 10px/1 'DM Mono', monospace; transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease; }
+        .lang-panel .lang-option.active { border-color: color-mix(in srgb, var(--blue) 62%, var(--line)); background: var(--menu-active); color: var(--ink); }
+        .lang-panel .lang-option.active .lang-marker { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, var(--paper-dark)); color: var(--blue); }
+        .lang-panel .lang-option.active .lang-check { border-color: var(--blue); background: var(--blue); color: #fff; transform: scale(1.04); }
+        .lang-panel-footer { display: flex; align-items: center; gap: 8px; padding: 10px 18px 12px; border-top: 1px solid var(--line); color: var(--muted); font: 8px/1.3 'DM Mono', monospace; letter-spacing: 0.04em; }
+        .lang-panel-footer i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 13%, transparent); }
+
+        #settings-selector { position: relative; display: flex; align-items: center; z-index: 1010; }
+        #settings-toggle { width: 42px; height: 42px; padding: 0; display: grid; place-items: center; }
+        .settings-toggle-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; transition: transform 220ms ease; }
+        #settings-toggle[aria-expanded="true"] .settings-toggle-icon { transform: rotate(90deg); }
+
+        [data-theme] .settings-panel {
+            width: min(360px, calc(100vw - 24px));
+            padding: 0;
+            gap: 0;
+            overflow: hidden;
+            border-radius: max(14px, var(--theme-card-radius));
+        }
+
+        .settings-panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 18px 16px;
+            border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--menu-active) 48%, transparent);
+        }
+
+        .settings-panel-copy { min-width: 0; display: grid; gap: 4px; }
+        .settings-panel-eyebrow { color: var(--blue); font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; }
+        .settings-panel-copy strong { font-size: 17px; letter-spacing: -0.035em; line-height: 1.2; }
+        .settings-panel-copy small { max-width: 230px; color: var(--muted); font-size: 10px; line-height: 1.45; text-wrap: pretty; }
+
+        .settings-device {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 7px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 7px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .settings-device i, .settings-panel-footer i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 13%, transparent); }
+
+        .settings-section { display: grid; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+        .settings-section-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .settings-section-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-dark); color: var(--blue); }
+        .settings-section-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+        .settings-section-copy { min-width: 0; display: grid; gap: 2px; }
+        .settings-section-copy strong, .settings-row-copy strong { font-size: 11px; font-weight: 700; letter-spacing: -0.015em; }
+        .settings-section-copy small { color: var(--muted); font-size: 9px; line-height: 1.4; text-wrap: pretty; }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 42px;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--paper-dark) 62%, transparent);
+            cursor: pointer;
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+        }
+
+        .settings-row:hover, .settings-check-row:hover { border-color: color-mix(in srgb, var(--blue) 58%, var(--line)); background: var(--menu-hover); }
+        .settings-row:active, .settings-check-row:active { transform: scale(0.985); }
+        .settings-row-copy { min-width: 0; display: grid; gap: 2px; }
+
+        .settings-switch-input {
+            appearance: none;
+            width: 38px;
+            height: 22px;
+            flex: 0 0 38px;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--paper-dark);
+            cursor: pointer;
+            transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        }
+
+        .settings-switch-input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), background 180ms ease; }
+        .settings-switch-input:checked { border-color: var(--blue); background: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 12%, transparent); }
+        .settings-switch-input:checked::after { transform: translateX(16px); background: #fff; }
+        .settings-switch-input:focus-visible, .settings-check-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+        .settings-suboptions { display: grid; gap: 3px; padding: 5px; border: 1px solid var(--line); border-radius: 11px; background: color-mix(in srgb, var(--paper) 54%, transparent); transition: opacity 180ms ease; }
+        .settings-check-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 36px; padding: 7px 8px 7px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease; }
+        .settings-check-row span { min-width: 0; font-size: 10px; font-weight: 600; }
+        .settings-check-input { appearance: none; width: 18px; height: 18px; flex: 0 0 18px; margin: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-dark); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
+        .settings-check-input::after { content: '✓'; color: #fff; font-family: 'DM Mono', monospace; font-size: 11px; line-height: 1; transform: scale(0); transition: transform 160ms ease; }
+        .settings-check-input:checked { border-color: var(--blue); background: var(--blue); }
+        .settings-check-input:checked::after { transform: scale(1); }
+        .settings-check-input:disabled { cursor: not-allowed; }
+
+        .settings-panel-footer { display: flex; align-items: center; gap: 8px; padding: 11px 18px 12px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.04em; }
+
         .theme-option-auto { grid-column: 1 / -1; }
 
         .theme-option-copy { min-width: 0; display: grid; gap: 4px; }
@@ -996,6 +1207,8 @@
         .theme-option[data-theme-value="nordic"] .theme-preview { --preview-bg: #f3f2ed; --preview-surface: #fbfaf6; --preview-accent: #42765a; --preview-ink: #222b2d; --preview-line: #c7ccc7; }
         .theme-option[data-theme-value="cupertino"] .theme-preview { --preview-bg: #0b0b0f; --preview-surface: #1c1c1e; --preview-accent: #0a84ff; --preview-ink: #f5f5f7; --preview-line: #3a3a40; }
         .theme-option[data-theme-value="steel"] .theme-preview { --preview-bg: #0c0f13; --preview-surface: #1a2026; --preview-accent: #7894ad; --preview-ink: #e4e8eb; --preview-line: #39434d; }
+        .theme-option[data-theme-value="magma"] .theme-preview { --preview-bg: radial-gradient(circle at 18% 12%, #522016, #160c0a 62%); --preview-surface: #25120e; --preview-accent: linear-gradient(145deg, #ff4f4f, #ffd166); --preview-ink: #fff1e6; --preview-line: #633226; }
+        .theme-option[data-theme-value="sakura"] .theme-preview { --preview-bg: linear-gradient(145deg, #fffafb, #f4dce5); --preview-surface: #ffffff; --preview-accent: linear-gradient(145deg, #9b4f7a, #df647d); --preview-ink: #35242d; --preview-line: #dec2cd; }
 
         [data-theme] .theme-option .theme-check {
             width: 20px;
@@ -1068,12 +1281,14 @@
             #database-tbody .cell-actions .star-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
             #database-tbody .mobile-empty-cell { grid-column: 1 / -1; padding: 30px 16px; text-align: center; }
             .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
+            .lang-selector > .theme-toggle { width: 60px; min-width: 60px; height: 38px; padding: 0 7px; gap: 4px; }
             .theme-toggle-swatch { width: 24px; height: 24px; }
             .theme-toggle-kicker { display: none; }
             [data-theme] .theme-option { grid-template-columns: 52px minmax(0, 1fr) 18px; gap: 7px; padding: 7px; }
             .theme-preview { width: 52px; }
             [data-theme] .theme-option .theme-check { width: 18px; height: 18px; }
             [data-theme] .theme-dropdown { position: fixed; top: 68px; right: 12px; left: 12px; width: auto; max-height: calc(100dvh - 80px); overflow-y: auto; transform-origin: top center; }
+            [data-theme] .lang-dropdown { position: fixed; top: 68px; right: 12px; left: 12px; width: auto; max-height: calc(100dvh - 80px); overflow-y: auto; transform-origin: top center; }
 
             .chart-wrap { padding: 12px 10px 10px; }
             .chart { height: 140px; }
@@ -1242,6 +1457,31 @@
         [data-theme="steel"] .brand-mark { background: var(--paper-dark); border: 1px solid var(--line); color: var(--ink); }
         [data-theme="steel"] #chart-tooltip { background: var(--paper-dark) !important; border: 1px solid var(--line) !important; color: var(--ink) !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important; }
         [data-theme="steel"] #activity-ticker-container { background: var(--paper-dark); border-color: var(--line); }
+
+        /* Magma */
+        [data-theme="magma"] body { background: #160c0a; }
+        [data-theme="magma"] .stat, [data-theme="magma"] .panel { border-color: var(--line); }
+        [data-theme="magma"] .stat.dark { border: 0; background: linear-gradient(145deg, #ff6638, #ffb347); color: #2a0d06; box-shadow: 0 18px 44px rgba(255, 86, 41, 0.18); }
+        [data-theme="magma"] .stat.dark .positive { color: #681d0d; }
+        [data-theme="magma"] .stat.green { border-color: #ffd166; background: #ffd166; color: #29160c; }
+        [data-theme="magma"] tbody tr:hover, [data-theme="magma"] .author-row:hover { background: rgba(255, 122, 61, 0.10); color: var(--ink); }
+        [data-theme="magma"] tbody tr:hover td, [data-theme="magma"] .author-row:hover * { color: var(--ink) !important; }
+        [data-theme="magma"] .theme-dropdown, [data-theme="magma"] .lang-dropdown { border-color: var(--line); background: var(--menu-bg); box-shadow: 0 22px 58px rgba(57, 12, 3, 0.55); }
+        [data-theme="magma"] #chart-tooltip { border: 1px solid #78402f !important; background: #25120e !important; color: var(--ink) !important; box-shadow: 0 10px 28px rgba(57, 12, 3, 0.5) !important; }
+        [data-theme="magma"] #activity-ticker-container { border-color: var(--line); background: rgba(37, 18, 14, 0.82); }
+
+        /* Sakura */
+        [data-theme="sakura"] body { background: #fbf3f6; }
+        [data-theme="sakura"] .stat, [data-theme="sakura"] .panel { border-color: var(--line); }
+        [data-theme="sakura"] .stat.dark { border-color: #8b456d; background: #75415f; color: #fff8fb; }
+        [data-theme="sakura"] .stat.dark .positive { color: #f8cfde; }
+        [data-theme="sakura"] .stat.green { border-color: #b8d5c1; background: #dcecdf; color: #294334; }
+        [data-theme="sakura"] .stat.green .stat-label, [data-theme="sakura"] .stat.green .stat-value, [data-theme="sakura"] .stat.green .stat-change { color: #294334; }
+        [data-theme="sakura"] tbody tr:hover, [data-theme="sakura"] .author-row:hover { background: #f5e0e8; color: var(--ink); }
+        [data-theme="sakura"] tbody tr:hover td, [data-theme="sakura"] .author-row:hover * { color: var(--ink) !important; }
+        [data-theme="sakura"] .theme-dropdown, [data-theme="sakura"] .lang-dropdown { border-color: var(--line); background: var(--menu-bg); box-shadow: 0 22px 52px rgba(104, 54, 78, 0.16); }
+        [data-theme="sakura"] #chart-tooltip { border: 1px solid var(--line) !important; background: #fffafb !important; color: var(--ink) !important; box-shadow: 0 10px 28px rgba(104, 54, 78, 0.16) !important; }
+        [data-theme="sakura"] #activity-ticker-container { border-color: var(--line); background: rgba(255, 250, 251, 0.88); }
 
         /* GitHub Stars Badge — subtle topbar control */
         .github-stars-btn {
@@ -1442,66 +1682,152 @@
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
+
+                            <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="magma">
+                                <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
+                                <span class="theme-option-copy">
+                                    <strong data-i18n="theme_magma">Magma</strong>
+                                    <small data-i18n="theme_magma_desc">Heat and contrast</small>
+                                </span>
+                                <span class="theme-check" aria-hidden="true">✓</span>
+                            </button>
+
+                            <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="sakura">
+                                <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
+                                <span class="theme-option-copy">
+                                    <strong data-i18n="theme_sakura">Sakura</strong>
+                                    <small data-i18n="theme_sakura_desc">Soft rose daylight</small>
+                                </span>
+                                <span class="theme-check" aria-hidden="true">✓</span>
+                            </button>
                         </div>
 
                         <div class="theme-dropdown-footer">
                             <span data-i18n="theme_saved">Saved across pages</span>
-                            <span data-i18n="theme_palettes">8 palettes + Auto</span>
+                            <span data-i18n="theme_palettes">10 palettes + Auto</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="lang-selector" id="lang-selector">
-                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" style="font-size: 20px; padding: 0 14px;">
-                        <span id="lang-toggle-flag">🇬🇧</span>
+                    <button class="theme-toggle" id="lang-toggle" type="button" aria-label="Choose language" aria-controls="lang-dropdown" aria-expanded="false">
+                        <span class="lang-toggle-flag flag-en" id="lang-toggle-flag" aria-hidden="true"></span>
+                        <span id="lang-toggle-label">EN</span>
+                        <svg class="lang-toggle-caret" viewBox="0 0 10 10" aria-hidden="true"><path d="m2 4 3 3 3-3"></path></svg>
                     </button>
-                    <div class="lang-dropdown" id="lang-dropdown">
-                        <button class="lang-option" data-lang-value="en">🇬🇧 English</button>
-                        <button class="lang-option" data-lang-value="ru">🇷🇺 Русский</button>
-                        <button class="lang-option" data-lang-value="uk">🇺🇦 Українська</button>
-                        <button class="lang-option" data-lang-value="de">🇩🇪 Deutsch</button>
-                        <button class="lang-option" data-lang-value="it">🇮🇹 Italiano</button>
-                        <button class="lang-option" data-lang-value="pl">🇵🇱 Polski</button>
+                    <div class="lang-dropdown lang-panel" id="lang-dropdown" role="listbox" aria-labelledby="lang-panel-title">
+                        <div class="lang-panel-head">
+                            <span class="lang-panel-eyebrow" data-i18n="language_kicker">Language</span>
+                            <strong id="lang-panel-title" data-i18n="language_title">Interface language</strong>
+                            <small data-i18n="language_subtitle">Choose the language used for labels and controls.</small>
+                        </div>
+                        <div class="lang-list">
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="en">
+                                <span class="lang-marker flag-en" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>English</strong><small>English</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="ru">
+                                <span class="lang-marker flag-ru" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>Русский</strong><small>Russian</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="uk">
+                                <span class="lang-marker flag-uk" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>Українська</strong><small>Ukrainian</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="de">
+                                <span class="lang-marker flag-de" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>Deutsch</strong><small>German</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="it">
+                                <span class="lang-marker flag-it" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>Italiano</strong><small>Italian</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="lang-option" type="button" role="option" aria-selected="false" data-lang-value="pl">
+                                <span class="lang-marker flag-pl" aria-hidden="true"></span>
+                                <span class="lang-option-copy"><strong>Polski</strong><small>Polish</small></span>
+                                <span class="lang-check" aria-hidden="true">✓</span>
+                            </button>
+                        </div>
+                        <div class="lang-panel-footer"><i aria-hidden="true"></i><span data-i18n="language_saved">Saved across pages</span></div>
                     </div>
                 </div>
 
                 <!-- Settings Selector -->
-                <div style="position: relative; display: flex; align-items: center; z-index: 1010;" id="settings-selector">
-                    <button class="theme-toggle" id="settings-toggle" type="button" aria-label="Settings" style="display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; font-size: 16px;">
-                        ⚙️
+                <div id="settings-selector">
+                    <button class="theme-toggle" id="settings-toggle" type="button" aria-label="Settings" aria-controls="settings-dropdown" aria-expanded="false">
+                        <svg class="settings-toggle-icon" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M3 5h8M15 5h2M3 10h2M9 10h8M3 15h6M13 15h4"></path>
+                            <circle cx="13" cy="5" r="2"></circle>
+                            <circle cx="7" cy="10" r="2"></circle>
+                            <circle cx="11" cy="15" r="2"></circle>
+                        </svg>
                     </button>
-                    <div class="theme-dropdown" id="settings-dropdown" style="width: max-content; min-width: 220px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
-                        <div id="settings-ticker-section" style="border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 2px;">
-                            <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 2px 4px 4px;" data-i18n="preferences">Preferences</div>
-                            <label class="setting-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 6px 8px; border-radius: 6px;">
-                                <input type="checkbox" id="setting-toggle-ticker" style="cursor: pointer; margin: 0; accent-color: var(--blue);">
-                                <span data-i18n="show_ticker">Show Live Ticker</span>
-                            </label>
+                    <div class="theme-dropdown settings-panel" id="settings-dropdown" role="dialog" aria-labelledby="settings-title">
+                        <div class="settings-panel-head">
+                            <div class="settings-panel-copy">
+                                <span class="settings-panel-eyebrow" data-i18n="preferences">Preferences</span>
+                                <strong id="settings-title" data-i18n="settings_title">Display &amp; data</strong>
+                                <small data-i18n="settings_subtitle">Tune the dashboard without leaving the page.</small>
+                            </div>
+                            <span class="settings-device"><i aria-hidden="true"></i><span data-i18n="settings_local">This device</span></span>
                         </div>
 
-                        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.1em; padding: 2px 4px 4px; border-bottom: 1px solid var(--line);" data-i18n="anomalies_title">Anomaly Filtering</div>
-                        
-                        <label class="setting-option" style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 6px 8px; border-radius: 6px;">
-                            <input type="checkbox" id="setting-filter-anomalies" style="cursor: pointer; margin: 0; accent-color: var(--green);">
-                            <span data-i18n="anomaly_enable" style="font-weight: 700;">Filter Anomalies</span>
-                        </label>
-                        
-                        <div style="padding-left: 14px; display: flex; flex-direction: column; gap: 4px; transition: opacity 0.2s;" id="anomaly-suboptions">
-                            <label class="setting-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
-                                <input type="checkbox" id="setting-anomaly-spikes" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+                        <section class="settings-section" id="settings-ticker-section">
+                            <div class="settings-section-head">
+                                <span class="settings-section-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20"><path d="M3 14h2l2-7 3 9 3-12 2 10h2"></path></svg>
+                                </span>
+                                <div class="settings-section-copy">
+                                    <strong data-i18n="show_ticker">Show Live Ticker</strong>
+                                    <small data-i18n="show_ticker_desc">Keep recent catalog updates under the header.</small>
+                                </div>
+                            </div>
+                            <label class="settings-row">
+                                <span class="settings-row-copy"><strong data-i18n="settings_visibility">Ticker visibility</strong></span>
+                                <input class="settings-switch-input" type="checkbox" id="setting-toggle-ticker">
+                            </label>
+                        </section>
+
+                        <section class="settings-section">
+                            <div class="settings-section-head">
+                                <span class="settings-section-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20"><path d="M3 13l3-3 3 2 4-7 4 3"></path><path d="M3 17h14"></path></svg>
+                                </span>
+                                <div class="settings-section-copy">
+                                    <strong data-i18n="anomalies_title">Anomaly filtering</strong>
+                                    <small data-i18n="anomalies_desc">Hide obvious collection glitches from charts.</small>
+                                </div>
+                            </div>
+
+                            <label class="settings-row">
+                                <span class="settings-row-copy"><strong data-i18n="anomaly_enable">Filter anomalies</strong></span>
+                                <input class="settings-switch-input" type="checkbox" id="setting-filter-anomalies">
+                            </label>
+
+                            <div class="settings-suboptions" id="anomaly-suboptions">
+                            <label class="settings-check-row">
                                 <span data-i18n="anomaly_spikes">Spike Glitches</span>
+                                <input class="settings-check-input" type="checkbox" id="setting-anomaly-spikes">
                             </label>
-                            
-                            <label class="setting-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
-                                <input type="checkbox" id="setting-anomaly-drops" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+
+                            <label class="settings-check-row">
                                 <span data-i18n="anomaly_drops">Drop Glitches</span>
+                                <input class="settings-check-input" type="checkbox" id="setting-anomaly-drops">
                             </label>
-                            
-                            <label class="setting-option" style="display: flex; align-items: center; gap: 8px; font-size: 10px; cursor: pointer; user-select: none; font-family: 'DM Mono', monospace; margin: 0; padding: 4px 6px; border-radius: 4px; color: var(--ink);">
-                                <input type="checkbox" id="setting-anomaly-growth" style="cursor: pointer; margin: 0; accent-color: var(--green);">
+
+                            <label class="settings-check-row">
                                 <span data-i18n="anomaly_growth">24h Growth Spikes</span>
+                                <input class="settings-check-input" type="checkbox" id="setting-anomaly-growth">
                             </label>
-                        </div>
+                            </div>
+                        </section>
+
+                        <div class="settings-panel-footer"><i aria-hidden="true"></i><span data-i18n="settings_autosave">Changes save automatically</span></div>
                     </div>
                 </div>
 
@@ -1938,12 +2264,23 @@
                 adding_queue: "Adding user to queue...",
                 add_success: "Success! @{name} has been queued.",
                 preferences: "Preferences",
+                language_kicker: "Language",
+                language_title: "Interface language",
+                language_subtitle: "Choose the language used for labels and controls.",
+                language_saved: "Saved across pages",
+                settings_title: "Display & data",
+                settings_subtitle: "Tune the dashboard without leaving the page.",
+                settings_local: "This device",
                 show_ticker: "Show Live Ticker",
+                show_ticker_desc: "Keep recent catalog updates under the header.",
+                settings_visibility: "Ticker visibility",
                 anomalies_title: "Anomaly Filtering",
+                anomalies_desc: "Hide obvious collection glitches from charts.",
                 anomaly_enable: "Filter Anomalies",
                 anomaly_spikes: "Spike Glitches",
                 anomaly_drops: "Drop Glitches",
                 anomaly_growth: "Growth Spikes",
+                settings_autosave: "Changes save automatically",
                 metric_delta: "Growth",
                 growth_delta: "Growth",
                 data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -1965,7 +2302,11 @@
                 theme_midnight_desc: "Polished dark",
                 theme_graphite: "Graphite",
                 theme_graphite_desc: "Quiet and dense",
-                theme_palettes: "8 palettes + Auto",
+                theme_magma: "Magma",
+                theme_magma_desc: "Heat and contrast",
+                theme_sakura: "Sakura",
+                theme_sakura_desc: "Soft rose daylight",
+                theme_palettes: "10 palettes + Auto",
                 theme_kicker: "Theme",
                 lang_switch: "Switch language?",
                 lang_yes: "Yes",
@@ -2049,12 +2390,23 @@
                 adding_queue: "Добавление пользователя в очередь...",
                 add_success: "Успешно! @{name} добавлен в очередь.",
                 preferences: "Настройки",
+                language_kicker: "Язык",
+                language_title: "Язык интерфейса",
+                language_subtitle: "Выберите язык подписей и элементов управления.",
+                language_saved: "Сохраняется на всех страницах",
+                settings_title: "Отображение и данные",
+                settings_subtitle: "Настройте дашборд, не покидая страницу.",
+                settings_local: "Это устройство",
                 show_ticker: "Показывать ленту активности",
+                show_ticker_desc: "Последние обновления каталога под шапкой.",
+                settings_visibility: "Показывать ленту",
                 anomalies_title: "Фильтрация аномалий",
+                anomalies_desc: "Скрывать очевидные сбои сбора данных на графиках.",
                 anomaly_enable: "Удалять аномалии",
                 anomaly_spikes: "Пиковые всплески",
                 anomaly_drops: "Провалы / выпадения",
                 anomaly_growth: "Аномалии прироста",
+                settings_autosave: "Изменения сохраняются автоматически",
                 metric_delta: "Прирост",
                 growth_delta: "Прирост",
                 data_source: 'Данные предоставлены <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -2076,7 +2428,11 @@
                 theme_midnight_desc: "Полированный темный",
                 theme_graphite: "Графит",
                 theme_graphite_desc: "Тихий и плотный",
-                theme_palettes: "8 палитр + Авто",
+                theme_magma: "Магма",
+                theme_magma_desc: "Жар и контраст",
+                theme_sakura: "Сакура",
+                theme_sakura_desc: "Мягкий розовый свет",
+                theme_palettes: "10 палитр + Авто",
                 theme_kicker: "Тема",
                 lang_switch: "Переключить язык?",
                 lang_yes: "Да",
@@ -2160,12 +2516,23 @@
                 adding_queue: "Додавання користувача в чергу...",
                 add_success: "Успішно! @{name} додано в чергу.",
                 preferences: "Налаштування",
+                language_kicker: "Мова",
+                language_title: "Мова інтерфейсу",
+                language_subtitle: "Оберіть мову підписів та елементів керування.",
+                language_saved: "Зберігається на всіх сторінках",
+                settings_title: "Відображення та дані",
+                settings_subtitle: "Налаштуйте дашборд, не залишаючи сторінку.",
+                settings_local: "Цей пристрій",
                 show_ticker: "Показувати стрічку активності",
+                show_ticker_desc: "Останні оновлення каталогу під шапкою.",
+                settings_visibility: "Показувати стрічку",
                 anomalies_title: "Фільтрація аномалій",
+                anomalies_desc: "Приховувати очевидні збої збору даних на графіках.",
                 anomaly_enable: "Видаляти аномалії",
                 anomaly_spikes: "Пікові сплески",
                 anomaly_drops: "Провали / випадання",
                 anomaly_growth: "Аномалії приросту",
+                settings_autosave: "Зміни зберігаються автоматично",
                 metric_delta: "Приріст",
                 growth_delta: "Приріст",
                 data_source: 'Дані надані <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -2187,7 +2554,11 @@
                 theme_midnight_desc: "Полірований темний",
                 theme_graphite: "Графіт",
                 theme_graphite_desc: "Тихий та щільний",
-                theme_palettes: "8 палітр + Авто",
+                theme_magma: "Магма",
+                theme_magma_desc: "Жар і контраст",
+                theme_sakura: "Сакура",
+                theme_sakura_desc: "М'яке рожеве світло",
+                theme_palettes: "10 палітр + Авто",
                 theme_kicker: "Тема",
                 lang_switch: "Перемкнути мову?",
                 lang_yes: "Так",
@@ -2271,12 +2642,23 @@
                 adding_queue: "Benutzer wird zur Warteschlange hinzugefügt...",
                 add_success: "Erfolgreich! @{name} wurde in die Warteschlange eingereiht.",
                 preferences: "Einstellungen",
+                language_kicker: "Sprache",
+                language_title: "Oberflächensprache",
+                language_subtitle: "Wähle die Sprache für Beschriftungen und Bedienelemente.",
+                language_saved: "Auf allen Seiten gespeichert",
+                settings_title: "Anzeige & Daten",
+                settings_subtitle: "Passe das Dashboard direkt auf dieser Seite an.",
+                settings_local: "Dieses Gerät",
                 show_ticker: "Live-Ticker anzeigen",
+                show_ticker_desc: "Zeige aktuelle Katalog-Updates unter der Kopfzeile.",
+                settings_visibility: "Ticker anzeigen",
                 anomalies_title: "Anomalie-Filterung",
+                anomalies_desc: "Blende offensichtliche Erfassungsfehler in Diagrammen aus.",
                 anomaly_enable: "Anomalien filtern",
                 anomaly_spikes: "Spitzenspitzen",
                 anomaly_drops: "Einbrüche / Ausfälle",
                 anomaly_growth: "Zuwachs-Anomalien",
+                settings_autosave: "Änderungen werden automatisch gespeichert",
                 metric_delta: "Zuwachs",
                 growth_delta: "Zuwachs",
                 data_source: 'Daten bereitgestellt von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -2298,7 +2680,11 @@
                 theme_midnight_desc: "Poliertes Dunkel",
                 theme_graphite: "Graphite",
                 theme_graphite_desc: "Leise und dicht",
-                theme_palettes: "8 Paletten + Auto",
+                theme_magma: "Magma",
+                theme_magma_desc: "Glut und Kontrast",
+                theme_sakura: "Sakura",
+                theme_sakura_desc: "Sanftes Rosenlicht",
+                theme_palettes: "10 Paletten + Auto",
                 theme_kicker: "Theme",
                 lang_switch: "Sprache wechseln?",
                 lang_yes: "Ja",
@@ -2382,12 +2768,23 @@
                 adding_queue: "Aggiunta dell'utente alla coda...",
                 add_success: "Successo! @{name} è stato messo in coda.",
                 preferences: "Preferenze",
+                language_kicker: "Lingua",
+                language_title: "Lingua dell'interfaccia",
+                language_subtitle: "Scegli la lingua per etichette e controlli.",
+                language_saved: "Salvato in tutte le pagine",
+                settings_title: "Visualizzazione e dati",
+                settings_subtitle: "Regola la dashboard senza lasciare la pagina.",
+                settings_local: "Questo dispositivo",
                 show_ticker: "Mostra Live Ticker",
+                show_ticker_desc: "Mostra gli ultimi aggiornamenti del catalogo sotto l'intestazione.",
+                settings_visibility: "Visibilità ticker",
                 anomalies_title: "Filtro anomalie",
+                anomalies_desc: "Nascondi dai grafici gli errori evidenti di raccolta.",
                 anomaly_enable: "Filtra anomalie",
                 anomaly_spikes: "Picchi isolati",
                 anomaly_drops: "Cali isolati",
                 anomaly_growth: "Anomalie crescita",
+                settings_autosave: "Le modifiche vengono salvate automaticamente",
                 metric_delta: "Crescita",
                 growth_delta: "Crescita",
                 data_source: 'Dati forniti da <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
@@ -2409,7 +2806,11 @@
                 theme_midnight_desc: "Scuro lucido",
                 theme_graphite: "Grafite",
                 theme_graphite_desc: "Silenzioso e denso",
-                theme_palettes: "8 tavolozze + Auto",
+                theme_magma: "Magma",
+                theme_magma_desc: "Calore e contrasto",
+                theme_sakura: "Sakura",
+                theme_sakura_desc: "Morbida luce rosata",
+                theme_palettes: "10 tavolozze + Auto",
                 theme_kicker: "Tema",
                 lang_switch: "Cambiare lingua?",
                 lang_yes: "Sì",
@@ -2493,15 +2894,50 @@
                 adding_queue: "Dodawanie użytkownika do kolejki...",
                 add_success: "Sukces! @{name} został dodany do kolejki.",
                 preferences: "Preferencje",
+                language_kicker: "Język",
+                language_title: "Język interfejsu",
+                language_subtitle: "Wybierz język etykiet i elementów sterujących.",
+                language_saved: "Zapisane na wszystkich stronach",
+                settings_title: "Widok i dane",
+                settings_subtitle: "Dostosuj panel bez opuszczania strony.",
+                settings_local: "To urządzenie",
                 show_ticker: "Pokaż Live Ticker",
+                show_ticker_desc: "Pokazuj najnowsze aktualizacje katalogu pod nagłówkiem.",
+                settings_visibility: "Widoczność tickera",
                 anomalies_title: "Filtrowanie anomalii",
+                anomalies_desc: "Ukrywaj na wykresach oczywiste błędy zbierania danych.",
                 anomaly_enable: "Filtruj anomalie",
                 anomaly_spikes: "Piki i skoki",
                 anomaly_drops: "Spadki do zera",
                 anomaly_growth: "Anomalie przyrostu",
+                settings_autosave: "Zmiany zapisują się automatycznie",
                 metric_delta: "Przyrost",
                 growth_delta: "Przyrost",
                 data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                theme_auto: "Auto",
+                theme_auto_desc: "Zgodnie z ustawieniami urządzenia",
+                theme_carbon: "Carbon",
+                theme_carbon_desc: "Edytorski ciemny",
+                theme_paper: "Papier",
+                theme_paper_desc: "Ciepły i przejrzysty",
+                theme_electric: "Electric",
+                theme_electric_desc: "Fiolet + mięta",
+                theme_aurora: "Aurora",
+                theme_aurora_desc: "Miękkie warstwy szkła",
+                theme_terminal: "Terminal",
+                theme_terminal_desc: "Tryb bez rozpraszaczy",
+                theme_nordic: "Nordic",
+                theme_nordic_desc: "Spokojny i naturalny",
+                theme_midnight: "Północ",
+                theme_midnight_desc: "Dopracowany ciemny",
+                theme_graphite: "Grafit",
+                theme_graphite_desc: "Cichy i zwarty",
+                theme_magma: "Magma",
+                theme_magma_desc: "Żar i kontrast",
+                theme_sakura: "Sakura",
+                theme_sakura_desc: "Delikatne różowe światło",
+                theme_palettes: "10 palet + Auto",
+                theme_kicker: "Motyw",
                 chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
                 milestone_to_go: "do"
@@ -2515,13 +2951,22 @@
 
             const info = LANGUAGES[lang] || LANGUAGES.en;
             const flagEl = document.getElementById('lang-toggle-flag');
-            if (flagEl) flagEl.textContent = info.flag;
+            const labelEl = document.getElementById('lang-toggle-label');
+            if (flagEl) flagEl.className = `lang-toggle-flag flag-${lang}`;
+            if (labelEl) labelEl.textContent = info.name;
+            document.documentElement.lang = lang;
 
             document.querySelectorAll('#lang-dropdown .lang-option').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.langValue === lang);
+                const isActive = btn.dataset.langValue === lang;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-selected', String(isActive));
             });
 
             const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+            const languageToggle = document.getElementById('lang-toggle');
+            if (languageToggle && dict.language_title) {
+                languageToggle.setAttribute('aria-label', dict.language_title);
+            }
 
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.dataset.i18n;
@@ -2560,24 +3005,69 @@
             const dropdown = document.getElementById('lang-dropdown');
 
             if (toggle && dropdown) {
+                const options = Array.from(dropdown.querySelectorAll('.lang-option'));
+                const setLanguageOpen = (isOpen, focusTarget = null) => {
+                    dropdown.classList.toggle('open', isOpen);
+                    toggle.setAttribute('aria-expanded', String(isOpen));
+
+                    if (isOpen && focusTarget) {
+                        focusTarget.focus();
+                    }
+                };
+
                 toggle.addEventListener('click', (e) => {
                     e.stopPropagation();
                     document.getElementById('theme-dropdown')?.classList.remove('open');
                     document.getElementById('settings-dropdown')?.classList.remove('open');
-                    dropdown.classList.toggle('open');
+                    setLanguageOpen(!dropdown.classList.contains('open'));
                 });
 
-                document.querySelectorAll('#lang-dropdown .lang-option').forEach(btn => {
+                toggle.addEventListener('keydown', (e) => {
+                    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.getElementById('theme-dropdown')?.classList.remove('open');
+                    document.getElementById('settings-dropdown')?.classList.remove('open');
+
+                    const activeOption = options.find(option => option.classList.contains('active'));
+                    const focusTarget = e.key === 'ArrowUp' ? options.at(-1) : (activeOption || options[0]);
+                    setLanguageOpen(true, focusTarget);
+                });
+
+                options.forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         applyLanguage(btn.dataset.langValue, true);
-                        dropdown.classList.remove('open');
+                        setLanguageOpen(false);
+                        toggle.focus();
                     });
                 });
 
-                document.addEventListener('click', () => {
-                    dropdown.classList.remove('open');
+                dropdown.addEventListener('click', (e) => e.stopPropagation());
+                dropdown.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setLanguageOpen(false);
+                        toggle.focus();
+                        return;
+                    }
+
+                    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+
+                    e.preventDefault();
+                    const currentIndex = Math.max(0, options.indexOf(document.activeElement));
+                    const delta = e.key === 'ArrowDown' ? 1 : -1;
+                    options[(currentIndex + delta + options.length) % options.length].focus();
                 });
+
+                document.addEventListener('click', () => {
+                    setLanguageOpen(false);
+                });
+
+                new MutationObserver(() => {
+                    toggle.setAttribute('aria-expanded', String(dropdown.classList.contains('open')));
+                }).observe(dropdown, { attributes: true, attributeFilter: ['class'] });
             }
         }
 
@@ -2591,7 +3081,9 @@
             terminal:   { label: 'Terminal', swatches: ['#000000', '#0b4b1c', '#3cff65'] },
             nordic:     { label: 'Nordic',   swatches: ['#f3f2ed', '#526f86', '#42765a'] },
             cupertino:  { label: 'Midnight', swatches: ['#0b0b0f', '#0a84ff', '#30d158'] },
-            steel:      { label: 'Graphite', swatches: ['#0c0f13', '#7894ad', '#4fc58b'] }
+            steel:      { label: 'Graphite', swatches: ['#0c0f13', '#7894ad', '#4fc58b'] },
+            magma:      { label: 'Magma',    swatches: ['#160c0a', '#ff7a3d', '#ffd166'] },
+            sakura:     { label: 'Sakura',   swatches: ['#fbf3f6', '#9b4f7a', '#df647d'] }
         };
 
         const themeColorScheme = window.matchMedia('(prefers-color-scheme: light)');
@@ -2755,20 +3247,36 @@
             const tickerContainer = document.getElementById('activity-ticker-container');
 
             if (toggle && dropdown) {
+                const setSettingsOpen = (isOpen) => {
+                    dropdown.classList.toggle('open', isOpen);
+                    toggle.setAttribute('aria-expanded', String(isOpen));
+                };
+
                 toggle.addEventListener('click', (e) => {
                     e.stopPropagation();
                     document.getElementById('theme-dropdown')?.classList.remove('open');
                     document.getElementById('lang-dropdown')?.classList.remove('open');
-                    dropdown.classList.toggle('open');
+                    setSettingsOpen(!dropdown.classList.contains('open'));
                 });
 
                 dropdown.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
 
-                document.addEventListener('click', () => {
-                    dropdown.classList.remove('open');
+                dropdown.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape') return;
+                    e.stopPropagation();
+                    setSettingsOpen(false);
+                    toggle.focus();
                 });
+
+                document.addEventListener('click', () => {
+                    setSettingsOpen(false);
+                });
+
+                new MutationObserver(() => {
+                    toggle.setAttribute('aria-expanded', String(dropdown.classList.contains('open')));
+                }).observe(dropdown, { attributes: true, attributeFilter: ['class'] });
             }
 
             if (tickerCheckbox) {
