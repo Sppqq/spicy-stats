@@ -182,7 +182,7 @@
         .topbar-right {
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 8px;
         }
 
         .live-status {
@@ -1288,7 +1288,7 @@
             transition: all 140ms ease;
             text-decoration: none;
             user-select: none;
-            opacity: 0.75;
+            opacity: 1;
         }
         .github-stars-btn:hover {
             background: var(--menu-hover);
@@ -1304,6 +1304,41 @@
         }
         .github-stars-btn:hover .github-star-icon {
             color: #f59e0b;
+        }
+
+        .theme-selector > .theme-toggle,
+        .lang-selector > .theme-toggle,
+        #settings-toggle,
+        .github-stars-btn {
+            box-sizing: border-box;
+            border: 1px solid var(--line);
+            border-radius: max(8px, var(--theme-control-radius));
+            background: var(--menu-bg);
+            color: var(--ink);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+        }
+
+        .theme-selector > .theme-toggle:hover,
+        .theme-selector > .theme-toggle[aria-expanded="true"],
+        .lang-selector > .theme-toggle:hover,
+        #settings-toggle:hover,
+        .github-stars-btn:hover {
+            background: var(--menu-hover);
+            border-color: var(--blue);
+            color: var(--ink);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+        }
+
+        .topbar-right :is(button, a):focus-visible {
+            outline: 2px solid var(--blue);
+            outline-offset: 3px;
+        }
+
+        .topbar-right :is(button, a):active {
+            transform: translateY(1px) scale(0.98);
         }
         .github-stars-count {
             font-weight: 700;
