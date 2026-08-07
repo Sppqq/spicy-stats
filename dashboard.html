@@ -1964,7 +1964,8 @@
         }
 
         .design-preview-card,
-        .design-preview-back {
+        .design-preview-back,
+        .design-preview-forward {
             position: fixed;
             bottom: 22px;
             left: 22px;
@@ -1984,6 +1985,7 @@
 
         .design-preview-card[hidden],
         .design-preview-back[hidden],
+        .design-preview-forward[hidden],
         .light-theme-warning[hidden] {
             display: none !important;
         }
@@ -2031,6 +2033,7 @@
 
         .design-preview-actions button,
         .design-preview-back,
+        .design-preview-forward,
         .light-theme-actions button {
             min-height: 36px;
             padding: 8px 12px;
@@ -2040,6 +2043,22 @@
             color: var(--ink);
             cursor: pointer;
             font: 500 10px/1.2 'DM Mono', monospace;
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .design-preview-actions button:hover,
+        .design-preview-back:hover,
+        .design-preview-forward:hover,
+        .light-theme-actions button:hover {
+            border-color: var(--green);
+            transform: translateY(-1px);
+        }
+
+        .design-preview-actions button:active,
+        .design-preview-back:active,
+        .design-preview-forward:active,
+        .light-theme-actions button:active {
+            transform: translateY(1px);
         }
 
         .design-preview-actions .primary,
@@ -2050,10 +2069,32 @@
             font-weight: 700;
         }
 
-        .design-preview-back {
+        .design-preview-back,
+        .design-preview-forward {
             background: var(--menu-bg);
             box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
             backdrop-filter: blur(18px);
+        }
+
+        .design-preview-forward {
+            border-color: color-mix(in srgb, var(--green) 52%, var(--line));
+        }
+
+        .pulse-beta-note {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 14px 0 0;
+            color: var(--muted);
+            font: 500 9px/1.45 'DM Mono', monospace;
+        }
+
+        .pulse-beta-label {
+            flex: 0 0 auto;
+            padding: 3px 6px;
+            border: 1px solid var(--green);
+            color: var(--green);
+            letter-spacing: 0.1em;
         }
 
         .light-theme-warning {
@@ -2158,14 +2199,16 @@
             }
 
             .design-preview-card,
-            .design-preview-back {
+            .design-preview-back,
+            .design-preview-forward {
                 right: 14px;
                 bottom: calc(82px + env(safe-area-inset-bottom));
                 left: 14px;
                 width: auto;
             }
 
-            .design-preview-back {
+            .design-preview-back,
+            .design-preview-forward {
                 right: auto;
             }
         }
@@ -2490,6 +2533,11 @@
                             </span>
                         </div>
 
+                        <div class="pulse-beta-note">
+                            <span class="pulse-beta-label">BETA</span>
+                            <span data-i18n="design_beta_feedback">This is a beta version of the new homepage. All suggestions are welcome.</span>
+                        </div>
+
                         <div>
                             <h1 class="pulse-title" id="pulse-title" data-i18n="today_pulse">24 hour pulse</h1>
                             <div class="pulse-number skeleton-value" id="modern-total-growth" aria-live="polite">Loading</div>
@@ -2605,7 +2653,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.1 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.2 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -2621,9 +2669,9 @@
     </div>
 
     <aside class="design-preview-card" id="design-preview-card" hidden aria-labelledby="design-preview-title">
-        <div class="design-preview-kicker">Preview</div>
+        <div class="design-preview-kicker">BETA</div>
         <h2 id="design-preview-title" data-i18n="design_preview_title">Try the new homepage</h2>
-        <p data-i18n="design_preview_body">A denser live view is ready for preview.</p>
+        <p><span data-i18n="design_preview_body">A denser live view is ready for preview.</span> <span data-i18n="design_beta_feedback">This is a beta version of the new homepage. All suggestions are welcome.</span></p>
         <div class="design-preview-actions">
             <button class="primary" id="design-preview-open" type="button" data-i18n="design_preview_cta">View new design</button>
             <button id="design-preview-later" type="button" data-i18n="design_preview_later">Not now</button>
@@ -2631,6 +2679,7 @@
     </aside>
 
     <button class="design-preview-back" id="design-preview-back" type="button" hidden data-i18n="design_preview_back">Back to classic</button>
+    <button class="design-preview-forward" id="design-preview-forward" type="button" hidden data-i18n="design_preview_forward">New design · BETA</button>
 
     <div class="light-theme-warning" id="light-theme-warning" role="alertdialog" aria-modal="true" aria-labelledby="light-theme-warning-title" aria-describedby="light-theme-warning-body" hidden>
         <div class="light-theme-dialog" role="document">
@@ -2876,6 +2925,8 @@
                 design_preview_cta: "View new design",
                 design_preview_later: "Not now",
                 design_preview_back: "Back to classic",
+                design_preview_forward: "New design · BETA",
+                design_beta_feedback: "This is a beta version of the new homepage. All suggestions are welcome.",
                 light_warning_title: "Switch to a light theme?",
                 light_warning_body: "The interface will become much brighter. You can switch back at any time.",
                 light_warning_apply: "Switch theme",
@@ -3012,6 +3063,8 @@
                 design_preview_cta: "Открыть новый дизайн",
                 design_preview_later: "Не сейчас",
                 design_preview_back: "Вернуться к старой",
+                design_preview_forward: "Новый дизайн · BETA",
+                design_beta_feedback: "Это beta-версия новой главной. Все предложения принимаются.",
                 light_warning_title: "Перейти на светлую тему?",
                 light_warning_body: "Интерфейс станет заметно ярче. Вернуться назад можно в любой момент.",
                 light_warning_apply: "Перейти",
@@ -3148,6 +3201,8 @@
                 design_preview_cta: "Відкрити новий дизайн",
                 design_preview_later: "Не зараз",
                 design_preview_back: "Повернутися до старої",
+                design_preview_forward: "Новий дизайн · BETA",
+                design_beta_feedback: "Це beta-версія нової головної. Усі пропозиції приймаються.",
                 light_warning_title: "Перейти на світлу тему?",
                 light_warning_body: "Інтерфейс стане значно яскравішим. Повернутися назад можна будь-коли.",
                 light_warning_apply: "Перейти",
@@ -3284,6 +3339,8 @@
                 design_preview_cta: "Neues Design ansehen",
                 design_preview_later: "Nicht jetzt",
                 design_preview_back: "Zurück zum Klassiker",
+                design_preview_forward: "Neues Design · BETA",
+                design_beta_feedback: "Dies ist eine Beta-Version der neuen Startseite. Alle Vorschläge sind willkommen.",
                 light_warning_title: "Zum hellen Design wechseln?",
                 light_warning_body: "Die Oberfläche wird deutlich heller. Du kannst jederzeit zurückwechseln.",
                 light_warning_apply: "Design wechseln",
@@ -3420,6 +3477,8 @@
                 design_preview_cta: "Vedi il nuovo design",
                 design_preview_later: "Non ora",
                 design_preview_back: "Torna alla versione classica",
+                design_preview_forward: "Nuovo design · BETA",
+                design_beta_feedback: "Questa è una versione beta della nuova home. Tutti i suggerimenti sono benvenuti.",
                 light_warning_title: "Passare al tema chiaro?",
                 light_warning_body: "L'interfaccia diventerà molto più luminosa. Puoi tornare indietro in qualsiasi momento.",
                 light_warning_apply: "Cambia tema",
@@ -3556,6 +3615,8 @@
                 design_preview_cta: "Zobacz nowy wygląd",
                 design_preview_later: "Nie teraz",
                 design_preview_back: "Wróć do klasycznej wersji",
+                design_preview_forward: "Nowy wygląd · BETA",
+                design_beta_feedback: "To wersja beta nowej strony głównej. Przyjmujemy wszystkie sugestie.",
                 light_warning_title: "Przejść na jasny motyw?",
                 light_warning_body: "Interfejs stanie się znacznie jaśniejszy. W każdej chwili możesz wrócić.",
                 light_warning_apply: "Zmień motyw",
@@ -5199,6 +5260,14 @@
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
 
                 <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.2 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added a permanent way to reopen the new homepage after returning to the classic design.</li>
+                        <li>Marked the new homepage as beta and invited user suggestions.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.1 (2026-08-08)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
                         <li>Restored the classic homepage as the default and added an optional new-design preview.</li>
@@ -5370,13 +5439,16 @@
             const nextDesign = design === 'modern' ? 'modern' : 'classic';
             const previewCard = document.getElementById('design-preview-card');
             const backButton = document.getElementById('design-preview-back');
+            const forwardButton = document.getElementById('design-preview-forward');
             const dismissedUntil = readStoredNumber('spicy-design-preview-dismissed-until');
 
             document.documentElement.dataset.dashboardDesign = nextDesign;
             if (persist) writeStoredValue('spicy-dashboard-design', nextDesign);
 
-            if (previewCard) previewCard.hidden = nextDesign !== 'classic' || dismissedUntil > Date.now();
+            const showPreviewCard = nextDesign === 'classic' && dismissedUntil <= Date.now();
+            if (previewCard) previewCard.hidden = !showPreviewCard;
             if (backButton) backButton.hidden = nextDesign !== 'modern';
+            if (forwardButton) forwardButton.hidden = nextDesign !== 'classic' || showPreviewCard;
         }
 
         function initDashboardDesignPreview() {
@@ -5384,18 +5456,23 @@
             const openButton = document.getElementById('design-preview-open');
             const laterButton = document.getElementById('design-preview-later');
             const backButton = document.getElementById('design-preview-back');
+            const forwardButton = document.getElementById('design-preview-forward');
             const savedDesign = document.documentElement.dataset.dashboardDesign || 'classic';
 
             applyDashboardDesign(savedDesign, { persist: false });
 
-            openButton?.addEventListener('click', () => {
+            const openModernDesign = () => {
                 applyDashboardDesign('modern');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+            };
+
+            openButton?.addEventListener('click', openModernDesign);
+            forwardButton?.addEventListener('click', openModernDesign);
 
             laterButton?.addEventListener('click', () => {
                 writeStoredValue('spicy-design-preview-dismissed-until', Date.now() + DESIGN_PREVIEW_DISMISS_MS);
                 if (previewCard) previewCard.hidden = true;
+                if (forwardButton) forwardButton.hidden = false;
             });
 
             backButton?.addEventListener('click', () => {
