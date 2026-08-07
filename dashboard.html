@@ -2125,21 +2125,58 @@
             border-color: color-mix(in srgb, var(--green) 52%, var(--line));
         }
 
-        .pulse-beta-note {
-            display: flex;
+        .modern-beta-corner {
+            position: relative;
+            display: inline-flex;
             align-items: center;
-            gap: 9px;
-            margin: 14px 0 0;
-            color: var(--muted);
-            font: 500 9px/1.45 'DM Mono', monospace;
+            justify-content: center;
+            min-width: 42px;
+            height: 40px;
+            padding: 0 9px;
+            border: 1px solid color-mix(in srgb, var(--green) 48%, var(--line));
+            border-radius: max(8px, var(--theme-control-radius));
+            background: var(--menu-bg);
+            color: var(--green);
+            cursor: help;
+            font: 700 9px/1 'DM Mono', monospace;
+            letter-spacing: 0.12em;
+            user-select: none;
         }
 
-        .pulse-beta-label {
-            flex: 0 0 auto;
-            padding: 3px 6px;
-            border: 1px solid var(--green);
-            color: var(--green);
-            letter-spacing: 0.1em;
+        [data-dashboard-design="classic"] .modern-beta-corner {
+            display: none;
+        }
+
+        .modern-beta-corner:focus-visible {
+            outline: 2px solid var(--green);
+            outline-offset: 3px;
+        }
+
+        .modern-beta-tooltip {
+            position: absolute;
+            z-index: 120;
+            top: calc(100% + 10px);
+            right: 0;
+            width: min(270px, calc(100vw - 28px));
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: max(8px, var(--theme-control-radius));
+            background: var(--menu-bg);
+            color: var(--ink);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+            font: 500 10px/1.5 'DM Mono', monospace;
+            letter-spacing: 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 140ms ease, transform 140ms ease;
+        }
+
+        .modern-beta-corner:hover .modern-beta-tooltip,
+        .modern-beta-corner:focus .modern-beta-tooltip,
+        .modern-beta-corner:focus-within .modern-beta-tooltip {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .light-theme-warning {
@@ -2532,6 +2569,11 @@
                     </div>
                 </div>
 
+                <aside class="modern-beta-corner" tabindex="0" aria-describedby="modern-beta-tooltip">
+                    <span>BETA</span>
+                    <span class="modern-beta-tooltip" id="modern-beta-tooltip" role="tooltip" data-i18n="design_beta_feedback">This is a beta version of the new homepage. All suggestions are welcome.</span>
+                </aside>
+
                 <a href="https://github.com/Sppqq/spicy-stats" target="_blank" rel="noopener noreferrer" class="github-stars-btn" id="github-stars-btn" title="Star Spicy Stats on GitHub">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                     <span>Star</span>
@@ -2575,11 +2617,6 @@
                                 <span class="live-dot" aria-hidden="true"></span>
                                 <span data-i18n="live_db">Live database</span>
                             </span>
-                        </div>
-
-                        <div class="pulse-beta-note">
-                            <span class="pulse-beta-label">BETA</span>
-                            <span data-i18n="design_beta_feedback">This is a beta version of the new homepage. All suggestions are welcome.</span>
                         </div>
 
                         <div>
@@ -2708,7 +2745,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.3 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.5 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -5335,6 +5372,20 @@
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
 
                 <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.5 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Moved the new-homepage beta notice out of the main dashboard content into a compact header-corner badge.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.4 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added a 30-minute minimum interval before a new dashboard visit replaces the previous comparison point.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.3 (2026-08-08)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
                         <li>Replaced the decorative growth bars with a personal summary of changes since the previous visit.</li>
@@ -5501,6 +5552,7 @@
         const DESIGN_PREVIEW_RETURN_MS = 24 * 60 * 60 * 1000;
         const LIGHT_THEME_WARNING_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000;
         const DASHBOARD_VISIT_SNAPSHOT_KEY = 'spicy-dashboard-visit-snapshot-v1';
+        const DASHBOARD_VISIT_MIN_INTERVAL_MS = 30 * 60 * 1000;
 
         function readStoredNumber(key) {
             try {
@@ -5583,6 +5635,8 @@
             if (!summary || !totalViews || !lastSeen || !viewsDelta || !tracksDelta || !profilesUpdated) return;
 
             const previousSnapshot = readDashboardVisitSnapshot();
+            const shouldAdvanceVisitSnapshot = !previousSnapshot
+                || Date.now() - Number(previousSnapshot.visitedAt) >= DASHBOARD_VISIT_MIN_INTERVAL_MS;
             let snapshotSaved = false;
 
             const renderVisitSummary = () => {
@@ -5618,7 +5672,7 @@
                     profilesUpdated.textContent = new Intl.NumberFormat(currentLang).format(updatedCount);
                 }
 
-                if (!snapshotSaved) {
+                if (!snapshotSaved && shouldAdvanceVisitSnapshot) {
                     saveDashboardVisitSnapshot(currentSnapshot);
                     snapshotSaved = true;
                 }
