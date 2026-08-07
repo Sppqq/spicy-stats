@@ -52,6 +52,14 @@
 
             document.documentElement.dataset.theme = resolvedTheme;
             document.documentElement.dataset.themeMode = mode;
+
+            let dashboardDesign = 'classic';
+            try {
+                if (localStorage.getItem('spicy-dashboard-design') === 'modern') dashboardDesign = 'modern';
+            } catch (error) {
+                // Classic remains the safe default when storage is unavailable.
+            }
+            document.documentElement.dataset.dashboardDesign = dashboardDesign;
         })();
     </script>
 
@@ -1561,6 +1569,612 @@
             font-size: 10px;
             letter-spacing: -0.02em;
         }
+
+        /* ===== v1.4 data masthead ===== */
+        .page {
+            max-width: 1240px;
+            padding: 20px 24px 32px;
+        }
+
+        .topbar {
+            min-height: 52px;
+            padding-bottom: 14px;
+        }
+
+        .brand {
+            gap: 10px;
+            font-size: 15px;
+        }
+
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+        }
+
+        .topbar-right {
+            gap: 6px;
+        }
+
+        .github-stars-btn,
+        .topbar-right > .live-status {
+            display: none;
+        }
+
+        .pulse-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.48fr) minmax(330px, 0.82fr);
+            gap: 12px;
+            margin: 24px 0 12px;
+        }
+
+        .pulse-hero {
+            position: relative;
+            isolation: isolate;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
+            gap: 28px;
+            min-height: 260px;
+            overflow: hidden;
+            padding: 24px;
+            border: 1px solid var(--line);
+            border-radius: var(--theme-card-radius);
+            background:
+                radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--green) 11%, transparent), transparent 34%),
+                var(--white);
+            box-shadow: var(--theme-panel-shadow);
+        }
+
+        .pulse-hero::after {
+            content: '';
+            position: absolute;
+            inset: auto -8% -52% 34%;
+            z-index: -1;
+            height: 88%;
+            border: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .pulse-copy {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .pulse-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .pulse-head .eyebrow {
+            margin: 0;
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: 0.11em;
+        }
+
+        .pulse-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--muted);
+            font: 500 9px/1 'DM Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .pulse-live .live-dot {
+            width: 6px;
+            height: 6px;
+            border: 0;
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 13%, transparent);
+        }
+
+        .pulse-title {
+            margin: auto 0 4px;
+            color: var(--muted);
+            font: 600 14px/1.2 'Manrope', sans-serif;
+            letter-spacing: -0.025em;
+        }
+
+        .pulse-number {
+            min-height: 1.04em;
+            color: var(--positive-text);
+            font-size: clamp(48px, 6.3vw, 78px);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.075em;
+            line-height: 0.95;
+        }
+
+        .pulse-unit {
+            margin-top: 9px;
+            color: var(--muted);
+            font: 500 10px/1.35 'DM Mono', monospace;
+        }
+
+        .pulse-signal {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .pulse-signal-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            color: var(--muted);
+            font: 500 9px/1 'DM Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .pulse-bars {
+            display: flex;
+            height: 112px;
+            align-items: flex-end;
+            gap: 5px;
+            padding-top: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .pulse-bars i {
+            width: 100%;
+            height: var(--pulse-height, 16%);
+            min-height: 4px;
+            border-radius: 1px 1px 0 0;
+            background: var(--green);
+            opacity: var(--pulse-opacity, 0.82);
+            transform-origin: bottom;
+            animation: pulse-bar-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+            animation-delay: calc(var(--pulse-index, 0) * 32ms);
+        }
+
+        .pulse-bars.is-loading i {
+            height: 22%;
+            background: var(--line);
+            animation: pulse-loading 1.1s ease-in-out infinite alternate;
+        }
+
+        .pulse-bars.is-loading i:nth-child(3n + 1) { height: 36%; }
+        .pulse-bars.is-loading i:nth-child(4n + 2) { height: 58%; }
+
+        @keyframes pulse-bar-in {
+            from { opacity: 0; transform: scaleY(0.12); }
+        }
+
+        @keyframes pulse-loading {
+            from { opacity: 0.34; }
+            to { opacity: 0.7; }
+        }
+
+        .pulse-metrics {
+            display: grid;
+            grid-template-rows: 1.12fr 0.88fr;
+            gap: 12px;
+        }
+
+        .pulse-metrics-secondary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .pulse-metrics .stat {
+            min-height: 0;
+            padding: 18px;
+            border-color: var(--line);
+            background: var(--white);
+            color: var(--ink);
+        }
+
+        .pulse-metrics .stat-primary {
+            background: var(--white);
+            color: var(--ink);
+            box-shadow: inset 3px 0 0 var(--green), var(--theme-panel-shadow);
+        }
+
+        .pulse-metrics .stat-label {
+            color: currentColor;
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            opacity: 0.68;
+        }
+
+        .pulse-metrics .stat-value {
+            font-size: clamp(30px, 3vw, 46px);
+            font-variant-numeric: tabular-nums;
+            line-height: 0.95;
+        }
+
+        .pulse-metrics-secondary .stat-value {
+            font-size: clamp(27px, 2.5vw, 36px);
+        }
+
+        .pulse-metrics .stat-change {
+            margin-top: 6px;
+            color: currentColor;
+            font-size: 9px;
+            opacity: 0.58;
+        }
+
+        .main-grid {
+            grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
+        }
+
+        .panel,
+        .database {
+            border-color: var(--line);
+        }
+
+        .panel-heading,
+        .database-head {
+            border-bottom-color: var(--line);
+        }
+
+        .panel-heading {
+            padding: 15px 18px;
+        }
+
+        .panel-title {
+            font-size: 13px;
+        }
+
+        .skeleton-value,
+        .skeleton-line {
+            position: relative;
+            display: block;
+            overflow: hidden;
+            color: transparent !important;
+            background: var(--line);
+        }
+
+        .skeleton-value {
+            width: 52%;
+            height: 0.82em;
+        }
+
+        .skeleton-line {
+            width: 64%;
+            height: 7px;
+            margin-top: 8px;
+        }
+
+        .dashboard-skeleton {
+            display: grid;
+            gap: 1px;
+            padding: 7px 12px 12px;
+        }
+
+        .dashboard-skeleton-row {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) 64px;
+            gap: 10px;
+            align-items: center;
+            min-height: 50px;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--paper-dark);
+        }
+
+        .dashboard-skeleton-row .skeleton-line {
+            width: 100%;
+            margin: 0;
+        }
+
+        .dashboard-skeleton-row .skeleton-line:first-child {
+            width: 16px;
+        }
+
+        .dashboard-skeleton-row .skeleton-line:last-child {
+            width: 56px;
+            justify-self: end;
+        }
+
+        .skeleton-value::after,
+        .skeleton-line::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 12%, transparent), transparent);
+            transform: translateX(-100%);
+            animation: skeleton-sweep 1.4s ease-in-out infinite;
+        }
+
+        @keyframes skeleton-sweep {
+            to { transform: translateX(100%); }
+        }
+
+        #lang-suggest-toast {
+            max-width: 280px !important;
+            padding: 14px !important;
+            border: 1px solid var(--line) !important;
+            border-radius: max(10px, var(--theme-card-radius)) !important;
+            box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        .classic-dashboard-heading {
+            display: none;
+        }
+
+        .classic-total-growth {
+            display: none;
+        }
+
+        [data-dashboard-design="classic"] .classic-dashboard-heading {
+            display: flex;
+        }
+
+        [data-dashboard-design="classic"] .pulse-grid {
+            display: block;
+            margin: 0 0 12px;
+        }
+
+        [data-dashboard-design="classic"] .pulse-hero {
+            display: none;
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            grid-template-rows: none;
+            gap: 12px;
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics-secondary {
+            display: contents;
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics .stat {
+            min-height: 160px;
+            padding: 20px;
+            border-color: var(--ink);
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics .stat-primary {
+            background: var(--ink);
+            color: var(--paper);
+            box-shadow: var(--theme-panel-shadow);
+        }
+
+        [data-dashboard-design="classic"] #stat-tracks-card {
+            background: var(--green);
+            color: #101114;
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics .stat-label,
+        [data-dashboard-design="classic"] .pulse-metrics .stat-change {
+            opacity: 1;
+        }
+
+        [data-dashboard-design="classic"] .pulse-metrics .stat-value,
+        [data-dashboard-design="classic"] .pulse-metrics-secondary .stat-value {
+            font-size: 39px;
+        }
+
+        [data-dashboard-design="classic"] .modern-total-subtext {
+            display: none;
+        }
+
+        [data-dashboard-design="classic"] .classic-total-growth {
+            display: block;
+        }
+
+        .design-preview-card,
+        .design-preview-back {
+            position: fixed;
+            bottom: 22px;
+            left: 22px;
+            z-index: 1180;
+        }
+
+        .design-preview-card {
+            width: min(326px, calc(100vw - 44px));
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: max(10px, var(--theme-card-radius));
+            background: var(--menu-bg);
+            color: var(--ink);
+            box-shadow: 0 20px 52px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(18px);
+        }
+
+        .design-preview-card[hidden],
+        .design-preview-back[hidden],
+        .light-theme-warning[hidden] {
+            display: none !important;
+        }
+
+        .design-preview-kicker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 9px;
+            color: var(--green);
+            font: 500 9px/1 'DM Mono', monospace;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .design-preview-kicker::before {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            content: '';
+            box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 14%, transparent);
+        }
+
+        .design-preview-card h2,
+        .light-theme-dialog h2 {
+            margin: 0;
+            font-size: 18px;
+            letter-spacing: -0.035em;
+        }
+
+        .design-preview-card p,
+        .light-theme-dialog p {
+            margin: 7px 0 14px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .design-preview-actions,
+        .light-theme-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .design-preview-actions button,
+        .design-preview-back,
+        .light-theme-actions button {
+            min-height: 36px;
+            padding: 8px 12px;
+            border: 1px solid var(--line);
+            border-radius: var(--theme-control-radius);
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            font: 500 10px/1.2 'DM Mono', monospace;
+        }
+
+        .design-preview-actions .primary,
+        .light-theme-actions .primary {
+            border-color: var(--green);
+            background: var(--green);
+            color: #101114;
+            font-weight: 700;
+        }
+
+        .design-preview-back {
+            background: var(--menu-bg);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+            backdrop-filter: blur(18px);
+        }
+
+        .light-theme-warning {
+            position: fixed;
+            inset: 0;
+            z-index: 1400;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+            background: rgba(8, 10, 13, 0.54);
+            backdrop-filter: blur(8px);
+        }
+
+        .light-theme-dialog {
+            width: min(410px, 100%);
+            padding: 24px;
+            border: 1px solid var(--line);
+            border-radius: max(12px, var(--theme-card-radius));
+            background: var(--white);
+            color: var(--ink);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+        }
+
+        .light-theme-icon {
+            display: grid;
+            width: 38px;
+            height: 38px;
+            place-items: center;
+            margin-bottom: 16px;
+            border-radius: 50%;
+            background: var(--green);
+            color: #101114;
+            font-size: 20px;
+        }
+
+        .light-theme-actions {
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 850px) {
+            .pulse-grid { grid-template-columns: 1fr; }
+            .pulse-metrics { grid-template-columns: 1.1fr 0.9fr; grid-template-rows: none; }
+            .pulse-metrics-secondary { grid-template-columns: 1fr; }
+            .main-grid { grid-template-columns: 1fr; }
+            [data-dashboard-design="classic"] .pulse-metrics { grid-template-columns: 1fr; }
+            [data-dashboard-design="classic"] .pulse-metrics-secondary { display: contents; }
+        }
+
+        @media (max-width: 620px) {
+            .page { padding: 14px 14px 24px; }
+            .topbar { min-height: 48px; padding-bottom: 12px; }
+            .brand span { display: none; }
+            .topbar-right { gap: 5px; }
+            .theme-selector > .theme-toggle,
+            .lang-selector > .theme-toggle,
+            #settings-toggle {
+                width: 40px;
+                min-width: 40px;
+                height: 40px;
+                padding: 0;
+                justify-content: center;
+            }
+            .theme-toggle-copy,
+            .theme-toggle-arrow,
+            #lang-toggle-label,
+            .lang-toggle-caret { display: none; }
+            .lang-selector > .theme-toggle { gap: 0; }
+
+            .pulse-grid { margin-top: 14px; }
+            .pulse-hero {
+                grid-template-columns: 1fr;
+                gap: 14px;
+                min-height: 228px;
+                padding: 18px;
+            }
+            .pulse-head { align-items: flex-start; }
+            .pulse-head .eyebrow { max-width: 58%; line-height: 1.45; }
+            .pulse-number { font-size: clamp(48px, 16vw, 68px); }
+            .pulse-bars { height: 58px; }
+            .pulse-signal-label { margin-bottom: 10px; }
+
+            .pulse-metrics {
+                grid-template-columns: 1.15fr 0.85fr;
+                gap: 8px;
+            }
+            .pulse-metrics-secondary { gap: 8px; }
+            .pulse-metrics .stat { padding: 14px; }
+            .pulse-metrics .stat-primary { min-height: 170px; }
+            .pulse-metrics-secondary .stat { min-height: 81px; }
+            .pulse-metrics .stat-value { font-size: 31px; }
+            .pulse-metrics-secondary .stat-value { font-size: 25px; }
+
+            .main-grid { gap: 8px; }
+            .database { margin-top: 8px; }
+
+            #lang-suggest-toast {
+                display: none !important;
+            }
+
+            .classic-dashboard-heading {
+                padding: 46px 0 28px;
+            }
+
+            .design-preview-card,
+            .design-preview-back {
+                right: 14px;
+                bottom: calc(82px + env(safe-area-inset-bottom));
+                left: 14px;
+                width: auto;
+            }
+
+            .design-preview-back {
+                right: auto;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pulse-bars i,
+            .skeleton-value::after,
+            .skeleton-line::after { animation: none !important; }
+        }
     </style>
 </head>
 
@@ -1857,53 +2471,72 @@
         </div>
 
         <main>
-            <section class="dashboard-heading">
+            <section class="dashboard-heading classic-dashboard-heading" aria-labelledby="classic-dashboard-title">
                 <div>
-                    <div class="eyebrow" id="dashboard-date-eyebrow">Overview / July 2026</div>
-                    <h1 data-i18n="headline">Know what is moving.</h1>
+                    <div class="eyebrow" id="classic-dashboard-date-eyebrow">Overview / July 2026</div>
+                    <h1 id="classic-dashboard-title" data-i18n="headline">Know what is moving.</h1>
                 </div>
-
-                <p class="heading-note" data-i18n="sub">
-                    A focused view of your authors, tracks and audience growth. Everything important, without the noise.
-                </p>
+                <p class="heading-note" data-i18n="sub">A focused view of your authors, tracks and audience growth. Everything important, without the noise.</p>
             </section>
 
-            <section class="stats-grid">
-                <article class="stat dark">
-                    <div class="stat-label">
-                        <span data-i18n="views">Total views</span>
-                        <span>01</span>
+            <section class="pulse-grid" aria-labelledby="pulse-title">
+                <article class="pulse-hero">
+                    <div class="pulse-copy">
+                        <div class="pulse-head">
+                            <div class="eyebrow" id="dashboard-date-eyebrow">Overview / July 2026</div>
+                            <span class="pulse-live">
+                                <span class="live-dot" aria-hidden="true"></span>
+                                <span data-i18n="live_db">Live database</span>
+                            </span>
+                        </div>
+
+                        <div>
+                            <h1 class="pulse-title" id="pulse-title" data-i18n="today_pulse">24 hour pulse</h1>
+                            <div class="pulse-number skeleton-value" id="modern-total-growth" aria-live="polite">Loading</div>
+                            <div class="pulse-unit" id="stat-total-views-growth-meta" data-i18n="views_24h_suffix">views 24h</div>
+                        </div>
                     </div>
 
-                    <div>
-                        <div class="stat-value" id="stat-total-views">...</div>
-                        <div class="stat-change positive" id="stat-total-views-growth">...</div>
+                    <div class="pulse-signal" aria-hidden="true">
+                        <div class="pulse-signal-label">
+                            <span data-i18n="growth_delta">Growth</span>
+                            <span>24H</span>
+                        </div>
+                        <div class="pulse-bars is-loading" id="pulse-bars">
+                            <i></i><i></i><i></i><i></i><i></i><i></i>
+                            <i></i><i></i><i></i><i></i><i></i><i></i>
+                        </div>
                     </div>
                 </article>
 
-                <article class="stat">
-                    <div class="stat-label">
-                        <span data-i18n="creators">Authors</span>
-                        <span>02</span>
-                    </div>
+                <div class="pulse-metrics">
+                    <article class="stat stat-primary">
+                        <div class="stat-label"><span data-i18n="views">Total views</span></div>
+                        <div>
+                            <div class="stat-value skeleton-value" id="stat-total-views">Loading</div>
+                            <div class="stat-change modern-total-subtext" data-i18n="across_profiles">Across all profiles</div>
+                            <div class="stat-change classic-total-growth skeleton-value" id="stat-total-views-growth" aria-live="polite">Loading</div>
+                        </div>
+                    </article>
 
-                    <div>
-                        <div class="stat-value" id="stat-authors-count">...</div>
-                        <div class="stat-change positive" id="stat-authors-subtext">...</div>
-                    </div>
-                </article>
+                    <div class="pulse-metrics-secondary">
+                        <article class="stat">
+                            <div class="stat-label"><span data-i18n="creators">Authors</span></div>
+                            <div>
+                                <div class="stat-value skeleton-value" id="stat-authors-count">Loading</div>
+                                <div class="stat-change" id="stat-authors-subtext">...</div>
+                            </div>
+                        </article>
 
-                <article class="stat green" id="stat-tracks-card">
-                    <div class="stat-label">
-                        <span data-i18n="songs">Tracks tracked</span>
-                        <span>03</span>
+                        <article class="stat" id="stat-tracks-card">
+                            <div class="stat-label"><span data-i18n="songs">Tracks tracked</span></div>
+                            <div>
+                                <div class="stat-value skeleton-value" id="stat-tracks-count">Loading</div>
+                                <div class="stat-change" id="stat-tracks-subtext">...</div>
+                            </div>
+                        </article>
                     </div>
-
-                    <div>
-                        <div class="stat-value" id="stat-tracks-count">...</div>
-                        <div class="stat-change" id="stat-tracks-subtext">...</div>
-                    </div>
-                </article>
+                </div>
             </section>
 
             <section class="main-grid">
@@ -1972,7 +2605,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.3.0 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.1 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -1985,6 +2618,30 @@
                 </div>
             </footer>
         </main>
+    </div>
+
+    <aside class="design-preview-card" id="design-preview-card" hidden aria-labelledby="design-preview-title">
+        <div class="design-preview-kicker">Preview</div>
+        <h2 id="design-preview-title" data-i18n="design_preview_title">Try the new homepage</h2>
+        <p data-i18n="design_preview_body">A denser live view is ready for preview.</p>
+        <div class="design-preview-actions">
+            <button class="primary" id="design-preview-open" type="button" data-i18n="design_preview_cta">View new design</button>
+            <button id="design-preview-later" type="button" data-i18n="design_preview_later">Not now</button>
+        </div>
+    </aside>
+
+    <button class="design-preview-back" id="design-preview-back" type="button" hidden data-i18n="design_preview_back">Back to classic</button>
+
+    <div class="light-theme-warning" id="light-theme-warning" role="alertdialog" aria-modal="true" aria-labelledby="light-theme-warning-title" aria-describedby="light-theme-warning-body" hidden>
+        <div class="light-theme-dialog" role="document">
+            <div class="light-theme-icon" aria-hidden="true">☀</div>
+            <h2 id="light-theme-warning-title" data-i18n="light_warning_title">Switch to a light theme?</h2>
+            <p id="light-theme-warning-body" data-i18n="light_warning_body">The interface will become much brighter. You can switch back at any time.</p>
+            <div class="light-theme-actions">
+                <button id="light-theme-cancel" type="button" data-i18n="light_warning_cancel">Cancel</button>
+                <button class="primary" id="light-theme-confirm" type="button" data-i18n="light_warning_apply">Switch theme</button>
+            </div>
+        </div>
     </div>
 
     <nav class="mobile-dashboard-actions" aria-label="Dashboard quick actions">
@@ -2213,6 +2870,16 @@
         const TRANSLATIONS = {
             en: {
                 headline: "Know what is moving.",
+                today_pulse: "24 hour pulse",
+                design_preview_title: "Try the new homepage",
+                design_preview_body: "A denser live view is ready for preview.",
+                design_preview_cta: "View new design",
+                design_preview_later: "Not now",
+                design_preview_back: "Back to classic",
+                light_warning_title: "Switch to a light theme?",
+                light_warning_body: "The interface will become much brighter. You can switch back at any time.",
+                light_warning_apply: "Switch theme",
+                light_warning_cancel: "Cancel",
                 sub: "A focused view of your authors, tracks and audience growth. Everything important, without the noise.",
                 views: "Total views",
                 creators: "Authors",
@@ -2339,6 +3006,16 @@
             },
             ru: {
                 headline: "Знай, что популярно.",
+                today_pulse: "Пульс за 24 часа",
+                design_preview_title: "Новая главная готова",
+                design_preview_body: "Посмотрите более плотный экран с живыми метриками.",
+                design_preview_cta: "Открыть новый дизайн",
+                design_preview_later: "Не сейчас",
+                design_preview_back: "Вернуться к старой",
+                light_warning_title: "Перейти на светлую тему?",
+                light_warning_body: "Интерфейс станет заметно ярче. Вернуться назад можно в любой момент.",
+                light_warning_apply: "Перейти",
+                light_warning_cancel: "Отмена",
                 sub: "Сфокусированный взгляд на ваших авторов, треки и рост аудитории. Всё важное, без лишнего шума.",
                 views: "Всего просмотров",
                 creators: "Авторы",
@@ -2465,6 +3142,16 @@
             },
             uk: {
                 headline: "Знай, що популярно.",
+                today_pulse: "Пульс за 24 години",
+                design_preview_title: "Нова головна готова",
+                design_preview_body: "Перегляньте щільніший екран із живими метриками.",
+                design_preview_cta: "Відкрити новий дизайн",
+                design_preview_later: "Не зараз",
+                design_preview_back: "Повернутися до старої",
+                light_warning_title: "Перейти на світлу тему?",
+                light_warning_body: "Інтерфейс стане значно яскравішим. Повернутися назад можна будь-коли.",
+                light_warning_apply: "Перейти",
+                light_warning_cancel: "Скасувати",
                 sub: "Фокусований огляд ваших авторів, треків та зростання аудиторії. Все важливе, без зайвого шуму.",
                 views: "Всього переглядів",
                 creators: "Автори",
@@ -2591,6 +3278,16 @@
             },
             de: {
                 headline: "Wisse, was sich bewegt.",
+                today_pulse: "Puls der letzten 24 Stunden",
+                design_preview_title: "Die neue Startseite ist bereit",
+                design_preview_body: "Teste eine kompaktere Ansicht mit Live-Kennzahlen.",
+                design_preview_cta: "Neues Design ansehen",
+                design_preview_later: "Nicht jetzt",
+                design_preview_back: "Zurück zum Klassiker",
+                light_warning_title: "Zum hellen Design wechseln?",
+                light_warning_body: "Die Oberfläche wird deutlich heller. Du kannst jederzeit zurückwechseln.",
+                light_warning_apply: "Design wechseln",
+                light_warning_cancel: "Abbrechen",
                 sub: "Ein fokussierter Blick auf Ihre Autoren, Tracks und das Publikumswachstum. Alles Wichtige, ohne Lärm.",
                 views: "Aufrufe gesamt",
                 creators: "Autoren",
@@ -2717,6 +3414,16 @@
             },
             it: {
                 headline: "Sappi cosa si muove.",
+                today_pulse: "Andamento delle ultime 24 ore",
+                design_preview_title: "La nuova home è pronta",
+                design_preview_body: "Prova una vista più compatta con metriche in tempo reale.",
+                design_preview_cta: "Vedi il nuovo design",
+                design_preview_later: "Non ora",
+                design_preview_back: "Torna alla versione classica",
+                light_warning_title: "Passare al tema chiaro?",
+                light_warning_body: "L'interfaccia diventerà molto più luminosa. Puoi tornare indietro in qualsiasi momento.",
+                light_warning_apply: "Cambia tema",
+                light_warning_cancel: "Annulla",
                 sub: "Una vista focalizzata sui tuoi autori, brani e crescita del pubblico. Tutto ciò che è importante, senza rumore.",
                 views: "Visualizzazioni totali",
                 creators: "Autori",
@@ -2843,6 +3550,16 @@
             },
             pl: {
                 headline: "Wiedz, co jest na czasie.",
+                today_pulse: "Puls z ostatnich 24 godzin",
+                design_preview_title: "Nowa strona główna jest gotowa",
+                design_preview_body: "Wypróbuj bardziej zwarty widok z danymi na żywo.",
+                design_preview_cta: "Zobacz nowy wygląd",
+                design_preview_later: "Nie teraz",
+                design_preview_back: "Wróć do klasycznej wersji",
+                light_warning_title: "Przejść na jasny motyw?",
+                light_warning_body: "Interfejs stanie się znacznie jaśniejszy. W każdej chwili możesz wrócić.",
+                light_warning_apply: "Zmień motyw",
+                light_warning_cancel: "Anuluj",
                 sub: "Skupiony widok na Twoich autorów, utwory i wzrost widowni. Wszystko, co ważne, bez szumu.",
                 views: "Wyświetlenia",
                 creators: "Autorzy",
@@ -3607,6 +4324,24 @@
         function showLoadingState() {
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            ['stat-total-views-growth', 'stat-total-views', 'stat-authors-count', 'stat-tracks-count'].forEach(id => {
+                const value = document.getElementById(id);
+                if (!value) return;
+                value.classList.add('skeleton-value');
+                value.textContent = dict.loading_metrics || 'Loading live metrics...';
+            });
+
+            const pulseBars = document.getElementById('pulse-bars');
+            if (pulseBars) {
+                pulseBars.classList.add('is-loading');
+                pulseBars.innerHTML = '<i></i>'.repeat(12);
+            }
+
+            const skeletonRows = `
+                <div class="dashboard-skeleton" aria-hidden="true">
+                    ${'<div class="dashboard-skeleton-row"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div>'.repeat(3)}
+                </div>
+            `;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
                     <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
@@ -3614,21 +4349,31 @@
                     </td>
                 </tr>
             `;
-            document.getElementById('top-authors-list').innerHTML = `
-                <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
-                    ${dict.analyzing_growth || 'Analyzing growth...'}
-                </div>
-            `;
-            document.getElementById('milestones-list').innerHTML = `
-                <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
-                    ${dict.calc_milestones || 'Calculating milestones...'}
-                </div>
-            `;
+            document.getElementById('top-authors-list').innerHTML = skeletonRows;
+            document.getElementById('milestones-list').innerHTML = skeletonRows;
         }
 
         function showErrorState() {
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            ['stat-total-views-growth', 'stat-total-views', 'stat-authors-count', 'stat-tracks-count'].forEach(id => {
+                const value = document.getElementById(id);
+                if (!value) return;
+                value.classList.remove('skeleton-value');
+                value.textContent = '—';
+            });
+            document.getElementById('stat-authors-subtext').textContent = '';
+            document.getElementById('stat-tracks-subtext').textContent = '';
+
+            const pulseBars = document.getElementById('pulse-bars');
+            if (pulseBars) {
+                pulseBars.classList.remove('is-loading');
+                pulseBars.innerHTML = '';
+            }
+
+            const errorMessage = `<div style="padding: 28px 18px; color: var(--coral); font: 500 10px/1.5 'DM Mono', monospace;">${dict.error_loading || 'Error loading data. Please reload the page.'}</div>`;
+            document.getElementById('top-authors-list').innerHTML = errorMessage;
+            document.getElementById('milestones-list').innerHTML = errorMessage;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
                     <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
@@ -3678,7 +4423,9 @@
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
             // Total Views card
-            document.getElementById('stat-total-views').textContent = formatViews(dashboardData.global_views);
+            const totalViewsEl = document.getElementById('stat-total-views');
+            totalViewsEl.classList.remove('skeleton-value');
+            totalViewsEl.textContent = formatViews(dashboardData.global_views);
             // Dynamic Growth: calculate the sum of positive growth across all users
             const totalGrowth = allUsersDetailed.reduce(
                 (sum, u) => sum + (Number(u.growth) > 0 ? Number(u.growth) : 0),
@@ -3686,31 +4433,51 @@
             );
             const totalGrowthEl = document.getElementById('stat-total-views-growth');
             if (totalGrowthEl) {
+                totalGrowthEl.classList.remove('skeleton-value');
                 if (totalGrowth > 0) {
                     totalGrowthEl.classList.add('positive');
-                    totalGrowthEl.innerHTML = `+${formatViews(totalGrowth)} ${dict.views_24h_suffix || 'views 24h'}`;
+                    totalGrowthEl.textContent = `+${formatViews(totalGrowth)}`;
                 } else {
                     totalGrowthEl.classList.remove('positive');
-                    totalGrowthEl.innerHTML = `${formatViews(totalGrowth)} ${dict.views_24h_suffix || 'views 24h'}`;
+                    totalGrowthEl.textContent = formatViews(totalGrowth);
                 }
             }
 
+            const totalGrowthMeta = document.getElementById('stat-total-views-growth-meta');
+            if (totalGrowthMeta) totalGrowthMeta.textContent = dict.views_24h_suffix || 'views 24h';
+
+            const pulseBars = document.getElementById('pulse-bars');
+            if (pulseBars) {
+                const growthValues = allUsersDetailed
+                    .map(u => Math.max(0, Number(u.growth) || 0))
+                    .sort((a, b) => b - a)
+                    .slice(0, 12);
+                const maxGrowth = Math.max(...growthValues, 1);
+
+                pulseBars.classList.remove('is-loading');
+                pulseBars.innerHTML = growthValues.map((growth, index) => {
+                    const height = growth > 0 ? 16 + ((growth / maxGrowth) * 84) : 4;
+                    const opacity = growth > 0 ? Math.max(0.32, 1 - (index * 0.055)) : 0.16;
+                    return `<i style="--pulse-height:${height.toFixed(1)}%;--pulse-opacity:${opacity.toFixed(2)};--pulse-index:${index}"></i>`;
+                }).join('');
+            }
+
             // Authors card
-            document.getElementById('stat-authors-count').textContent = dashboardData.total_users;
+            const authorsCountEl = document.getElementById('stat-authors-count');
+            authorsCountEl.classList.remove('skeleton-value');
+            authorsCountEl.textContent = dashboardData.total_users;
             document.getElementById('stat-authors-subtext').textContent = dict.monitored_profiles || 'Monitored profiles';
 
             // Tracks tracked card
             const globalTracks = dashboardData.global_tracks || 0;
-            document.getElementById('stat-tracks-count').textContent = formatViews(globalTracks);
+            const tracksCountEl = document.getElementById('stat-tracks-count');
+            tracksCountEl.classList.remove('skeleton-value');
+            tracksCountEl.textContent = formatViews(globalTracks);
             document.getElementById('stat-tracks-subtext').textContent = dict.across_profiles || 'Across all profiles';
 
             const tracksCard = document.getElementById('stat-tracks-card');
             if (tracksCard) {
-                if (globalTracks > 0) {
-                    tracksCard.classList.add('green');
-                } else {
-                    tracksCard.classList.remove('green');
-                }
+                tracksCard.classList.toggle('has-data', globalTracks > 0);
             }
         }
 
@@ -4432,6 +5199,24 @@
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
 
                 <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.1 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Restored the classic homepage as the default and added an optional new-design preview.</li>
+                        <li>Added temporary dismissal and an instant return to the classic layout.</li>
+                        <li>Added an occasional confirmation before switching from dark to light themes.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.0 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Rebuilt the dashboard around a compact live data masthead.</li>
+                        <li>Added a real 24-hour growth signal generated from monitored profiles.</li>
+                        <li>Reduced header clutter and redesigned loading, error, and mobile states.</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.3.0 (2026-08-07)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
                         <li>Added high-resolution Story and Post creator cards with reliable avatar export.</li>
@@ -4560,6 +5345,150 @@
     </div>
 
     <script>
+        const DESIGN_PREVIEW_DISMISS_MS = 3 * 24 * 60 * 60 * 1000;
+        const DESIGN_PREVIEW_RETURN_MS = 24 * 60 * 60 * 1000;
+        const LIGHT_THEME_WARNING_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000;
+
+        function readStoredNumber(key) {
+            try {
+                const value = Number(localStorage.getItem(key));
+                return Number.isFinite(value) ? value : 0;
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        function writeStoredValue(key, value) {
+            try {
+                localStorage.setItem(key, String(value));
+            } catch (error) {
+                // The current view still works when storage is unavailable.
+            }
+        }
+
+        function applyDashboardDesign(design, { persist = true } = {}) {
+            const nextDesign = design === 'modern' ? 'modern' : 'classic';
+            const previewCard = document.getElementById('design-preview-card');
+            const backButton = document.getElementById('design-preview-back');
+            const dismissedUntil = readStoredNumber('spicy-design-preview-dismissed-until');
+
+            document.documentElement.dataset.dashboardDesign = nextDesign;
+            if (persist) writeStoredValue('spicy-dashboard-design', nextDesign);
+
+            if (previewCard) previewCard.hidden = nextDesign !== 'classic' || dismissedUntil > Date.now();
+            if (backButton) backButton.hidden = nextDesign !== 'modern';
+        }
+
+        function initDashboardDesignPreview() {
+            const previewCard = document.getElementById('design-preview-card');
+            const openButton = document.getElementById('design-preview-open');
+            const laterButton = document.getElementById('design-preview-later');
+            const backButton = document.getElementById('design-preview-back');
+            const savedDesign = document.documentElement.dataset.dashboardDesign || 'classic';
+
+            applyDashboardDesign(savedDesign, { persist: false });
+
+            openButton?.addEventListener('click', () => {
+                applyDashboardDesign('modern');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            laterButton?.addEventListener('click', () => {
+                writeStoredValue('spicy-design-preview-dismissed-until', Date.now() + DESIGN_PREVIEW_DISMISS_MS);
+                if (previewCard) previewCard.hidden = true;
+            });
+
+            backButton?.addEventListener('click', () => {
+                writeStoredValue('spicy-design-preview-dismissed-until', Date.now() + DESIGN_PREVIEW_RETURN_MS);
+                applyDashboardDesign('classic');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            const sourceDate = document.getElementById('dashboard-date-eyebrow');
+            const classicDate = document.getElementById('classic-dashboard-date-eyebrow');
+            const syncDate = () => {
+                if (sourceDate && classicDate) classicDate.textContent = sourceDate.textContent;
+            };
+            syncDate();
+            if (sourceDate) new MutationObserver(syncDate).observe(sourceDate, { childList: true, characterData: true, subtree: true });
+
+            const growthSource = document.getElementById('stat-total-views-growth');
+            const growthMirror = document.getElementById('modern-total-growth');
+            const syncGrowth = () => {
+                if (!growthSource || !growthMirror) return;
+                growthMirror.textContent = growthSource.textContent;
+                growthMirror.classList.toggle('skeleton-value', growthSource.classList.contains('skeleton-value'));
+                growthMirror.classList.toggle('positive', growthSource.classList.contains('positive'));
+            };
+            syncGrowth();
+            if (growthSource) new MutationObserver(syncGrowth).observe(growthSource, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+        }
+
+        function initLightThemeWarning() {
+            const warning = document.getElementById('light-theme-warning');
+            const confirmButton = document.getElementById('light-theme-confirm');
+            const cancelButton = document.getElementById('light-theme-cancel');
+            if (!warning || !confirmButton || !cancelButton) return;
+
+            const lightThemes = new Set(['light', 'nordic', 'sakura']);
+            let pendingThemeMode = null;
+            let previousFocus = null;
+
+            const closeWarning = ({ restoreFocus = true } = {}) => {
+                warning.hidden = true;
+                pendingThemeMode = null;
+                if (restoreFocus && previousFocus instanceof HTMLElement) previousFocus.focus();
+            };
+
+            document.addEventListener('click', (event) => {
+                const option = event.target.closest?.('[data-theme-value]');
+                if (!option) return;
+
+                const nextMode = option.dataset.themeValue;
+                const nextResolvedTheme = resolveTheme(nextMode);
+                const currentResolvedTheme = document.documentElement.dataset.theme || 'dark';
+                const lastConfirmedAt = readStoredNumber('spicy-light-theme-warning-confirmed-at');
+                const shouldWarn = !lightThemes.has(currentResolvedTheme)
+                    && lightThemes.has(nextResolvedTheme)
+                    && Date.now() - lastConfirmedAt >= LIGHT_THEME_WARNING_INTERVAL_MS;
+
+                if (!shouldWarn) return;
+                event.preventDefault();
+                event.stopPropagation();
+                pendingThemeMode = nextMode;
+                previousFocus = option;
+                warning.hidden = false;
+                confirmButton.focus();
+            }, true);
+
+            confirmButton.addEventListener('click', () => {
+                if (!pendingThemeMode) return;
+                const nextMode = pendingThemeMode;
+                writeStoredValue('spicy-light-theme-warning-confirmed-at', Date.now());
+                applyTheme(nextMode);
+
+                const dropdown = document.getElementById('theme-dropdown');
+                const toggle = document.getElementById('theme-toggle');
+                dropdown?.classList.remove('open');
+                toggle?.setAttribute('aria-expanded', 'false');
+                closeWarning({ restoreFocus: false });
+                toggle?.focus();
+            });
+
+            cancelButton.addEventListener('click', () => closeWarning());
+            warning.addEventListener('click', (event) => {
+                if (event.target === warning) closeWarning();
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !warning.hidden) closeWarning();
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initDashboardDesignPreview();
+            initLightThemeWarning();
+        });
+
         // Global escape key handler to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
