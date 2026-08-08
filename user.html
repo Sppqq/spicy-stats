@@ -1247,55 +1247,99 @@
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            background: color-mix(in srgb, var(--paper) 52%, transparent);
-            backdrop-filter: blur(22px) saturate(0.8);
-            -webkit-backdrop-filter: blur(22px) saturate(0.8);
+            padding: clamp(14px, 2.5vw, 34px);
+            background: rgba(6, 7, 6, 0.82);
+            backdrop-filter: blur(30px) saturate(0.62);
+            -webkit-backdrop-filter: blur(30px) saturate(0.62);
         }
-        .share-card-modal.open { display: flex; animation: share-modal-in 220ms ease-out both; }
+        .share-card-modal.open { display: flex; animation: share-modal-in 260ms cubic-bezier(.2,.8,.2,1) both; }
         @keyframes share-modal-in { from { opacity: 0; } to { opacity: 1; } }
 
         .share-card-sheet {
-            width: min(1040px, 100%);
-            max-height: calc(100dvh - 40px);
+            --share-accent: #d6ff4b;
+            --share-ink: #f4f0e7;
+            --share-paper: #1b1c18;
+            --share-studio: #10110f;
+            width: min(1240px, 100%);
+            height: min(800px, calc(100dvh - 38px));
             display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+            grid-template-columns: minmax(0, 1.55fr) minmax(380px, 0.82fr);
             overflow: hidden;
-            border: 1px solid var(--line);
-            border-radius: max(16px, var(--theme-card-radius));
-            background: var(--white);
-            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(244, 240, 231, 0.22);
+            border-radius: 10px;
+            background: var(--share-paper);
+            color: var(--share-ink);
+            box-shadow: 0 48px 150px rgba(0, 0, 0, 0.64), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+            transform-origin: 50% 54%;
+            animation: share-sheet-in 360ms cubic-bezier(.2,.85,.2,1) both;
         }
+        @keyframes share-sheet-in { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .share-card-stage {
             min-height: 0;
             display: grid;
-            place-items: center;
-            padding: clamp(18px, 3vw, 34px);
-            overflow: auto;
-            background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 9%, transparent), transparent 48%), var(--paper-dark);
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 12px;
+            padding: 18px 20px 16px;
+            overflow: hidden;
+            color: #f5f1e8;
+            background:
+                linear-gradient(rgba(244, 240, 231, .035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(244, 240, 231, .035) 1px, transparent 1px),
+                radial-gradient(circle at 84% 14%, rgba(214, 255, 75, 0.12), transparent 26%),
+                var(--share-studio);
+            background-size: 28px 28px, 28px 28px, auto, auto;
+            isolation: isolate;
         }
-        #profile-share-canvas { display: block; width: auto; max-width: 100%; max-height: min(74dvh, 720px); border-radius: 14px; background: #0b0d10; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34); }
-        .share-card-panel { min-width: 0; display: flex; flex-direction: column; gap: 22px; padding: 28px; overflow-y: auto; border-left: 1px solid var(--line); }
-        .share-card-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-        .share-card-panel h2 { margin: 4px 0 0; font-size: clamp(22px, 3vw, 32px); line-height: 0.98; letter-spacing: -0.055em; }
-        .share-close-btn { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: max(8px, var(--theme-control-radius)); background: transparent; color: var(--muted); font-size: 19px; }
-        .share-close-btn:hover { border-color: var(--blue); color: var(--ink); }
+        .share-stage-bar,
+        .share-stage-meta { display: flex; align-items: center; justify-content: space-between; gap: 16px; font: 600 9px/1 'DM Mono', monospace; letter-spacing: .11em; text-transform: uppercase; }
+        .share-stage-bar { position: relative; z-index: 2; color: rgba(245, 241, 232, 0.72); }
+        .share-stage-live { display: inline-flex; align-items: center; gap: 8px; }
+        .share-stage-live::before { content: ''; width: 8px; height: 8px; background: var(--share-accent); box-shadow: 0 0 0 4px rgba(214, 255, 75, 0.10); }
+        .share-stage-size { color: rgba(245, 241, 232, 0.38); font-variant-numeric: tabular-nums; }
+        .share-card-preview-shell { min-height: 0; display: grid; place-items: center; overflow: hidden; padding: 14px; border: 1px solid rgba(244, 240, 231, 0.12); border-radius: 4px; background: rgba(244, 240, 231, 0.035); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset; }
+        #profile-share-canvas { display: block; width: auto; height: 100%; max-width: 100%; max-height: 100%; border-radius: 2px; background: #0b0d10; box-shadow: 0 28px 80px rgba(0, 0, 0, 0.58); transition: transform 260ms cubic-bezier(.2,.8,.2,1), box-shadow 260ms ease; }
+        #profile-share-canvas:hover { transform: translateY(-2px); box-shadow: 0 32px 86px rgba(0, 0, 0, 0.56); }
+        .share-stage-meta { color: rgba(245, 241, 232, 0.34); }
+        .share-stage-meta strong { color: rgba(245, 241, 232, 0.68); font-weight: 600; }
 
-        .share-control-group { display: grid; gap: 9px; }
-        .share-control-label { color: var(--muted); font: 700 9px/1 'DM Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; }
-        .share-segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 4px; border: 1px solid var(--line); border-radius: max(10px, var(--theme-control-radius)); background: var(--paper); }
+        .share-card-panel { min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 28px 30px 24px; overflow-y: auto; border-left: 1px solid rgba(244, 240, 231, 0.14); background: linear-gradient(rgba(244, 240, 231, .04) 1px, transparent 1px), var(--share-paper); background-size: 100% 34px; }
+        .share-card-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(244, 240, 231, .12); }
+        .share-card-kicker { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 15px; color: #9a9b91; font: 700 9px/1 'DM Mono', monospace; letter-spacing: .13em; text-transform: uppercase; }
+        .share-card-kicker::before { content: ''; width: 18px; height: 6px; background: var(--share-accent); }
+        .share-card-panel h2 { max-width: 320px; margin: 0; color: var(--share-ink); font-size: clamp(34px, 3.4vw, 48px); line-height: 0.88; letter-spacing: -0.072em; text-wrap: balance; }
+        .share-card-description { max-width: 34ch; margin: 15px 0 0; color: #9a9b91; font-size: 12px; line-height: 1.55; }
+        .share-close-btn { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 1px solid rgba(244, 240, 231, 0.22); border-radius: 2px; background: transparent; color: var(--share-ink); font: 400 22px/1 sans-serif; transition: 180ms ease; }
+        .share-close-btn:hover { border-color: var(--share-accent); background: var(--share-accent); color: #141511; transform: rotate(3deg); }
+        .share-close-btn:active { transform: scale(.96); }
+        .share-close-btn:focus-visible { outline: 2px solid var(--share-accent); outline-offset: 3px; }
+
+        .share-control-group { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px 10px; }
+        .share-control-index { grid-row: 1 / span 2; display: grid; place-items: start center; padding-top: 1px; color: #72746b; font: 500 9px/1 'DM Mono', monospace; }
+        .share-control-index::after { content: ''; width: 1px; height: 28px; margin-top: 8px; background: rgba(244, 240, 231, 0.12); }
+        .share-control-label { color: #a9aa9f; font: 700 9px/1 'DM Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+        .share-segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; border: 1px solid rgba(244, 240, 231, 0.14); border-radius: 3px; background: rgba(4, 5, 4, 0.22); }
         .share-segmented.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .share-segmented input { position: absolute; opacity: 0; pointer-events: none; }
-        .share-segmented label { min-height: 36px; display: grid; place-items: center; padding: 7px 8px; border-radius: max(7px, calc(var(--theme-control-radius) - 2px)); color: var(--muted); font: 600 10px/1.15 'DM Mono', monospace; text-align: center; cursor: pointer; transition: 150ms ease; }
-        .share-segmented input:checked + label { background: var(--ink); color: var(--paper); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16); }
-        .share-segmented input:focus-visible + label { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .share-segmented label { min-height: 39px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 7px 8px; border-radius: 1px; color: #8f9187; font: 650 9px/1.15 'DM Mono', monospace; text-align: center; cursor: pointer; transition: color 160ms ease, background 160ms ease, transform 160ms ease; }
+        .share-segmented label:hover { color: var(--share-ink); }
+        .share-segmented input:checked + label { background: var(--share-accent); color: #141511; box-shadow: 0 7px 20px rgba(0, 0, 0, 0.22); }
+        .share-segmented input:active + label { transform: scale(.98); }
+        .share-segmented input:focus-visible + label { outline: 2px solid var(--share-accent); outline-offset: 2px; }
+        .share-theme-dot { width: 10px; height: 10px; flex: 0 0 auto; border: 1px solid rgba(255, 255, 255, 0.24); background: #d6ff4b; }
+        .share-theme-dot.paper { border-color: rgba(255, 255, 255, .2); background: #ff5a36; }
+        .share-theme-dot.electric { background: #8b6cff; }
 
-        .share-card-actions { display: grid; gap: 8px; margin-top: auto; }
-        .share-action-btn { min-height: 44px; border: 1px solid var(--line); border-radius: max(9px, var(--theme-control-radius)); background: var(--paper); color: var(--ink); font: 700 10px/1 'DM Mono', monospace; letter-spacing: 0.02em; transition: 160ms ease; }
-        .share-action-btn:hover { border-color: var(--blue); transform: translateY(-1px); }
-        .share-action-btn.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+        .share-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: auto; padding-top: 2px; }
+        .share-action-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(244, 240, 231, 0.18); border-radius: 2px; background: transparent; color: var(--share-ink); font: 700 9px/1 'DM Mono', monospace; letter-spacing: 0.02em; transition: 180ms ease; }
+        .share-action-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+        .share-action-btn:hover { border-color: var(--share-ink); background: rgba(244, 240, 231, .06); transform: translateY(-1px); }
+        .share-action-btn:active { transform: translateY(1px) scale(.99); }
+        .share-action-btn:focus-visible { outline: 2px solid var(--share-accent); outline-offset: 2px; }
+        .share-action-btn.primary { grid-column: 1 / -1; min-height: 54px; border-color: var(--share-accent); background: var(--share-accent); color: #141511; font-size: 10px; }
+        .share-action-btn.primary:hover { border-color: var(--share-ink); background: var(--share-ink); color: #141511; }
         .share-action-btn:disabled { cursor: wait; opacity: 0.58; transform: none; }
-        .share-card-status { min-height: 16px; color: var(--muted); font: 10px/1.4 'DM Mono', monospace; text-align: center; }
+        .share-card-status { min-height: 15px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #87897f; font: 500 9px/1.4 'DM Mono', monospace; text-align: center; }
+        .share-card-status:not(:empty)::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--share-accent); }
         .mobile-profile-actions { display: none; }
 
         /* The redesigned profile is isolated from the classic theme cascade. */
@@ -1528,16 +1572,21 @@
             }
 
             .share-card-modal { align-items: flex-end; padding: 0; }
-            .share-card-sheet { width: 100%; max-height: 96dvh; grid-template-columns: 1fr; grid-template-rows: minmax(220px, 1fr) auto; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 20px 20px 0 0; }
-            .share-card-stage { padding: 16px; }
-            #profile-share-canvas { max-height: 54dvh; }
-            .share-card-panel { gap: 14px; padding: 18px 18px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); border-left: 0; }
-            .share-card-panel h2 { font-size: 23px; }
-            .share-card-panel-head .eyebrow { margin-bottom: 3px !important; }
+            .share-card-sheet { width: 100%; height: 100dvh; max-height: none; grid-template-columns: 1fr; grid-template-rows: minmax(250px, 41dvh) minmax(0, 1fr); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 10px 10px 0 0; }
+            .share-card-stage { gap: 8px; padding: 14px 14px 10px; }
+            .share-stage-bar { font-size: 8px; }
+            .share-stage-meta { display: none; }
+            .share-card-preview-shell { padding: 7px; border-radius: 3px; }
+            #profile-share-canvas { max-height: 100%; border-radius: 1px; }
+            .share-card-panel { gap: 14px; padding: 18px 18px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(244, 240, 231, .14); border-left: 0; }
+            .share-card-panel h2 { max-width: 260px; font-size: 28px; }
+            .share-card-kicker { margin-bottom: 8px; }
+            .share-card-description { display: none; }
+            .share-control-group { grid-template-columns: 24px minmax(0, 1fr); gap: 6px 9px; }
+            .share-control-index::after { height: 15px; }
             .share-control-group { gap: 6px; }
             .share-segmented label { min-height: 32px; font-size: 9px; }
-            .share-card-actions { grid-template-columns: 1fr 1fr; }
-            .share-card-actions .primary { grid-column: 1 / -1; }
+            .share-card-actions { grid-template-columns: 1fr 1fr; margin-top: 2px; }
 
             .mobile-profile-actions {
                 position: fixed;
@@ -2648,18 +2697,30 @@
     <div class="share-card-modal" id="share-card-modal" aria-hidden="true">
         <div class="share-card-sheet" role="dialog" aria-modal="true" aria-labelledby="share-card-title">
             <div class="share-card-stage">
-                <canvas id="profile-share-canvas" width="1080" height="1920" aria-label="Generated profile statistics card preview"></canvas>
+                <div class="share-stage-bar" aria-hidden="true">
+                    <span class="share-stage-live">Live canvas</span>
+                    <span class="share-stage-size" id="share-stage-size">1080 × 1920</span>
+                </div>
+                <div class="share-card-preview-shell">
+                    <canvas id="profile-share-canvas" width="1080" height="1920" aria-label="Generated profile statistics card preview"></canvas>
+                </div>
+                <div class="share-stage-meta" aria-hidden="true">
+                    <span>Spicy creator kit</span>
+                    <strong>PNG · High resolution</strong>
+                </div>
             </div>
             <div class="share-card-panel">
                 <div class="share-card-panel-head">
                     <div>
-                        <div class="eyebrow" style="margin-bottom: 7px;">Spicy / Creator kit</div>
-                        <h2 id="share-card-title" data-i18n="card_generator_title">Shareable Story Card Generator</h2>
+                        <div class="share-card-kicker">Spicy / Artboard 01</div>
+                        <h2 id="share-card-title" data-i18n="card_generator_title">Achievement card studio</h2>
+                        <p class="share-card-description" data-i18n="card_generator_description">Shape your live profile data into a graphic card built for the feed.</p>
                     </div>
                     <button class="share-close-btn" type="button" onclick="closeShareCard()" aria-label="Close share card generator">&times;</button>
                 </div>
 
                 <div class="share-control-group">
+                    <span class="share-control-index" aria-hidden="true">01</span>
                     <span class="share-control-label" data-i18n="card_format">Format</span>
                     <div class="share-segmented">
                         <input type="radio" name="share-format" id="share-format-story" value="story" checked>
@@ -2670,6 +2731,7 @@
                 </div>
 
                 <div class="share-control-group">
+                    <span class="share-control-index" aria-hidden="true">02</span>
                     <span class="share-control-label" data-i18n="card_period">Timeframe</span>
                     <div class="share-segmented three">
                         <input type="radio" name="share-period" id="share-period-7" value="7">
@@ -2682,21 +2744,31 @@
                 </div>
 
                 <div class="share-control-group">
+                    <span class="share-control-index" aria-hidden="true">03</span>
                     <span class="share-control-label" data-i18n="card_theme">Theme Style</span>
                     <div class="share-segmented three">
                         <input type="radio" name="share-theme" id="share-theme-carbon" value="carbon" checked>
-                        <label for="share-theme-carbon">Carbon</label>
+                        <label for="share-theme-carbon"><span class="share-theme-dot"></span>Carbon</label>
                         <input type="radio" name="share-theme" id="share-theme-paper" value="paper">
-                        <label for="share-theme-paper">Paper</label>
+                        <label for="share-theme-paper"><span class="share-theme-dot paper"></span>Paper</label>
                         <input type="radio" name="share-theme" id="share-theme-electric" value="electric">
-                        <label for="share-theme-electric">Electric</label>
+                        <label for="share-theme-electric"><span class="share-theme-dot electric"></span>Electric</label>
                     </div>
                 </div>
 
                 <div class="share-card-actions">
-                    <button class="share-action-btn primary" id="share-native-btn" type="button" onclick="shareProfileCard()">Share card</button>
-                    <button class="share-action-btn" id="share-download-btn" type="button" onclick="downloadProfileCard()" data-i18n="download_png">Download PNG ↓</button>
-                    <button class="share-action-btn" id="share-copy-btn" type="button" onclick="copyProfileCard()" data-i18n="copy_image">Copy Image</button>
+                    <button class="share-action-btn primary" id="share-native-btn" type="button" onclick="shareProfileCard()">
+                        <span data-i18n="share_card">Share card</span>
+                        <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9h11M10 5l4 4-4 4"/></svg>
+                    </button>
+                    <button class="share-action-btn" id="share-download-btn" type="button" onclick="downloadProfileCard()">
+                        <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v9m0 0 3-3m-3 3L6 8M3 14.5h12"/></svg>
+                        <span data-i18n="download_png">Download PNG</span>
+                    </button>
+                    <button class="share-action-btn" id="share-copy-btn" type="button" onclick="copyProfileCard()">
+                        <svg viewBox="0 0 18 18" aria-hidden="true"><rect x="6" y="6" width="9" height="9" rx="1.5"/><path d="M12 6V3H3v9h3"/></svg>
+                        <span data-i18n="copy_image">Copy Image</span>
+                    </button>
                 </div>
                 <div class="share-card-status" id="share-card-status" aria-live="polite"></div>
             </div>
@@ -3116,7 +3188,8 @@
                 pause_preview: "Pause",
                 loading_preview: "Searching preview...",
                 preview_not_found: "Preview unavailable",
-                card_generator_title: "Shareable Story Card Generator",
+                card_generator_title: "Achievement card studio",
+                card_generator_description: "Shape your live profile data into a graphic card built for the feed.",
                 card_format: "Format",
                 format_story: "Story 9:16",
                 format_post: "Post 1:1",
@@ -3125,8 +3198,8 @@
                 period_30d: "30 Days",
                 period_total: "All Time",
                 card_theme: "Theme Style",
-                download_png: "Download PNG ↓",
-                copy_image: "Copy Image 📋",
+                download_png: "Download PNG",
+                copy_image: "Copy Image",
                 copied: "Copied!"
             },
             ru: {
@@ -3284,7 +3357,8 @@
                 pause_preview: "Пауза",
                 loading_preview: "Поиск превью...",
                 preview_not_found: "Превью недоступно",
-                card_generator_title: "Генератор карточки достижений",
+                card_generator_title: "Студия карточек достижений",
+                card_generator_description: "Соберите данные профиля в выразительную карточку для публикации.",
                 card_format: "Формат карточки",
                 format_story: "Story 9:16 (Stories)",
                 format_post: "Пост 1:1 (Квадрат)",
@@ -3293,8 +3367,8 @@
                 period_30d: "30 дней",
                 period_total: "Всё время",
                 card_theme: "Стиль оформления",
-                download_png: "Скачать PNG ↓",
-                copy_image: "Копировать 📋",
+                download_png: "Скачать PNG",
+                copy_image: "Копировать",
                 copied: "Скопировано!"
             },
             uk: {
@@ -3450,7 +3524,8 @@
                 pause_preview: "Пауза",
                 loading_preview: "Пошук прев'ю...",
                 preview_not_found: "Прев'ю недоступне",
-                card_generator_title: "Генератор картки досягнень",
+                card_generator_title: "Студія карток досягнень",
+                card_generator_description: "Перетворіть дані профілю на готову картку досягнення для публікації.",
                 card_format: "Формат картки",
                 format_story: "Story 9:16 (Stories)",
                 format_post: "Пост 1:1 (Квадрат)",
@@ -3459,8 +3534,8 @@
                 period_30d: "30 днів",
                 period_total: "Весь час",
                 card_theme: "Стиль оформлення",
-                download_png: "Завантажити PNG ↓",
-                copy_image: "Копіювати 📋",
+                download_png: "Завантажити PNG",
+                copy_image: "Копіювати",
                 copied: "Скопійовано!"
             },
             de: {
@@ -3617,6 +3692,7 @@
                 loading_preview: "Suche Vorschau...",
                 preview_not_found: "Vorschau nicht verfügbar",
                 card_generator_title: "Story-Karten-Generator",
+                card_generator_description: "Verwandle Live-Profildaten in eine veröffentlichungsfertige Erfolgskarte.",
                 card_format: "Kartenformat",
                 format_story: "Story 9:16",
                 format_post: "Beitrag 1:1",
@@ -3625,8 +3701,8 @@
                 period_30d: "30 Tage",
                 period_total: "Gesamt",
                 card_theme: "Stil-Thema",
-                download_png: "PNG herunterladen ↓",
-                copy_image: "Bild kopieren 📋",
+                download_png: "PNG herunterladen",
+                copy_image: "Bild kopieren",
                 copied: "Kopiert!"
             },
             it: {
@@ -3783,6 +3859,7 @@
                 loading_preview: "Ricerca anteprima...",
                 preview_not_found: "Anteprima non disponibile",
                 card_generator_title: "Generatore di scheda da condividere",
+                card_generator_description: "Trasforma i dati del profilo in una scheda risultato pronta da pubblicare.",
                 card_format: "Formato scheda",
                 format_story: "Story 9:16",
                 format_post: "Post 1:1",
@@ -3791,8 +3868,8 @@
                 period_30d: "30 Giorni",
                 period_total: "Tutto il tempo",
                 card_theme: "Stile tema",
-                download_png: "Scarica PNG ↓",
-                copy_image: "Copia immagine 📋",
+                download_png: "Scarica PNG",
+                copy_image: "Copia immagine",
                 copied: "Copiato!"
             },
             pl: {
@@ -3923,6 +4000,7 @@
                 loading_preview: "Szukanie próbki...",
                 preview_not_found: "Próbka niedostępna",
                 card_generator_title: "Generator karty wyników",
+                card_generator_description: "Zmień dane profilu w gotową do publikacji kartę osiągnięcia.",
                 card_format: "Format karty",
                 format_story: "Story 9:16",
                 format_post: "Post 1:1",
@@ -3931,8 +4009,8 @@
                 period_30d: "30 Dni",
                 period_total: "Cały czas",
                 card_theme: "Motyw stylu",
-                download_png: "Pobierz PNG ↓",
-                copy_image: "Kopiuj obraz 📋",
+                download_png: "Pobierz PNG",
+                copy_image: "Kopiuj obraz",
                 copied: "Skopiowano!"
             }
         };
@@ -6291,9 +6369,9 @@
 
         function getShareCardPalette(name) {
             const palettes = {
-                carbon: { bg: '#090b0f', surface: '#141820', surface2: '#1b2029', text: '#f4f1e8', muted: '#9299a6', line: '#2c333d', accent: '#c2fb38', secondary: '#7486ff', negative: '#ff7968' },
-                paper: { bg: '#eeeae0', surface: '#fffdf8', surface2: '#e1dcd0', text: '#191b20', muted: '#666b74', line: '#c8c1b5', accent: '#3f58dc', secondary: '#80a824', negative: '#d85d4d' },
-                electric: { bg: '#080817', surface: '#12122b', surface2: '#1c1b3b', text: '#f4f1ff', muted: '#aaa4c1', line: '#34335f', accent: '#49f6ae', secondary: '#9a80ff', negative: '#ff5f91' }
+                carbon: { bg: '#141511', surface: '#24251f', surface2: '#303128', text: '#f4f0e7', muted: '#97988e', line: '#3a3b33', accent: '#d6ff4b', secondary: '#ff623d', negative: '#ff745d' },
+                paper: { bg: '#f0eadf', surface: '#ddd5c8', surface2: '#cfc5b7', text: '#191a16', muted: '#6d6f66', line: '#b8aea0', accent: '#ff5a36', secondary: '#3154df', negative: '#c6432d' },
+                electric: { bg: '#4b31dc', surface: '#5b43e5', surface2: '#725cf0', text: '#f7f3e9', muted: '#cbc3f5', line: '#8d7bec', accent: '#d7ff45', secondary: '#ff6848', negative: '#ff8b77' }
             };
             return palettes[name] || palettes.carbon;
         }
@@ -6470,7 +6548,7 @@
             const status = document.getElementById('share-card-status');
             if (!status) return;
             status.textContent = message || '';
-            status.style.color = isError ? 'var(--coral)' : 'var(--muted)';
+            status.style.color = isError ? '#ff745d' : '#87897f';
         }
 
         function canvasToBlob(canvas) {
@@ -6504,118 +6582,170 @@
                 const avatarImage = await loadProfileAvatarImage();
                 if (renderId !== shareCardRenderId) return null;
 
+                const periodData = getSharePeriodData(period);
+                const topSong = [...(profileData.songs || [])].sort((a, b) => Number(b.views || 0) - Number(a.views || 0))[0];
+                const growthPositive = periodData.growth >= 0;
+                const accentInk = '#141511';
+                const stageSize = document.getElementById('share-stage-size');
+                if (stageSize) stageSize.textContent = compact ? '1080 × 1080' : '1080 × 1920';
+
                 ctx.clearRect(0, 0, width, height);
                 ctx.fillStyle = palette.bg;
                 ctx.fillRect(0, 0, width, height);
 
-                const ambient = ctx.createRadialGradient(width * 0.86, height * 0.08, 0, width * 0.86, height * 0.08, width * 0.78);
-                ambient.addColorStop(0, `${palette.secondary}50`);
-                ambient.addColorStop(0.48, `${palette.secondary}14`);
-                ambient.addColorStop(1, `${palette.secondary}00`);
+                ctx.fillStyle = palette.accent;
+                ctx.fillRect(width - 22, 0, 22, height);
+
+                const ambient = ctx.createRadialGradient(width * 0.88, height * 0.09, 0, width * 0.88, height * 0.09, width * 0.72);
+                ambient.addColorStop(0, `${palette.accent}26`);
+                ambient.addColorStop(0.52, `${palette.accent}0a`);
+                ambient.addColorStop(1, `${palette.accent}00`);
                 ctx.fillStyle = ambient;
                 ctx.fillRect(0, 0, width, height);
 
-                ctx.strokeStyle = `${palette.line}6f`;
+                ctx.strokeStyle = `${palette.text}0d`;
                 ctx.lineWidth = 1;
-                for (let x = 0; x <= width; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
-                for (let y = 0; y <= height; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+                for (let x = 0; x < width; x += 54) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < height; y += 54) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
 
-                canvasRoundRect(ctx, margin, 58, 46, 46, 12);
+                ctx.save();
+                ctx.translate(width - 7, height * 0.68);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillStyle = accentInk;
+                ctx.font = '800 11px "DM Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('SPICY MONITOR  /  LIVE CREATOR DATA  /  2026', 0, 0);
+                ctx.restore();
+
+                canvasRoundRect(ctx, margin, 56, 46, 46, 2);
                 ctx.fillStyle = palette.accent;
                 ctx.fill();
-                ctx.fillStyle = palette.bg;
-                ctx.font = '900 25px Manrope, sans-serif';
+                ctx.fillStyle = accentInk;
+                ctx.font = '900 24px Manrope, sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('S', margin + 23, 90);
+                ctx.fillText('S', margin + 23, 88);
                 ctx.textAlign = 'left';
                 ctx.fillStyle = palette.text;
-                ctx.font = '800 25px Manrope, sans-serif';
-                ctx.fillText('SPICY MONITOR', margin + 62, 82);
+                ctx.font = '800 23px Manrope, sans-serif';
+                ctx.fillText('SPICY / ACHIEVEMENTS', margin + 64, 82);
                 ctx.fillStyle = palette.muted;
-                ctx.font = '700 13px "DM Mono", monospace';
-                ctx.fillText('LIVE CREATOR ANALYTICS', margin + 62, 103);
+                ctx.font = '700 12px "DM Mono", monospace';
+                ctx.fillText('VERIFIED CREATOR DATA', margin + 64, 102);
                 ctx.textAlign = 'right';
-                ctx.fillText(compact ? 'POST / 01' : 'STORY / 01', width - margin, 88);
+                ctx.fillStyle = palette.text;
+                ctx.fillText(compact ? 'SQUARE / 01' : 'STORY / 01', width - margin, 82);
+                ctx.fillStyle = palette.muted;
+                ctx.fillText(new Date().getFullYear().toString(), width - margin, 102);
                 ctx.textAlign = 'left';
 
-                const heroY = compact ? 154 : 190;
-                const avatarSize = compact ? 118 : 154;
-                canvasRoundRect(ctx, margin, heroY, avatarSize, avatarSize, compact ? 28 : 36);
+                ctx.strokeStyle = palette.line;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(margin, 132);
+                ctx.lineTo(width - margin, 132);
+                ctx.stroke();
+
+                const heroY = compact ? 162 : 178;
+                const avatarSize = compact ? 116 : 146;
+                const avatarX = width - margin - avatarSize;
+                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 3);
                 ctx.save();
                 ctx.clip();
-                const avatarGradient = ctx.createLinearGradient(margin, heroY, margin + avatarSize, heroY + avatarSize);
+                const avatarGradient = ctx.createLinearGradient(avatarX, heroY, avatarX + avatarSize, heroY + avatarSize);
                 avatarGradient.addColorStop(0, palette.secondary);
                 avatarGradient.addColorStop(1, palette.accent);
                 ctx.fillStyle = avatarGradient;
-                ctx.fillRect(margin, heroY, avatarSize, avatarSize);
+                ctx.fillRect(avatarX, heroY, avatarSize, avatarSize);
                 if (avatarImage) {
                     const sourceSize = Math.min(avatarImage.naturalWidth, avatarImage.naturalHeight);
                     const sx = (avatarImage.naturalWidth - sourceSize) / 2;
                     const sy = (avatarImage.naturalHeight - sourceSize) / 2;
-                    ctx.drawImage(avatarImage, sx, sy, sourceSize, sourceSize, margin, heroY, avatarSize, avatarSize);
+                    ctx.drawImage(avatarImage, sx, sy, sourceSize, sourceSize, avatarX, heroY, avatarSize, avatarSize);
                 } else {
-                    ctx.fillStyle = palette.bg;
+                    ctx.fillStyle = accentInk;
                     ctx.font = `900 ${compact ? 40 : 50}px Manrope, sans-serif`;
                     ctx.textAlign = 'center';
-                    ctx.fillText((profileData.username || username || '--').slice(0, 2).toUpperCase(), margin + avatarSize / 2, heroY + avatarSize * 0.66);
+                    ctx.fillText((profileData.username || username || '--').slice(0, 2).toUpperCase(), avatarX + avatarSize / 2, heroY + avatarSize * 0.66);
                     ctx.textAlign = 'left';
                 }
                 ctx.restore();
-                ctx.strokeStyle = palette.line;
-                ctx.lineWidth = 2;
-                canvasRoundRect(ctx, margin, heroY, avatarSize, avatarSize, compact ? 28 : 36);
+                ctx.strokeStyle = palette.accent;
+                ctx.lineWidth = 4;
+                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 3);
                 ctx.stroke();
 
-                const profileX = margin + avatarSize + 34;
-                const maxNameWidth = width - margin - profileX;
+                const profileX = margin;
+                const maxNameWidth = avatarX - margin - 38;
                 const displayName = `@${profileData.username || username}`;
-                const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 56 : 70, 34);
+                ctx.fillStyle = palette.accent;
+                ctx.font = '700 13px "DM Mono", monospace';
+                ctx.fillText('CREATOR ACHIEVEMENT', profileX, heroY + 15);
+                const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 52 : 64, 32);
                 ctx.fillStyle = palette.text;
                 ctx.font = `800 ${nameSize}px Manrope, sans-serif`;
-                ctx.fillText(displayName, profileX, heroY + avatarSize * 0.52);
+                ctx.fillText(displayName, profileX, heroY + avatarSize * 0.58);
                 const rankText = document.getElementById('profile-rank')?.textContent?.split('/').pop()?.trim() || 'Tracked creator';
                 ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 17 : 20}px "DM Mono", monospace`;
-                ctx.fillText(`${rankText.toUpperCase()}  •  ${getSharePeriodData(period).label.toUpperCase()}`, profileX, heroY + avatarSize * 0.75);
+                ctx.font = `700 ${compact ? 15 : 17}px "DM Mono", monospace`;
+                ctx.fillText(`${rankText.toUpperCase()}  •  ${periodData.label.toUpperCase()}`, profileX, heroY + avatarSize * 0.83);
 
-                const periodData = getSharePeriodData(period);
-                const viewsY = compact ? 346 : 430;
+                const viewsY = compact ? 342 : 420;
                 ctx.fillStyle = palette.muted;
                 ctx.font = `700 ${compact ? 15 : 18}px "DM Mono", monospace`;
-                ctx.fillText('TOTAL VIEWS', margin, viewsY);
+                ctx.fillText('TOTAL AUDIENCE REACH', margin, viewsY);
                 const viewsText = formatViews(Number(profileData.total_views || 0));
                 ctx.fillStyle = palette.text;
-                ctx.font = `800 ${compact ? 102 : 148}px Manrope, sans-serif`;
-                ctx.fillText(viewsText, margin, viewsY + (compact ? 94 : 135));
+                const viewsSize = fitCanvasText(ctx, viewsText, width - margin * 2, compact ? 132 : 176, 78);
+                ctx.font = `800 ${viewsSize}px Manrope, sans-serif`;
+                ctx.fillText(viewsText, margin, viewsY + (compact ? 112 : 152));
 
-                const statY = compact ? 474 : 660;
-                const statGap = 16;
-                const statWidth = (width - margin * 2 - statGap) / 2;
-                const statHeight = compact ? 126 : 160;
-                const growthPositive = periodData.growth >= 0;
-                const statItems = [
-                    { label: `${periodData.label} growth`, value: `${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, color: growthPositive ? palette.accent : palette.negative },
-                    { label: 'Tracked catalog', value: `${Number(profileData.total_songs || 0)} tracks`, color: palette.text }
-                ];
-                statItems.forEach((item, index) => {
-                    const x = margin + index * (statWidth + statGap);
-                    canvasRoundRect(ctx, x, statY, statWidth, statHeight, 24);
-                    ctx.fillStyle = palette.surface;
-                    ctx.fill();
-                    ctx.strokeStyle = palette.line;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    ctx.fillStyle = palette.muted;
-                    ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
-                    ctx.fillText(item.label.toUpperCase(), x + 26, statY + (compact ? 34 : 43));
-                    ctx.fillStyle = item.color;
-                    ctx.font = `800 ${compact ? 34 : 46}px Manrope, sans-serif`;
-                    ctx.fillText(item.value, x + 26, statY + (compact ? 89 : 113));
-                });
+                const statY = compact ? 488 : 650;
+                const statHeight = compact ? 140 : 180;
+                const statWidth = width - margin * 2;
+                const growthWidth = statWidth * 0.61;
+                canvasRoundRect(ctx, margin, statY, statWidth, statHeight, 4);
+                ctx.save();
+                ctx.clip();
+                ctx.fillStyle = palette.surface;
+                ctx.fillRect(margin, statY, statWidth, statHeight);
+                ctx.fillStyle = growthPositive ? palette.accent : palette.negative;
+                ctx.fillRect(margin, statY, growthWidth, statHeight);
+                ctx.restore();
+                ctx.strokeStyle = palette.line;
+                ctx.lineWidth = 2;
+                canvasRoundRect(ctx, margin, statY, statWidth, statHeight, 4);
+                ctx.stroke();
 
-                const chartY = compact ? 626 : 886;
-                const chartHeight = compact ? 280 : 530;
-                canvasRoundRect(ctx, margin, chartY, width - margin * 2, chartHeight, 30);
+                ctx.fillStyle = growthPositive ? accentInk : '#fffdf8';
+                ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
+                ctx.fillText(`${periodData.label} MOMENTUM`.toUpperCase(), margin + 28, statY + (compact ? 36 : 46));
+                ctx.font = `800 ${compact ? 42 : 57}px Manrope, sans-serif`;
+                ctx.fillText(`${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, margin + 28, statY + (compact ? 100 : 128));
+
+                const catalogX = margin + growthWidth + 28;
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 12 : 15}px "DM Mono", monospace`;
+                ctx.fillText('TRACKED CATALOG', catalogX, statY + (compact ? 36 : 46));
+                ctx.fillStyle = palette.text;
+                ctx.font = `800 ${compact ? 34 : 46}px Manrope, sans-serif`;
+                ctx.fillText(`${Number(profileData.total_songs || 0)}`, catalogX, statY + (compact ? 94 : 122));
+                ctx.fillStyle = palette.muted;
+                ctx.font = `600 ${compact ? 12 : 15}px "DM Mono", monospace`;
+                ctx.fillText('TRACKS', catalogX + (compact ? 76 : 98), statY + (compact ? 94 : 122));
+
+                const chartY = compact ? 670 : 910;
+                const chartHeight = compact ? 270 : 500;
+                canvasRoundRect(ctx, margin, chartY, width - margin * 2, chartHeight, 4);
                 ctx.fillStyle = palette.surface;
                 ctx.fill();
                 ctx.strokeStyle = palette.line;
@@ -6623,26 +6753,31 @@
                 ctx.stroke();
                 ctx.fillStyle = palette.muted;
                 ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
-                ctx.fillText('MOMENTUM / VIEW HISTORY', margin + 30, chartY + 40);
+                ctx.fillText('02  /  VIEW VELOCITY', margin + 30, chartY + 42);
                 ctx.textAlign = 'right';
                 ctx.fillStyle = growthPositive ? palette.accent : palette.negative;
-                ctx.fillText(`${growthPositive ? 'UP' : 'DOWN'} ${formatViews(Math.abs(periodData.growth))}`, width - margin - 30, chartY + 40);
+                ctx.fillText(`${growthPositive ? 'RISING' : 'FALLING'}  ${formatViews(Math.abs(periodData.growth))}`, width - margin - 30, chartY + 42);
                 ctx.textAlign = 'left';
-                drawShareSparkline(ctx, periodData.points, { x: margin + 32, y: chartY + 76, width: width - margin * 2 - 64, height: chartHeight - 116 }, palette);
+                drawShareSparkline(ctx, periodData.points, { x: margin + 32, y: chartY + 82, width: width - margin * 2 - 64, height: chartHeight - 120 }, palette);
 
-                const topSong = [...(profileData.songs || [])].sort((a, b) => Number(b.views || 0) - Number(a.views || 0))[0];
                 const footerY = height - (compact ? 66 : 112);
                 if (!compact && topSong) {
                     const topY = chartY + chartHeight + 72;
+                    ctx.strokeStyle = palette.line;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(margin, topY - 34);
+                    ctx.lineTo(width - margin, topY - 34);
+                    ctx.stroke();
                     ctx.fillStyle = palette.muted;
                     ctx.font = '700 16px "DM Mono", monospace';
-                    ctx.fillText('CATALOG LEADER', margin, topY);
+                    ctx.fillText('03  /  CATALOG LEADER', margin, topY);
                     ctx.fillStyle = palette.text;
-                    ctx.font = '800 42px Manrope, sans-serif';
-                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2), margin, topY + 58);
+                    ctx.font = '800 46px Manrope, sans-serif';
+                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2), margin, topY + 62);
                     ctx.fillStyle = palette.muted;
                     ctx.font = '600 20px Manrope, sans-serif';
-                    ctx.fillText(`${truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 190)}  •  ${formatViews(Number(topSong.views || 0))} views`, margin, topY + 94);
+                    ctx.fillText(`${truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 190)}  •  ${formatViews(Number(topSong.views || 0))} VIEWS`, margin, topY + 102);
                 }
 
                 ctx.strokeStyle = palette.line;
@@ -7213,6 +7348,29 @@
             </div>
         </div>
     </div>
+
+    <script data-local-qa="achievement-card">
+        if (new URLSearchParams(window.location.search).has('qa-card')) {
+            username = 'gayan_';
+            profileData = {
+                username: 'gayan_',
+                total_views: 2761150,
+                total_songs: 228,
+                growth24h: 15884,
+                chart_data: [
+                    { x: '2026-07-10', views: 2241000 }, { x: '2026-07-14', views: 2294000 },
+                    { x: '2026-07-18', views: 2358000 }, { x: '2026-07-22', views: 2411000 },
+                    { x: '2026-07-26', views: 2489000 }, { x: '2026-07-30', views: 2576000 },
+                    { x: '2026-08-03', views: 2658000 }, { x: '2026-08-08', views: 2761150 }
+                ],
+                songs: [
+                    { title: 'Feel Good Inc.', artist: 'Gorillaz, De La Soul', views: 139700 },
+                    { title: 'In the End', artist: 'Linkin Park', views: 119000 }
+                ]
+            };
+            openShareCard();
+        }
+    </script>
 
     <script>
         // Global escape key handler to close modals

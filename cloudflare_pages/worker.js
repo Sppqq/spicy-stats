@@ -610,14 +610,45 @@ async function handleTrackHistoryAPI(request, env) {
 
 async function handleActivityFeedAPI(request, env) {
     try {
-        const { results } = await env.DB.prepare(`
-            SELECT id, action_type, details, created_at
-            FROM audit_logs
-            WHERE action_type IN ('milestone_reached', 'new_track', 'user_add', 'profile_merge')
-            ORDER BY id DESC
+        let auditEvents = [];
+        try {
+            const auditResult = await env.DB.prepare(`
+                SELECT id, action_type, details, created_at
+                FROM audit_logs
+                WHERE action_type IN ('milestone_reached', 'new_track', 'user_add', 'profile_merge')
+                ORDER BY id DESC
+                LIMIT 30
+            `).all();
+            auditEvents = auditResult.results || [];
+        } catch (_) {
+            // Older or clean databases may not have an audit log. Catalog activity still works.
+        }
+
+        const { results: catalogUpdates } = await env.DB.prepare(`
+            SELECT
+                u.id,
+                u.username,
+                COALESCE(u.last_scraped_at, MAX(s.timestamp)) AS created_at
+            FROM users u
+            LEFT JOIN snapshots s ON s.user_id = u.id
+            GROUP BY u.id, u.username, u.last_scraped_at
+            HAVING COALESCE(u.last_scraped_at, MAX(s.timestamp)) IS NOT NULL
+            ORDER BY created_at DESC
             LIMIT 30
         `).all();
-        return new Response(JSON.stringify({ events: results || [] }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+
+        const catalogEvents = (catalogUpdates || []).map(row => ({
+            id: `catalog-${row.id}`,
+            action_type: 'catalog_update',
+            details: `↻ @${row.username} catalog refreshed`,
+            created_at: row.created_at
+        }));
+
+        const events = [...(auditEvents || []), ...catalogEvents]
+            .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+            .slice(0, 30);
+
+        return new Response(JSON.stringify({ events }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
     }

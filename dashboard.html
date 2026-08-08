@@ -1083,9 +1083,11 @@
 
         [data-theme] .settings-panel {
             width: min(360px, calc(100vw - 24px));
+            max-height: min(720px, calc(100dvh - 76px));
             padding: 0;
             gap: 0;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             border-radius: max(14px, var(--theme-card-radius));
         }
 
@@ -1168,6 +1170,15 @@
         .settings-switch-input:focus-visible, .settings-check-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 
         .settings-suboptions { display: grid; gap: 3px; padding: 5px; border: 1px solid var(--line); border-radius: 11px; background: color-mix(in srgb, var(--paper) 54%, transparent); transition: opacity 180ms ease; }
+        .settings-ticker-options { display: grid; gap: 10px; animation: settings-options-in 180ms ease both; }
+        .settings-ticker-options[hidden] { display: none; }
+        @keyframes settings-options-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .settings-select-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 42px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper-dark) 62%, transparent); }
+        .settings-select-row .settings-row-copy small { color: var(--muted); font-size: 8px; line-height: 1.35; }
+        .settings-select { min-width: 112px; height: 30px; padding: 0 28px 0 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper-dark); color: var(--ink); font: 600 9px/1 'DM Mono', monospace; cursor: pointer; }
+        .settings-suboptions-label { padding: 1px 2px 0; color: var(--muted); font: 600 8px/1.3 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+        .settings-check-row-copy { display: grid; gap: 2px; }
+        .settings-check-row-copy small { color: var(--muted); font-size: 8px; font-weight: 400; line-height: 1.35; }
         .settings-check-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 36px; padding: 7px 8px 7px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease; }
         .settings-check-row span { min-width: 0; font-size: 10px; font-weight: 600; }
         .settings-check-input { appearance: none; width: 18px; height: 18px; flex: 0 0 18px; margin: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-dark); cursor: pointer; transition: border-color 160ms ease, background 160ms ease; }
@@ -2522,8 +2533,46 @@
                             </div>
                             <label class="settings-row">
                                 <span class="settings-row-copy"><strong data-i18n="settings_visibility">Ticker visibility</strong></span>
-                                <input class="settings-switch-input" type="checkbox" id="setting-toggle-ticker">
+                                <input class="settings-switch-input" type="checkbox" id="setting-toggle-ticker" aria-controls="ticker-suboptions" aria-expanded="false">
                             </label>
+
+                            <div class="settings-ticker-options" id="ticker-suboptions" hidden>
+                                <label class="settings-select-row" for="setting-ticker-speed">
+                                    <span class="settings-row-copy">
+                                        <strong data-i18n="ticker_speed">Scroll speed</strong>
+                                        <small data-i18n="ticker_speed_desc">How quickly events move across the screen.</small>
+                                    </span>
+                                    <select class="settings-select" id="setting-ticker-speed">
+                                        <option value="slow" data-i18n="ticker_speed_slow">Calm</option>
+                                        <option value="normal" data-i18n="ticker_speed_normal">Normal</option>
+                                        <option value="fast" data-i18n="ticker_speed_fast">Fast</option>
+                                    </select>
+                                </label>
+
+                                <span class="settings-suboptions-label" data-i18n="ticker_events">Events in the feed</span>
+                                <div class="settings-suboptions" id="ticker-event-options">
+                                    <label class="settings-check-row">
+                                        <span class="settings-check-row-copy"><span data-i18n="ticker_event_catalog">Catalog updates</span><small data-i18n="ticker_event_catalog_desc">Latest successful profile refreshes.</small></span>
+                                        <input class="settings-check-input ticker-event-input" type="checkbox" data-event-type="catalog_update">
+                                    </label>
+                                    <label class="settings-check-row">
+                                        <span data-i18n="ticker_event_tracks">New tracks</span>
+                                        <input class="settings-check-input ticker-event-input" type="checkbox" data-event-type="new_track">
+                                    </label>
+                                    <label class="settings-check-row">
+                                        <span data-i18n="ticker_event_milestones">Milestones</span>
+                                        <input class="settings-check-input ticker-event-input" type="checkbox" data-event-type="milestone_reached">
+                                    </label>
+                                    <label class="settings-check-row">
+                                        <span data-i18n="ticker_event_profiles">New profiles</span>
+                                        <input class="settings-check-input ticker-event-input" type="checkbox" data-event-type="user_add">
+                                    </label>
+                                    <label class="settings-check-row">
+                                        <span data-i18n="ticker_event_merges">Profile merges</span>
+                                        <input class="settings-check-input ticker-event-input" type="checkbox" data-event-type="profile_merge">
+                                    </label>
+                                </div>
+                            </div>
                         </section>
 
                         <section class="settings-section">
@@ -2864,6 +2913,7 @@
         let dashboardData = null;
         let allUsersDetailed = [];
         let filteredUsers = [];
+        let activityFeedEvents = [];
         let sortColumn = 'views';
         let sortDirection = 'desc'; // 'asc' or 'desc'
 
@@ -3087,6 +3137,18 @@
                 show_ticker: "Show Live Ticker",
                 show_ticker_desc: "Keep recent catalog updates under the header.",
                 settings_visibility: "Ticker visibility",
+                ticker_speed: "Scroll speed",
+                ticker_speed_desc: "How quickly events move across the screen.",
+                ticker_speed_slow: "Calm",
+                ticker_speed_normal: "Normal",
+                ticker_speed_fast: "Fast",
+                ticker_events: "Events in the feed",
+                ticker_event_catalog: "Catalog updates",
+                ticker_event_catalog_desc: "Latest successful profile refreshes.",
+                ticker_event_tracks: "New tracks",
+                ticker_event_milestones: "Milestones",
+                ticker_event_profiles: "New profiles",
+                ticker_event_merges: "Profile merges",
                 anomalies_title: "Anomaly Filtering",
                 anomalies_desc: "Hide obvious collection glitches from charts.",
                 anomaly_enable: "Filter Anomalies",
@@ -3233,6 +3295,18 @@
                 show_ticker: "Показывать ленту активности",
                 show_ticker_desc: "Последние обновления каталога под шапкой.",
                 settings_visibility: "Показывать ленту",
+                ticker_speed: "Скорость движения",
+                ticker_speed_desc: "Как быстро события проходят по экрану.",
+                ticker_speed_slow: "Спокойно",
+                ticker_speed_normal: "Обычно",
+                ticker_speed_fast: "Быстро",
+                ticker_events: "События в ленте",
+                ticker_event_catalog: "Обновления каталогов",
+                ticker_event_catalog_desc: "Последние успешные обновления профилей.",
+                ticker_event_tracks: "Новые треки",
+                ticker_event_milestones: "Достижения",
+                ticker_event_profiles: "Новые профили",
+                ticker_event_merges: "Объединения профилей",
                 anomalies_title: "Фильтрация аномалий",
                 anomalies_desc: "Скрывать очевидные сбои сбора данных на графиках.",
                 anomaly_enable: "Удалять аномалии",
@@ -3379,6 +3453,18 @@
                 show_ticker: "Показувати стрічку активності",
                 show_ticker_desc: "Останні оновлення каталогу під шапкою.",
                 settings_visibility: "Показувати стрічку",
+                ticker_speed: "Швидкість руху",
+                ticker_speed_desc: "Як швидко події рухаються екраном.",
+                ticker_speed_slow: "Спокійно",
+                ticker_speed_normal: "Звичайно",
+                ticker_speed_fast: "Швидко",
+                ticker_events: "Події у стрічці",
+                ticker_event_catalog: "Оновлення каталогів",
+                ticker_event_catalog_desc: "Останні успішні оновлення профілів.",
+                ticker_event_tracks: "Нові треки",
+                ticker_event_milestones: "Досягнення",
+                ticker_event_profiles: "Нові профілі",
+                ticker_event_merges: "Об’єднання профілів",
                 anomalies_title: "Фільтрація аномалій",
                 anomalies_desc: "Приховувати очевидні збої збору даних на графіках.",
                 anomaly_enable: "Видаляти аномалії",
@@ -3525,6 +3611,18 @@
                 show_ticker: "Live-Ticker anzeigen",
                 show_ticker_desc: "Zeige aktuelle Katalog-Updates unter der Kopfzeile.",
                 settings_visibility: "Ticker anzeigen",
+                ticker_speed: "Laufgeschwindigkeit",
+                ticker_speed_desc: "Wie schnell Ereignisse über den Bildschirm laufen.",
+                ticker_speed_slow: "Ruhig",
+                ticker_speed_normal: "Normal",
+                ticker_speed_fast: "Schnell",
+                ticker_events: "Ereignisse im Ticker",
+                ticker_event_catalog: "Katalog-Updates",
+                ticker_event_catalog_desc: "Letzte erfolgreiche Profilaktualisierungen.",
+                ticker_event_tracks: "Neue Tracks",
+                ticker_event_milestones: "Meilensteine",
+                ticker_event_profiles: "Neue Profile",
+                ticker_event_merges: "Profilzusammenführungen",
                 anomalies_title: "Anomalie-Filterung",
                 anomalies_desc: "Blende offensichtliche Erfassungsfehler in Diagrammen aus.",
                 anomaly_enable: "Anomalien filtern",
@@ -3671,6 +3769,18 @@
                 show_ticker: "Mostra Live Ticker",
                 show_ticker_desc: "Mostra gli ultimi aggiornamenti del catalogo sotto l'intestazione.",
                 settings_visibility: "Visibilità ticker",
+                ticker_speed: "Velocità di scorrimento",
+                ticker_speed_desc: "Quanto velocemente scorrono gli eventi.",
+                ticker_speed_slow: "Tranquilla",
+                ticker_speed_normal: "Normale",
+                ticker_speed_fast: "Veloce",
+                ticker_events: "Eventi nel ticker",
+                ticker_event_catalog: "Aggiornamenti catalogo",
+                ticker_event_catalog_desc: "Ultimi aggiornamenti profilo riusciti.",
+                ticker_event_tracks: "Nuovi brani",
+                ticker_event_milestones: "Traguardi",
+                ticker_event_profiles: "Nuovi profili",
+                ticker_event_merges: "Unioni profilo",
                 anomalies_title: "Filtro anomalie",
                 anomalies_desc: "Nascondi dai grafici gli errori evidenti di raccolta.",
                 anomaly_enable: "Filtra anomalie",
@@ -3817,6 +3927,18 @@
                 show_ticker: "Pokaż Live Ticker",
                 show_ticker_desc: "Pokazuj najnowsze aktualizacje katalogu pod nagłówkiem.",
                 settings_visibility: "Widoczność tickera",
+                ticker_speed: "Prędkość przewijania",
+                ticker_speed_desc: "Jak szybko zdarzenia przesuwają się po ekranie.",
+                ticker_speed_slow: "Spokojnie",
+                ticker_speed_normal: "Normalnie",
+                ticker_speed_fast: "Szybko",
+                ticker_events: "Zdarzenia w tickerze",
+                ticker_event_catalog: "Aktualizacje katalogu",
+                ticker_event_catalog_desc: "Ostatnie udane aktualizacje profili.",
+                ticker_event_tracks: "Nowe utwory",
+                ticker_event_milestones: "Kamienie milowe",
+                ticker_event_profiles: "Nowe profile",
+                ticker_event_merges: "Scalenia profili",
                 anomalies_title: "Filtrowanie anomalii",
                 anomalies_desc: "Ukrywaj na wykresach oczywiste błędy zbierania danych.",
                 anomaly_enable: "Filtruj anomalie",
@@ -3906,6 +4028,7 @@
                 renderTopAuthors();
                 renderTable();
             }
+            if (activityFeedEvents.length) renderTicker(activityFeedEvents);
         }
 
         function initLanguage() {
@@ -4158,6 +4281,9 @@
             const dropdown = document.getElementById('settings-dropdown');
             const tickerCheckbox = document.getElementById('setting-toggle-ticker');
             const tickerContainer = document.getElementById('activity-ticker-container');
+            const tickerSuboptions = document.getElementById('ticker-suboptions');
+            const tickerSpeed = document.getElementById('setting-ticker-speed');
+            const tickerEventInputs = [...document.querySelectorAll('.ticker-event-input')];
 
             if (toggle && dropdown) {
                 const setSettingsOpen = (isOpen) => {
@@ -4196,14 +4322,62 @@
                 const showTicker = localStorage.getItem('spicy-show-ticker') === 'true';
                 tickerCheckbox.checked = showTicker;
 
+                const allowedTickerEvents = tickerEventInputs.map(input => input.dataset.eventType);
+                const defaultTickerEvents = ['catalog_update', 'new_track', 'milestone_reached', 'user_add', 'profile_merge'];
+                let savedTickerEvents = defaultTickerEvents;
+                try {
+                    const parsed = JSON.parse(localStorage.getItem('spicy-ticker-events') || 'null');
+                    if (Array.isArray(parsed)) savedTickerEvents = parsed.filter(type => allowedTickerEvents.includes(type));
+                } catch (_) {}
+
+                tickerEventInputs.forEach(input => {
+                    input.checked = savedTickerEvents.includes(input.dataset.eventType);
+                });
+
+                if (tickerSpeed) {
+                    const savedSpeed = localStorage.getItem('spicy-ticker-speed');
+                    tickerSpeed.value = ['slow', 'normal', 'fast'].includes(savedSpeed) ? savedSpeed : 'normal';
+                }
+
+                const syncTickerControls = () => {
+                    const enabled = tickerCheckbox.checked;
+                    tickerCheckbox.setAttribute('aria-expanded', String(enabled));
+                    if (tickerSuboptions) tickerSuboptions.hidden = !enabled;
+                    if (tickerSpeed) tickerSpeed.disabled = !enabled;
+                    tickerEventInputs.forEach(input => { input.disabled = !enabled; });
+                };
+
+                const refreshTickerFromSettings = () => {
+                    if (!tickerCheckbox.checked) {
+                        if (tickerContainer) tickerContainer.style.display = 'none';
+                        return;
+                    }
+                    if (activityFeedEvents.length) renderTicker(activityFeedEvents);
+                    else loadActivityFeed();
+                };
+
+                syncTickerControls();
+
                 tickerCheckbox.addEventListener('change', () => {
                     const isChecked = tickerCheckbox.checked;
                     localStorage.setItem('spicy-show-ticker', isChecked);
-                    if (isChecked) {
-                        loadActivityFeed();
-                    } else {
-                        if (tickerContainer) tickerContainer.style.display = 'none';
-                    }
+                    syncTickerControls();
+                    refreshTickerFromSettings();
+                });
+
+                tickerSpeed?.addEventListener('change', () => {
+                    localStorage.setItem('spicy-ticker-speed', tickerSpeed.value);
+                    refreshTickerFromSettings();
+                });
+
+                tickerEventInputs.forEach(input => {
+                    input.addEventListener('change', () => {
+                        const selectedEvents = tickerEventInputs
+                            .filter(eventInput => eventInput.checked)
+                            .map(eventInput => eventInput.dataset.eventType);
+                        localStorage.setItem('spicy-ticker-events', JSON.stringify(selectedEvents));
+                        refreshTickerFromSettings();
+                    });
                 });
             }
 
@@ -4387,7 +4561,18 @@
             let details = ev.details || '';
             const lang = localStorage.getItem('spicy-lang') || 'en';
 
-            if (ev.action_type === 'milestone_reached') {
+            if (ev.action_type === 'catalog_update') {
+                const match = details.match(/↻ @([a-zA-Z0-9_\-\.]+) catalog refreshed/);
+                if (match) {
+                    const user = match[1];
+                    if (lang === 'ru') return `↻ Каталог @${user} обновлён`;
+                    if (lang === 'uk') return `↻ Каталог @${user} оновлено`;
+                    if (lang === 'de') return `↻ Katalog von @${user} aktualisiert`;
+                    if (lang === 'it') return `↻ Catalogo di @${user} aggiornato`;
+                    if (lang === 'pl') return `↻ Katalog @${user} zaktualizowany`;
+                    return `↻ @${user} catalog refreshed`;
+                }
+            } else if (ev.action_type === 'milestone_reached') {
                 const match = details.match(/🎉 @([a-zA-Z0-9_\-\.]+) reached (\d+[KM]) views!/);
                 if (match) {
                     const user = match[1];
@@ -4445,9 +4630,14 @@
                 const res = await spicyFetch(`${API_BASE}/activity-feed`);
                 if (res.ok) {
                     const data = await res.json();
-                    renderTicker(data.events || []);
+                    activityFeedEvents = data.events || [];
+                    renderTicker(activityFeedEvents);
+                } else {
+                    if (container) container.style.display = 'none';
+                    console.error('Failed to load activity feed', res.status);
                 }
             } catch (e) {
+                if (container) container.style.display = 'none';
                 console.error('Failed to load activity feed', e);
             }
         }
@@ -4457,15 +4647,25 @@
             const ticker = document.getElementById('activity-ticker');
             if (!container || !ticker) return;
 
-            if (!events || events.length === 0) {
+            let enabledEventTypes = ['catalog_update', 'new_track', 'milestone_reached', 'user_add', 'profile_merge'];
+            try {
+                const savedEventTypes = JSON.parse(localStorage.getItem('spicy-ticker-events') || 'null');
+                if (Array.isArray(savedEventTypes)) enabledEventTypes = savedEventTypes;
+            } catch (_) {}
+
+            const visibleEvents = (events || []).filter(event => enabledEventTypes.includes(event.action_type));
+            if (visibleEvents.length === 0) {
+                ticker.innerHTML = '';
                 container.style.display = 'none';
                 return;
             }
 
-            const items = events.map(ev => {
+            const items = visibleEvents.map(ev => {
                 let timeStr = timeAgo(ev.created_at);
                 let txt = formatTickerText(escapeHtml(localizeTickerText(ev)));
-                if (ev.action_type === 'milestone_reached') {
+                if (ev.action_type === 'catalog_update') {
+                    return `<span style="color: var(--ink); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
+                } else if (ev.action_type === 'milestone_reached') {
                     return `<span style="color: var(--green); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
                 } else if (ev.action_type === 'new_track') {
                     return `<span style="color: var(--blue); font-weight: 700;">${txt}</span> <span style="color: var(--muted); font-size: 9px; margin-left: 4px;">(${timeStr})</span>`;
@@ -4480,9 +4680,11 @@
             const content = items.join(' <span style="color: var(--line); margin: 0 15px;">•</span> ');
             ticker.innerHTML = `${content} <span style="color: var(--line); margin: 0 15px;">•</span> ${content}`;
 
-            // Auto scroll loop duration calculation
+            // Keep movement consistent across short and long feeds while honoring the saved preference.
+            const speedSetting = localStorage.getItem('spicy-ticker-speed') || 'normal';
+            const pixelsPerSecond = { slow: 16, normal: 28, fast: 44 }[speedSetting] || 28;
             const scrollLength = ticker.scrollWidth / 2;
-            const duration = Math.max(80, Math.floor(scrollLength / 6));
+            const duration = Math.max(18, Math.min(180, scrollLength / pixelsPerSecond));
             ticker.style.animationDuration = `${duration}s`;
 
             container.style.display = 'flex';
