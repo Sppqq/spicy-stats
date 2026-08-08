@@ -2564,7 +2564,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.12 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.13 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -6370,19 +6370,19 @@
         function getShareCardPalette(name) {
             const palettes = {
                 carbon: {
-                    bg: '#efeee7', surface: '#e2e2da', surface2: '#161814', text: '#141611', muted: '#6f7269',
-                    line: '#c8cac0', accent: '#b9f227', secondary: '#d6ff4b', negative: '#e0523b',
-                    chartBg: '#161814', chartText: '#f1f0e9', accentInk: '#141611'
+                    bg: '#151814', surface: '#22261f', surface2: '#292e25', text: '#f0f2e9', muted: '#949b8d',
+                    line: '#353b31', accent: '#b9f227', secondary: '#d6ff4b', negative: '#ff715b',
+                    chartBg: '#1d211b', chartText: '#f0f2e9', accentInk: '#141611'
                 },
                 paper: {
-                    bg: '#f3ede3', surface: '#e7ddd0', surface2: '#1b1a16', text: '#191a16', muted: '#756f65',
-                    line: '#cabfb1', accent: '#ff715b', secondary: '#3154df', negative: '#c84632',
-                    chartBg: '#1b1a16', chartText: '#f7f2e9', accentInk: '#181914'
+                    bg: '#e9dfd0', surface: '#d9cbbb', surface2: '#2a2822', text: '#201e19', muted: '#786f63',
+                    line: '#c8b9a7', accent: '#ef6a55', secondary: '#3154df', negative: '#c84632',
+                    chartBg: '#2a2822', chartText: '#f4ede3', accentInk: '#201e19'
                 },
                 electric: {
-                    bg: '#17181d', surface: '#22242b', surface2: '#f1f0ea', text: '#f1f0ea', muted: '#9699a2',
-                    line: '#343741', accent: '#b9f227', secondary: '#5b6dff', negative: '#ff715b',
-                    chartBg: '#f1f0ea', chartText: '#17181d', chartAccent: '#79a800', accentInk: '#151712'
+                    bg: '#17181f', surface: '#232530', surface2: '#2d3040', text: '#f2f0ea', muted: '#999cab',
+                    line: '#373a48', accent: '#9b7cf6', secondary: '#b9f227', negative: '#ff715b',
+                    chartBg: '#20222b', chartText: '#f2f0ea', chartAccent: '#b9f227', accentInk: '#16151a'
                 }
             };
             return palettes[name] || palettes.carbon;
@@ -7273,6 +7273,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.13 (2026-08-08)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Rebalanced all achievement-card themes to remove harsh white contrast: dark Carbon, warm Paper, and violet-mint Electric.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.12 (2026-08-08)</strong>
