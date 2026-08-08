@@ -1251,43 +1251,38 @@
             .database-head { align-items: flex-start; flex-direction: column; gap: 14px; }
             .database-head > div:last-child { width: 100%; }
             .search { width: 100%; }
-            .table-wrap { overflow: visible; }
-            .database { border: 0; background: transparent; box-shadow: none; }
-            .database-head { padding: 18px 0; border-bottom: 0; }
-            .database-head #add-author-btn { display: none !important; }
-            table, tbody { display: block; width: 100%; min-width: 0; }
-            thead { display: none; }
-            #database-tbody { display: grid; gap: 10px; }
-            #database-tbody tr {
-                position: relative;
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                grid-template-areas:
-                    "user user"
-                    "views growth"
-                    "tracks tracks7"
-                    "updated actions";
-                overflow: hidden;
-                border: 1px solid var(--line);
-                border-radius: max(12px, var(--theme-card-radius));
-                background: var(--white);
-                box-shadow: var(--theme-panel-shadow);
-                transform: translateZ(0);
+            .table-wrap {
+                margin: 0 -14px;
+                padding: 0 14px 6px;
+                overflow-x: auto;
+                overscroll-behavior-inline: contain;
+                scrollbar-width: thin;
+                -webkit-overflow-scrolling: touch;
             }
-            #database-tbody tr:active { transform: scale(0.985); }
-            #database-tbody td { min-width: 0; padding: 12px 14px; border: 0; }
-            #database-tbody td[data-mobile-label] { display: grid; gap: 5px; border-top: 1px solid var(--paper-dark); font: 700 15px/1.1 'DM Mono', monospace; }
-            #database-tbody td[data-mobile-label]::before { content: attr(data-mobile-label); color: var(--muted); font: 700 8px/1 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; }
-            #database-tbody .cell-number { position: absolute; top: 15px; right: 14px; z-index: 2; padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-dark); color: var(--muted); font: 700 9px/1 'DM Mono', monospace; }
-            #database-tbody .table-user { grid-area: user; padding: 18px 58px 17px 16px; font-size: 17px; letter-spacing: -0.025em; }
-            #database-tbody td:nth-child(4) { grid-area: views; }
-            #database-tbody td:nth-child(5) { grid-area: growth; }
-            #database-tbody td:nth-child(6) { grid-area: tracks; }
-            #database-tbody td:nth-child(7) { grid-area: tracks7; }
-            #database-tbody td:nth-child(8) { grid-area: updated; align-content: center; }
-            #database-tbody .cell-actions { grid-area: actions; display: flex; align-items: center; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--paper-dark); }
-            #database-tbody .cell-actions .star-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
-            #database-tbody .mobile-empty-cell { grid-column: 1 / -1; padding: 30px 16px; text-align: center; }
+            .database { overflow: hidden; border: 1px solid var(--line); background: var(--white); box-shadow: none; }
+            .database-head { padding: 14px; border-bottom: 1px solid var(--line); }
+            .database-head #add-author-btn { display: none !important; }
+            table { display: table; width: 100%; min-width: 760px; border-collapse: collapse; }
+            thead { display: table-header-group; }
+            tbody, #database-tbody { display: table-row-group; width: auto; }
+            #database-tbody tr { display: table-row; background: transparent; transform: none; }
+            #database-tbody tr:active { background: var(--paper-dark); transform: none; }
+            #database-tbody td,
+            #database-tbody td[data-mobile-label] {
+                display: table-cell;
+                min-width: 0;
+                padding: 11px 12px;
+                border: 0;
+                border-bottom: 1px solid var(--paper-dark);
+                font-size: 10px;
+                white-space: nowrap;
+            }
+            #database-tbody td[data-mobile-label]::before { content: none; }
+            #database-tbody .cell-number { position: static; padding: 11px 8px; border: 0; border-bottom: 1px solid var(--paper-dark); border-radius: 0; background: transparent; }
+            #database-tbody .table-user { padding: 11px 12px; font-size: 12px; letter-spacing: -0.02em; }
+            #database-tbody .cell-actions { display: table-cell; padding: 6px 8px !important; border-bottom: 1px solid var(--paper-dark); text-align: center; }
+            #database-tbody .cell-actions .star-btn { width: 30px; height: 30px; border: 0; background: transparent; }
+            #database-tbody .mobile-empty-cell { padding: 24px 12px; text-align: center; }
             .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
             .lang-selector > .theme-toggle { width: 60px; min-width: 60px; height: 38px; padding: 0 7px; gap: 4px; }
             .theme-toggle-swatch { width: 24px; height: 24px; }
