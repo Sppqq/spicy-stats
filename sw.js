@@ -1,5 +1,5 @@
 // File: sw.js
-const CACHE_NAME = 'spicy-monitor-cache-v1.4.9';
+const CACHE_NAME = 'spicy-monitor-cache-v1.4.10';
 const STATIC_ASSETS = [
   '/',
   '/dashboard.html',
@@ -56,6 +56,18 @@ self.addEventListener('fetch', (event) => {
     } else if (url.pathname === '/') {
       requestTarget = new Request('/dashboard.html');
     }
+
+    // Navigation must prefer the network so releases and settings fixes appear
+    // on the first load instead of one refresh behind the service-worker cache.
+    event.respondWith(
+      fetch(requestTarget).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(requestTarget, networkResponse.clone()));
+        }
+        return networkResponse;
+      }).catch(() => caches.match(requestTarget))
+    );
+    return;
   }
 
   event.respondWith(
