@@ -1297,7 +1297,7 @@
         .share-stage-live::before { content: ''; width: 8px; height: 8px; background: var(--share-accent); box-shadow: 0 0 0 4px rgba(214, 255, 75, 0.10); }
         .share-stage-size { color: rgba(245, 241, 232, 0.38); font-variant-numeric: tabular-nums; }
         .share-card-preview-shell { min-height: 0; display: grid; place-items: center; overflow: hidden; padding: 14px; border: 1px solid rgba(244, 240, 231, 0.12); border-radius: 4px; background: rgba(244, 240, 231, 0.035); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset; }
-        #profile-share-canvas { display: block; width: auto; height: 100%; max-width: 100%; max-height: 100%; border-radius: 2px; background: #0b0d10; box-shadow: 0 28px 80px rgba(0, 0, 0, 0.58); transition: transform 260ms cubic-bezier(.2,.8,.2,1), box-shadow 260ms ease; }
+        #profile-share-canvas { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; border-radius: 2px; background: transparent; box-shadow: 0 28px 80px rgba(0, 0, 0, 0.58); transition: transform 260ms cubic-bezier(.2,.8,.2,1), box-shadow 260ms ease; }
         #profile-share-canvas:hover { transform: translateY(-2px); box-shadow: 0 32px 86px rgba(0, 0, 0, 0.56); }
         .share-stage-meta { color: rgba(245, 241, 232, 0.34); }
         .share-stage-meta strong { color: rgba(245, 241, 232, 0.68); font-weight: 600; }
@@ -6369,9 +6369,21 @@
 
         function getShareCardPalette(name) {
             const palettes = {
-                carbon: { bg: '#141511', surface: '#24251f', surface2: '#303128', text: '#f4f0e7', muted: '#97988e', line: '#3a3b33', accent: '#d6ff4b', secondary: '#ff623d', negative: '#ff745d' },
-                paper: { bg: '#f0eadf', surface: '#ddd5c8', surface2: '#cfc5b7', text: '#191a16', muted: '#6d6f66', line: '#b8aea0', accent: '#ff5a36', secondary: '#3154df', negative: '#c6432d' },
-                electric: { bg: '#4b31dc', surface: '#5b43e5', surface2: '#725cf0', text: '#f7f3e9', muted: '#cbc3f5', line: '#8d7bec', accent: '#d7ff45', secondary: '#ff6848', negative: '#ff8b77' }
+                carbon: {
+                    bg: '#efeee7', surface: '#e2e2da', surface2: '#161814', text: '#141611', muted: '#6f7269',
+                    line: '#c8cac0', accent: '#b9f227', secondary: '#d6ff4b', negative: '#e0523b',
+                    chartBg: '#161814', chartText: '#f1f0e9', accentInk: '#141611'
+                },
+                paper: {
+                    bg: '#f3ede3', surface: '#e7ddd0', surface2: '#1b1a16', text: '#191a16', muted: '#756f65',
+                    line: '#cabfb1', accent: '#ff715b', secondary: '#3154df', negative: '#c84632',
+                    chartBg: '#1b1a16', chartText: '#f7f2e9', accentInk: '#181914'
+                },
+                electric: {
+                    bg: '#17181d', surface: '#22242b', surface2: '#f1f0ea', text: '#f1f0ea', muted: '#9699a2',
+                    line: '#343741', accent: '#b9f227', secondary: '#5b6dff', negative: '#ff715b',
+                    chartBg: '#f1f0ea', chartText: '#17181d', chartAccent: '#79a800', accentInk: '#151712'
+                }
             };
             return palettes[name] || palettes.carbon;
         }
@@ -6487,7 +6499,11 @@
         }
 
         function drawShareSparkline(ctx, points, rect, palette) {
-            const values = points.map(point => Number(point.views ?? point.y ?? 0));
+            const chartAccent = palette.chartAccent || palette.accent;
+            const validPoints = points
+                .map(point => ({ point, value: Number(point.views ?? point.y ?? 0) }))
+                .filter(entry => Number.isFinite(entry.value));
+            const values = validPoints.map(entry => entry.value);
             if (values.length < 2) {
                 ctx.strokeStyle = palette.line;
                 ctx.lineWidth = 2;
@@ -6500,40 +6516,79 @@
                 return;
             }
 
-            const min = Math.min(...values);
-            const max = Math.max(...values);
+            // Profile history is cumulative. Keep the trend truthful while removing
+            // one-pixel steps and short-lived drops caused by sparse snapshots.
+            const monotonicValues = [];
+            values.forEach(value => monotonicValues.push(monotonicValues.length ? Math.max(value, monotonicValues[monotonicValues.length - 1]) : value));
+            let smoothValues = monotonicValues;
+            for (let pass = 0; pass < 2; pass += 1) {
+                smoothValues = smoothValues.map((value, index, series) => {
+                    if (index === 0 || index === series.length - 1) return value;
+                    return (series[index - 1] + value * 2 + series[index + 1]) / 4;
+                });
+            }
+
+            const min = Math.min(...smoothValues);
+            const max = Math.max(...smoothValues);
             const range = Math.max(1, max - min);
-            const coords = values.map((value, index) => ({
-                x: rect.x + (index / (values.length - 1)) * rect.width,
+            const rawTimes = validPoints.map(entry => parseUTCDate(entry.point.x)?.getTime() || NaN);
+            const useTimeline = rawTimes.every(Number.isFinite) && rawTimes[rawTimes.length - 1] > rawTimes[0];
+            const firstTime = rawTimes[0];
+            const timeRange = useTimeline ? rawTimes[rawTimes.length - 1] - firstTime : 1;
+            const coords = smoothValues.map((value, index) => ({
+                x: rect.x + (useTimeline ? (rawTimes[index] - firstTime) / timeRange : index / (smoothValues.length - 1)) * rect.width,
                 y: rect.y + rect.height - ((value - min) / range) * rect.height
             }));
 
+            const traceSmoothLine = (moveToStart = true) => {
+                if (moveToStart) ctx.moveTo(coords[0].x, coords[0].y);
+                for (let index = 0; index < coords.length - 1; index += 1) {
+                    const previous = coords[index - 1] || coords[index];
+                    const current = coords[index];
+                    const next = coords[index + 1];
+                    const afterNext = coords[index + 2] || next;
+                    const minY = Math.min(current.y, next.y);
+                    const maxY = Math.max(current.y, next.y);
+                    const control1Y = Math.max(minY, Math.min(maxY, current.y + (next.y - previous.y) * 0.1));
+                    const control2Y = Math.max(minY, Math.min(maxY, next.y - (afterNext.y - current.y) * 0.1));
+                    ctx.bezierCurveTo(
+                        current.x + (next.x - previous.x) * 0.1,
+                        control1Y,
+                        next.x - (afterNext.x - current.x) * 0.1,
+                        control2Y,
+                        next.x,
+                        next.y
+                    );
+                }
+            };
+
             const fill = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.height);
-            fill.addColorStop(0, `${palette.accent}55`);
-            fill.addColorStop(1, `${palette.accent}00`);
+            fill.addColorStop(0, `${chartAccent}4d`);
+            fill.addColorStop(1, `${chartAccent}00`);
             ctx.beginPath();
             ctx.moveTo(coords[0].x, rect.y + rect.height);
-            coords.forEach(point => ctx.lineTo(point.x, point.y));
+            ctx.lineTo(coords[0].x, coords[0].y);
+            traceSmoothLine(false);
             ctx.lineTo(coords[coords.length - 1].x, rect.y + rect.height);
             ctx.closePath();
             ctx.fillStyle = fill;
             ctx.fill();
 
             ctx.beginPath();
-            coords.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
-            ctx.strokeStyle = palette.accent;
-            ctx.lineWidth = 7;
+            traceSmoothLine();
+            ctx.strokeStyle = chartAccent;
+            ctx.lineWidth = 8;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.stroke();
 
             const latest = coords[coords.length - 1];
             ctx.beginPath();
-            ctx.arc(latest.x, latest.y, 9, 0, Math.PI * 2);
-            ctx.fillStyle = palette.bg;
+            ctx.arc(latest.x, latest.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = palette.chartBg;
             ctx.fill();
             ctx.lineWidth = 5;
-            ctx.strokeStyle = palette.accent;
+            ctx.strokeStyle = chartAccent;
             ctx.stroke();
         }
 
@@ -6579,13 +6634,16 @@
             lastShareCardBlob = null;
             try {
                 if (document.fonts?.ready) await document.fonts.ready;
-                const avatarImage = await loadProfileAvatarImage();
+                const [avatarImage, siteIconImage] = await Promise.all([
+                    loadProfileAvatarImage(),
+                    loadShareCardImage('/icon.png')
+                ]);
                 if (renderId !== shareCardRenderId) return null;
 
                 const periodData = getSharePeriodData(period);
                 const topSong = [...(profileData.songs || [])].sort((a, b) => Number(b.views || 0) - Number(a.views || 0))[0];
                 const growthPositive = periodData.growth >= 0;
-                const accentInk = '#141511';
+                const accentInk = palette.accentInk;
                 const stageSize = document.getElementById('share-stage-size');
                 if (stageSize) stageSize.textContent = compact ? '1080 × 1080' : '1080 × 1920';
 
@@ -6594,71 +6652,72 @@
                 ctx.fillRect(0, 0, width, height);
 
                 ctx.fillStyle = palette.accent;
-                ctx.fillRect(width - 22, 0, 22, height);
+                ctx.fillRect(0, 0, width, 14);
 
-                const ambient = ctx.createRadialGradient(width * 0.88, height * 0.09, 0, width * 0.88, height * 0.09, width * 0.72);
-                ambient.addColorStop(0, `${palette.accent}26`);
-                ambient.addColorStop(0.52, `${palette.accent}0a`);
+                const ambient = ctx.createRadialGradient(width * 0.88, height * 0.08, 0, width * 0.88, height * 0.08, width * 0.76);
+                ambient.addColorStop(0, `${palette.accent}24`);
+                ambient.addColorStop(0.5, `${palette.accent}08`);
                 ambient.addColorStop(1, `${palette.accent}00`);
                 ctx.fillStyle = ambient;
                 ctx.fillRect(0, 0, width, height);
 
-                ctx.strokeStyle = `${palette.text}0d`;
+                ctx.strokeStyle = `${palette.text}09`;
                 ctx.lineWidth = 1;
-                for (let x = 0; x < width; x += 54) {
+                for (let x = margin; x < width; x += 108) {
                     ctx.beginPath();
                     ctx.moveTo(x, 0);
                     ctx.lineTo(x, height);
                     ctx.stroke();
                 }
-                for (let y = 0; y < height; y += 54) {
+                for (let y = 14; y < height; y += 108) {
                     ctx.beginPath();
                     ctx.moveTo(0, y);
                     ctx.lineTo(width, y);
                     ctx.stroke();
                 }
 
-                ctx.save();
-                ctx.translate(width - 7, height * 0.68);
-                ctx.rotate(-Math.PI / 2);
-                ctx.fillStyle = accentInk;
-                ctx.font = '800 11px "DM Mono", monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('SPICY MONITOR  /  LIVE CREATOR DATA  /  2026', 0, 0);
-                ctx.restore();
-
-                canvasRoundRect(ctx, margin, 56, 46, 46, 2);
+                canvasRoundRect(ctx, margin, 54, 42, 42, 8);
                 ctx.fillStyle = palette.accent;
                 ctx.fill();
-                ctx.fillStyle = accentInk;
-                ctx.font = '900 24px Manrope, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('S', margin + 23, 88);
+                if (siteIconImage) {
+                    ctx.save();
+                    canvasRoundRect(ctx, margin, 54, 42, 42, 8);
+                    ctx.clip();
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.drawImage(siteIconImage, margin + 5, 59, 32, 32);
+                    ctx.restore();
+                } else {
+                    ctx.fillStyle = accentInk;
+                    ctx.font = '900 22px Manrope, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('S', margin + 21, 83);
+                }
                 ctx.textAlign = 'left';
                 ctx.fillStyle = palette.text;
-                ctx.font = '800 23px Manrope, sans-serif';
-                ctx.fillText('SPICY / ACHIEVEMENTS', margin + 64, 82);
+                ctx.font = '800 20px Manrope, sans-serif';
+                ctx.fillText('SPICY MONITOR', margin + 58, 77);
                 ctx.fillStyle = palette.muted;
-                ctx.font = '700 12px "DM Mono", monospace';
-                ctx.fillText('VERIFIED CREATOR DATA', margin + 64, 102);
+                ctx.font = '600 11px "DM Mono", monospace';
+                ctx.fillText('LIVE CREATOR DATA', margin + 58, 96);
                 ctx.textAlign = 'right';
-                ctx.fillStyle = palette.text;
-                ctx.fillText(compact ? 'SQUARE / 01' : 'STORY / 01', width - margin, 82);
                 ctx.fillStyle = palette.muted;
-                ctx.fillText(new Date().getFullYear().toString(), width - margin, 102);
+                ctx.fillText(compact ? 'CARD / 1:1' : 'CARD / 9:16', width - margin, 73);
+                ctx.fillStyle = palette.text;
+                ctx.font = '700 11px "DM Mono", monospace';
+                ctx.fillText('ACHIEVEMENT 01', width - margin, 96);
                 ctx.textAlign = 'left';
 
                 ctx.strokeStyle = palette.line;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(margin, 132);
-                ctx.lineTo(width - margin, 132);
+                ctx.moveTo(margin, 124);
+                ctx.lineTo(width - margin, 124);
                 ctx.stroke();
 
-                const heroY = compact ? 162 : 178;
-                const avatarSize = compact ? 116 : 146;
+                const heroY = compact ? 160 : 174;
+                const avatarSize = compact ? 142 : 190;
                 const avatarX = width - margin - avatarSize;
-                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 3);
+                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 16);
                 ctx.save();
                 ctx.clip();
                 const avatarGradient = ctx.createLinearGradient(avatarX, heroY, avatarX + avatarSize, heroY + avatarSize);
@@ -6673,111 +6732,123 @@
                     ctx.drawImage(avatarImage, sx, sy, sourceSize, sourceSize, avatarX, heroY, avatarSize, avatarSize);
                 } else {
                     ctx.fillStyle = accentInk;
-                    ctx.font = `900 ${compact ? 40 : 50}px Manrope, sans-serif`;
+                    ctx.font = `900 ${compact ? 48 : 64}px Manrope, sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.fillText((profileData.username || username || '--').slice(0, 2).toUpperCase(), avatarX + avatarSize / 2, heroY + avatarSize * 0.66);
                     ctx.textAlign = 'left';
                 }
                 ctx.restore();
-                ctx.strokeStyle = palette.accent;
-                ctx.lineWidth = 4;
-                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 3);
+                ctx.strokeStyle = palette.text;
+                ctx.lineWidth = 3;
+                canvasRoundRect(ctx, avatarX, heroY, avatarSize, avatarSize, 16);
                 ctx.stroke();
+                ctx.fillStyle = palette.accent;
+                ctx.fillRect(avatarX + avatarSize - 28, heroY + avatarSize - 28, 28, 28);
 
                 const profileX = margin;
                 const maxNameWidth = avatarX - margin - 38;
                 const displayName = `@${profileData.username || username}`;
-                ctx.fillStyle = palette.accent;
-                ctx.font = '700 13px "DM Mono", monospace';
-                ctx.fillText('CREATOR ACHIEVEMENT', profileX, heroY + 15);
-                const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 52 : 64, 32);
+                ctx.fillStyle = palette.muted;
+                ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
+                ctx.fillText('CREATOR MOMENTUM', profileX, heroY + 16);
+                const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 68 : 88, 38);
                 ctx.fillStyle = palette.text;
                 ctx.font = `800 ${nameSize}px Manrope, sans-serif`;
                 ctx.fillText(displayName, profileX, heroY + avatarSize * 0.58);
                 const rankText = document.getElementById('profile-rank')?.textContent?.split('/').pop()?.trim() || 'Tracked creator';
                 ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 15 : 17}px "DM Mono", monospace`;
-                ctx.fillText(`${rankText.toUpperCase()}  •  ${periodData.label.toUpperCase()}`, profileX, heroY + avatarSize * 0.83);
+                ctx.font = `600 ${compact ? 13 : 15}px "DM Mono", monospace`;
+                ctx.fillText(`${rankText.toUpperCase()}  /  ${periodData.label.toUpperCase()}`, profileX, heroY + avatarSize * 0.88);
 
-                const viewsY = compact ? 342 : 420;
+                const viewsY = compact ? 354 : 458;
                 ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 15 : 18}px "DM Mono", monospace`;
-                ctx.fillText('TOTAL AUDIENCE REACH', margin, viewsY);
+                ctx.font = `600 ${compact ? 14 : 16}px "DM Mono", monospace`;
+                ctx.fillText('TOTAL AUDIENCE', margin, viewsY);
                 const viewsText = formatViews(Number(profileData.total_views || 0));
                 ctx.fillStyle = palette.text;
-                const viewsSize = fitCanvasText(ctx, viewsText, width - margin * 2, compact ? 132 : 176, 78);
+                const viewsSize = fitCanvasText(ctx, viewsText, width - margin * 2, compact ? 142 : 196, 92);
                 ctx.font = `800 ${viewsSize}px Manrope, sans-serif`;
-                ctx.fillText(viewsText, margin, viewsY + (compact ? 112 : 152));
+                ctx.fillText(viewsText, margin, viewsY + (compact ? 116 : 168));
 
-                const statY = compact ? 488 : 650;
-                const statHeight = compact ? 140 : 180;
+                const statY = compact ? 520 : 700;
+                const statHeight = compact ? 164 : 206;
                 const statWidth = width - margin * 2;
-                const growthWidth = statWidth * 0.61;
-                canvasRoundRect(ctx, margin, statY, statWidth, statHeight, 4);
-                ctx.save();
-                ctx.clip();
-                ctx.fillStyle = palette.surface;
-                ctx.fillRect(margin, statY, statWidth, statHeight);
+                const growthWidth = compact ? 594 : 600;
+                const statGap = compact ? 12 : 14;
+                canvasRoundRect(ctx, margin, statY, growthWidth, statHeight, 16);
                 ctx.fillStyle = growthPositive ? palette.accent : palette.negative;
-                ctx.fillRect(margin, statY, growthWidth, statHeight);
-                ctx.restore();
-                ctx.strokeStyle = palette.line;
-                ctx.lineWidth = 2;
-                canvasRoundRect(ctx, margin, statY, statWidth, statHeight, 4);
-                ctx.stroke();
+                ctx.fill();
 
                 ctx.fillStyle = growthPositive ? accentInk : '#fffdf8';
-                ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
-                ctx.fillText(`${periodData.label} MOMENTUM`.toUpperCase(), margin + 28, statY + (compact ? 36 : 46));
-                ctx.font = `800 ${compact ? 42 : 57}px Manrope, sans-serif`;
-                ctx.fillText(`${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, margin + 28, statY + (compact ? 100 : 128));
+                ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
+                ctx.fillText(`${periodData.label} MOMENTUM`.toUpperCase(), margin + 28, statY + (compact ? 40 : 50));
+                ctx.font = `800 ${compact ? 48 : 66}px Manrope, sans-serif`;
+                ctx.fillText(`${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, margin + 28, statY + (compact ? 112 : 140));
+                ctx.font = `600 ${compact ? 11 : 13}px "DM Mono", monospace`;
+                ctx.fillText('AUDIENCE GROWTH', margin + 28, statY + statHeight - 24);
 
-                const catalogX = margin + growthWidth + 28;
-                ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 12 : 15}px "DM Mono", monospace`;
-                ctx.fillText('TRACKED CATALOG', catalogX, statY + (compact ? 36 : 46));
-                ctx.fillStyle = palette.text;
-                ctx.font = `800 ${compact ? 34 : 46}px Manrope, sans-serif`;
-                ctx.fillText(`${Number(profileData.total_songs || 0)}`, catalogX, statY + (compact ? 94 : 122));
-                ctx.fillStyle = palette.muted;
-                ctx.font = `600 ${compact ? 12 : 15}px "DM Mono", monospace`;
-                ctx.fillText('TRACKS', catalogX + (compact ? 76 : 98), statY + (compact ? 94 : 122));
-
-                const chartY = compact ? 670 : 910;
-                const chartHeight = compact ? 270 : 500;
-                canvasRoundRect(ctx, margin, chartY, width - margin * 2, chartHeight, 4);
-                ctx.fillStyle = palette.surface;
+                const catalogX = margin + growthWidth + statGap;
+                const catalogWidth = statWidth - growthWidth - statGap;
+                canvasRoundRect(ctx, catalogX, statY, catalogWidth, statHeight, 16);
+                ctx.fillStyle = palette.surface2;
                 ctx.fill();
-                ctx.strokeStyle = palette.line;
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 13 : 16}px "DM Mono", monospace`;
-                ctx.fillText('02  /  VIEW VELOCITY', margin + 30, chartY + 42);
-                ctx.textAlign = 'right';
-                ctx.fillStyle = growthPositive ? palette.accent : palette.negative;
-                ctx.fillText(`${growthPositive ? 'RISING' : 'FALLING'}  ${formatViews(Math.abs(periodData.growth))}`, width - margin - 30, chartY + 42);
-                ctx.textAlign = 'left';
-                drawShareSparkline(ctx, periodData.points, { x: margin + 32, y: chartY + 82, width: width - margin * 2 - 64, height: chartHeight - 120 }, palette);
+                ctx.fillStyle = palette.chartText;
+                ctx.font = `700 ${compact ? 12 : 13}px "DM Mono", monospace`;
+                ctx.fillText('TRACKED', catalogX + 24, statY + (compact ? 40 : 50));
+                ctx.font = `800 ${compact ? 47 : 62}px Manrope, sans-serif`;
+                ctx.fillText(`${Number(profileData.total_songs || 0)}`, catalogX + 24, statY + (compact ? 112 : 140));
+                ctx.font = `600 ${compact ? 11 : 13}px "DM Mono", monospace`;
+                ctx.fillText('CATALOG TRACKS', catalogX + 24, statY + statHeight - 24);
 
-                const footerY = height - (compact ? 66 : 112);
+                const chartY = compact ? 706 : 942;
+                const chartHeight = compact ? 296 : 474;
+                canvasRoundRect(ctx, margin, chartY, width - margin * 2, chartHeight, 18);
+                ctx.fillStyle = palette.chartBg;
+                ctx.fill();
+                ctx.fillStyle = palette.chartText;
+                ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
+                ctx.fillText('VIEW VELOCITY', margin + (compact ? 28 : 34), chartY + (compact ? 42 : 52));
+                ctx.textAlign = 'right';
+                ctx.fillStyle = growthPositive ? (palette.chartAccent || palette.accent) : palette.negative;
+                ctx.fillText(`${growthPositive ? 'RISING' : 'FALLING'}  ${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, width - margin - (compact ? 28 : 34), chartY + (compact ? 42 : 52));
+                ctx.textAlign = 'left';
+                drawShareSparkline(ctx, periodData.points, {
+                    x: margin + (compact ? 28 : 34),
+                    y: chartY + (compact ? 78 : 96),
+                    width: width - margin * 2 - (compact ? 56 : 68),
+                    height: chartHeight - (compact ? 112 : 142)
+                }, palette);
+
+                const footerY = height - (compact ? 34 : 78);
                 if (!compact && topSong) {
-                    const topY = chartY + chartHeight + 72;
+                    const topY = 1460;
+                    canvasRoundRect(ctx, margin, topY, width - margin * 2, 268, 18);
+                    ctx.fillStyle = palette.surface;
+                    ctx.fill();
+                    ctx.fillStyle = palette.accent;
+                    ctx.fillRect(margin, topY, 12, 268);
+                    ctx.fillStyle = palette.muted;
+                    ctx.font = '700 14px "DM Mono", monospace';
+                    ctx.fillText('CATALOG LEADER', margin + 42, topY + 52);
+                    ctx.fillStyle = palette.text;
+                    ctx.font = '800 52px Manrope, sans-serif';
+                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2 - 84), margin + 42, topY + 126);
+                    ctx.fillStyle = palette.muted;
+                    ctx.font = '600 22px Manrope, sans-serif';
+                    ctx.fillText(truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 310), margin + 42, topY + 174);
+                    ctx.textAlign = 'right';
+                    ctx.fillStyle = palette.text;
+                    ctx.font = '700 17px "DM Mono", monospace';
+                    ctx.fillText(`${formatViews(Number(topSong.views || 0))} VIEWS`, width - margin - 34, topY + 174);
+                    ctx.textAlign = 'left';
                     ctx.strokeStyle = palette.line;
-                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(margin, topY - 34);
-                    ctx.lineTo(width - margin, topY - 34);
+                    ctx.moveTo(margin + 42, topY + 214);
+                    ctx.lineTo(width - margin - 34, topY + 214);
                     ctx.stroke();
                     ctx.fillStyle = palette.muted;
-                    ctx.font = '700 16px "DM Mono", monospace';
-                    ctx.fillText('03  /  CATALOG LEADER', margin, topY);
-                    ctx.fillStyle = palette.text;
-                    ctx.font = '800 46px Manrope, sans-serif';
-                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2), margin, topY + 62);
-                    ctx.fillStyle = palette.muted;
-                    ctx.font = '600 20px Manrope, sans-serif';
-                    ctx.fillText(`${truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 190)}  •  ${formatViews(Number(topSong.views || 0))} VIEWS`, margin, topY + 102);
+                    ctx.font = '600 12px "DM Mono", monospace';
+                    ctx.fillText('ONE PROFILE. ONE SIGNAL. UPDATED LIVE.', margin + 42, topY + 244);
                 }
 
                 ctx.strokeStyle = palette.line;
@@ -6786,7 +6857,7 @@
                 ctx.lineTo(width - margin, footerY - 28);
                 ctx.stroke();
                 ctx.fillStyle = palette.muted;
-                ctx.font = `700 ${compact ? 12 : 15}px "DM Mono", monospace`;
+                ctx.font = `700 ${compact ? 11 : 13}px "DM Mono", monospace`;
                 ctx.fillText('SPICY-STATS.GLYPH-LABS.SITE', margin, footerY);
                 ctx.textAlign = 'right';
                 ctx.fillText(new Date().toLocaleDateString(getLocale(), { year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase(), width - margin, footerY);
