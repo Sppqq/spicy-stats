@@ -250,6 +250,18 @@
 
         .profile-header > div { min-width: 0; }
 
+        .profile-header-topline {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 30px;
+            flex-wrap: wrap;
+        }
+
+        .profile-header-topline .eyebrow {
+            margin: 0;
+        }
+
         .back-button {
             border: 1px solid var(--ink);
             background: transparent;
@@ -278,7 +290,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-top: 28px;
+            margin-top: 22px;
             min-width: 0;
         }
 
@@ -1939,15 +1951,18 @@
             <div class="profile-masthead">
             <section class="profile-header">
                 <div>
+                    <div class="profile-header-topline">
                     <button class="back-button" onclick="goBack()" data-i18n="back">
                         ← Back to dashboard
                     </button>
+
+                        <div class="eyebrow" id="profile-rank">Author profile / Rank #--</div>
+                    </div>
 
                     <div class="profile-title">
                         <div class="profile-avatar" id="profile-avatar">--</div>
 
                         <div>
-                            <div class="eyebrow" id="profile-rank">Author profile / Rank #--</div>
                             <h1 id="profile-name">@username</h1>
                             <div class="profile-caption">
                                 <span id="profile-updated">Last updated 2 minutes ago</span>
