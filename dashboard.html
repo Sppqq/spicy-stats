@@ -5907,6 +5907,15 @@
             return `${sign}${formatter(Math.abs(numericValue))}`;
         }
 
+        function normalizeDashboardVisitChanges(previousSnapshot, currentSnapshot) {
+            const viewsDelta = Number(currentSnapshot?.globalViews) - Number(previousSnapshot?.globalViews);
+            const tracksDelta = Number(currentSnapshot?.globalTracks) - Number(previousSnapshot?.globalTracks);
+            return {
+                viewsGained: Math.max(0, Number.isFinite(viewsDelta) ? viewsDelta : 0),
+                tracksChanged: Math.abs(Number.isFinite(tracksDelta) ? tracksDelta : 0)
+            };
+        }
+
         function formatVisitRelativeTime(timestamp, lang) {
             const elapsedMs = Math.max(0, Date.now() - Number(timestamp));
             const relative = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' });
@@ -5967,14 +5976,12 @@
                 } else {
                     summary.classList.remove('is-first-visit');
                     lastSeen.textContent = formatVisitRelativeTime(previousSnapshot.visitedAt, currentLang);
+                    const visitChanges = normalizeDashboardVisitChanges(previousSnapshot, currentSnapshot);
                     viewsDelta.textContent = formatSignedVisitValue(
-                        currentSnapshot.globalViews - Number(previousSnapshot.globalViews),
+                        visitChanges.viewsGained,
                         formatViews
                     );
-                    tracksDelta.textContent = formatSignedVisitValue(
-                        currentSnapshot.globalTracks - Number(previousSnapshot.globalTracks),
-                        (value) => new Intl.NumberFormat(currentLang).format(value)
-                    );
+                    tracksDelta.textContent = new Intl.NumberFormat(currentLang).format(visitChanges.tracksChanged);
 
                     const previousUpdates = previousSnapshot.userUpdates || {};
                     const updatedCount = Object.entries(currentSnapshot.userUpdates).reduce(
