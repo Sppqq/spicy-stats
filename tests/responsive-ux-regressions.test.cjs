@@ -45,11 +45,11 @@ assert.equal((profile.match(/update_schedule_pending:/g) || []).length, 6);
 assert.match(profile, /countdownEl\.textContent = `• \$\{dict\.update_schedule_pending\}`/);
 assert.match(profile, /countdownEl\.textContent = `• \$\{dict\.update_queued\}`/);
 assert.match(profile, /}, 60000\);/);
-assert.match(profile, /id="track-modal-spotify-link"[^>]+target="_blank"[^>]+rel="noopener noreferrer"[^>]+hidden/);
+assert.match(profile, /id="track-modal-spotify-link"[^>]+hidden/);
 assert.match(profile, /openTrackStats\(song\.title, song\.artist, song\.views, song\.growth, song\.spotify_id\)/);
 assert.match(profile, /\^\[A-Za-z0-9\]\{22\}\$/);
 assert.match(profile, /spotifyLink\.hidden = !hasSpotifyId/);
-assert.match(profile, /https:\/\/open\.spotify\.com\/track\/\$\{normalizedSpotifyId\}/);
+assert.match(profile, /spotify:track:\$\{normalizedSpotifyId\}/);
 assert.equal((profile.match(/open_spotify:/g) || []).length, 6);
 
 assert.match(admin, /id="secret-key" required autofocus autocomplete="current-password"/);
