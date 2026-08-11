@@ -350,6 +350,33 @@ async function handleAddUser(request, env, ctx) {
     return new Response(JSON.stringify({ success: true, cleanName }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
+function buildWeeklyGrowth(samples) {
+    const samplesByUser = new Map();
+    for (const sample of Array.isArray(samples) ? samples : []) {
+        const userId = sample?.user_id;
+        const dayOffset = Number(sample?.day_offset);
+        const totalViews = Number(sample?.total_views);
+        if (userId === null || userId === undefined || !Number.isInteger(dayOffset) || dayOffset < 0 || dayOffset > 7 || !Number.isFinite(totalViews)) continue;
+        if (!samplesByUser.has(userId)) samplesByUser.set(userId, new Map());
+        samplesByUser.get(userId).set(dayOffset, totalViews);
+    }
+
+    const totals = Array(7).fill(0);
+    const contributorCounts = Array(7).fill(0);
+    for (const userSamples of samplesByUser.values()) {
+        for (let newerOffset = 0; newerOffset < 7; newerOffset += 1) {
+            const newerViews = userSamples.get(newerOffset);
+            const olderViews = userSamples.get(newerOffset + 1);
+            if (!Number.isFinite(newerViews) || !Number.isFinite(olderViews)) continue;
+            const chartIndex = 6 - newerOffset;
+            totals[chartIndex] += Math.max(0, newerViews - olderViews);
+            contributorCounts[chartIndex] += 1;
+        }
+    }
+
+    return totals.map((total, index) => contributorCounts[index] > 0 ? Math.round(total) : null);
+}
+
 async function handleDashboardAPI(request, env) {
     const globalQuery = await env.DB.prepare("SELECT COUNT(id) as total_users FROM users").first();
 
@@ -389,12 +416,44 @@ async function handleDashboardAPI(request, env) {
     ORDER BY current_views DESC
   `).all();
 
+    const { results: weeklyGrowthSamples } = await env.DB.prepare(`
+    WITH RECURSIVE day_offsets(day_offset) AS (
+        SELECT 0
+        UNION ALL
+        SELECT day_offset + 1 FROM day_offsets WHERE day_offset < 7
+    )
+    SELECT
+        u.id AS user_id,
+        d.day_offset,
+        CASE
+            WHEN d.day_offset = 0 THEN (
+                SELECT total_views
+                FROM snapshots s_latest
+                WHERE s_latest.user_id = u.id
+                ORDER BY s_latest.id DESC
+                LIMIT 1
+            )
+            ELSE (
+                SELECT total_views
+                FROM snapshots s_history
+                WHERE s_history.user_id = u.id
+                    AND substr(s_history.timestamp, 1, 19) <= datetime('now', printf('-%d hours', d.day_offset * 24))
+                ORDER BY s_history.id DESC
+                LIMIT 1
+            )
+        END AS total_views
+    FROM users u
+    CROSS JOIN day_offsets d
+    ORDER BY u.id, d.day_offset
+  `).all();
+
     const globalSongs = users.reduce((sum, u) => sum + (u.total_songs || 0), 0);
 
     const data = {
         total_users: globalQuery.total_users || 0,
         global_views: totalViewsQuery.global_views || 0,
         global_tracks: globalSongs,
+        weekly_growth: buildWeeklyGrowth(weeklyGrowthSamples),
         users: users.map(u => ({
             username: u.username,
             views: u.current_views || 0,
