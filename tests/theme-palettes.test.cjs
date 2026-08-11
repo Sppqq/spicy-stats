@@ -34,9 +34,13 @@ for (const page of pages) {
     assert.match(monoBlock, /--green: #c9c9c5;/, `${page} Mono positive accent should be grayscale`);
     assert.match(monoBlock, /--coral: #7c7c79;/, `${page} Mono negative accent should be grayscale`);
     assert.doesNotMatch(monoBlock, /#ef8177/i, `${page} Mono should not retain the salmon negative accent`);
+
+    if (page === 'user.html') {
+        assert.match(html, /\[data-theme="mono"\] \.share-card-trigger \{ color: var\(--paper\); \}/);
+    }
 }
 
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.18/);
+assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.19/);
 
 console.log('theme palette regression checks passed');

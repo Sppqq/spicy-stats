@@ -15,7 +15,7 @@ assert.match(dashboard, /filteredUsers\.slice\(0, dashboardVisibleCount\)/);
 assert.match(dashboard, /id="setting-show-full-lists"/);
 assert.match(dashboard, /localStorage\.getItem\('spicy-show-full-lists'\) !== 'false'/);
 assert.match(dashboard, /shouldShowFullLists\(\)\s*\? filteredUsers/);
-assert.match(dashboard, /\.modern-beta-corner \{\s*position: fixed;\s*bottom: 18px;\s*left: 18px;/);
+assert.match(dashboard, /\.modern-beta-corner \{\s*position: fixed;\s*bottom: 18px;\s*right: 18px;/);
 assert.match(dashboard, /<button class="modern-beta-corner" type="button" aria-describedby="modern-beta-tooltip">/);
 assert.match(dashboard, /setLanguageOpen\(false\);\s*toggle\.focus\(\);/);
 assert.equal((dashboard.match(/footer_github:/g) || []).length, 6);
