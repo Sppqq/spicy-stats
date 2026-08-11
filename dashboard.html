@@ -36,7 +36,7 @@
     <script>
         // Apply the saved appearance before the first paint to avoid a theme flash.
         (() => {
-            const validThemes = new Set(['auto', 'dark', 'light', 'cyber', 'glass', 'terminal', 'nordic', 'cupertino', 'steel', 'magma', 'sakura']);
+            const validThemes = new Set(['auto', 'dark', 'light', 'cyber', 'glass', 'terminal', 'nordic', 'cupertino', 'steel', 'magma', 'sakura', 'mono', 'dusk', 'blueprint']);
             let mode = 'auto';
 
             try {
@@ -830,6 +830,74 @@
             color-scheme: light;
         }
 
+        [data-theme="mono"] {
+            --paper: #070707;
+            --paper-dark: #121212;
+            --ink: #f2f2ef;
+            --muted: #a3a3a0;
+            --line: #343432;
+            --blue: #f2f2ef;
+            --green: #c9ccc7;
+            --coral: #ef8177;
+            --white: #181818;
+            --positive-text: #f2f2ef;
+            --theme-card-radius: 0px;
+            --theme-control-radius: 0px;
+            --theme-panel-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+            --theme-atmosphere:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 34%),
+                radial-gradient(circle at 88% 4%, rgba(255, 255, 255, 0.05), transparent 28%);
+            --menu-bg: rgba(12, 12, 12, 0.98);
+            --menu-hover: rgba(255, 255, 255, 0.06);
+            --menu-active: rgba(255, 255, 255, 0.11);
+        }
+
+        [data-theme="dusk"] {
+            --paper: #100f21;
+            --paper-dark: #1a1830;
+            --ink: #f4eee7;
+            --muted: #aaa3b7;
+            --line: #37334f;
+            --blue: #777bd8;
+            --green: #efb85d;
+            --coral: #e7747e;
+            --white: #18162c;
+            --positive-text: #f3c570;
+            --theme-card-radius: 14px;
+            --theme-control-radius: 9px;
+            --theme-panel-shadow: 0 22px 64px rgba(7, 5, 22, 0.34);
+            --theme-atmosphere:
+                radial-gradient(circle at 14% -4%, rgba(119, 123, 216, 0.24), transparent 36%),
+                radial-gradient(circle at 90% 12%, rgba(239, 184, 93, 0.13), transparent 28%),
+                linear-gradient(155deg, transparent 60%, rgba(231, 116, 126, 0.055));
+            --menu-bg: rgba(22, 20, 43, 0.97);
+            --menu-hover: rgba(119, 123, 216, 0.11);
+            --menu-active: rgba(239, 184, 93, 0.11);
+        }
+
+        [data-theme="blueprint"] {
+            --paper: #07131f;
+            --paper-dark: #0c2235;
+            --ink: #dcefff;
+            --muted: #82a2b8;
+            --line: #24506d;
+            --blue: #55b9f3;
+            --green: #78dbc0;
+            --coral: #ff7d79;
+            --white: #0b1d2d;
+            --positive-text: #78dbc0;
+            --theme-card-radius: 3px;
+            --theme-control-radius: 3px;
+            --theme-panel-shadow: 0 20px 58px rgba(0, 8, 18, 0.30);
+            --theme-atmosphere:
+                linear-gradient(rgba(85, 185, 243, 0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(85, 185, 243, 0.045) 1px, transparent 1px),
+                radial-gradient(circle at 84% 8%, rgba(120, 219, 192, 0.11), transparent 30%);
+            --menu-bg: rgba(8, 25, 39, 0.98);
+            --menu-hover: rgba(85, 185, 243, 0.09);
+            --menu-active: rgba(85, 185, 243, 0.14);
+        }
+
         /* Controls and Checkboxes */
         [data-theme] input, [data-theme] select { accent-color: var(--green); }
 
@@ -1228,6 +1296,9 @@
         .theme-option[data-theme-value="steel"] .theme-preview { --preview-bg: #0c0f13; --preview-surface: #1a2026; --preview-accent: #7894ad; --preview-ink: #e4e8eb; --preview-line: #39434d; }
         .theme-option[data-theme-value="magma"] .theme-preview { --preview-bg: radial-gradient(circle at 18% 12%, #522016, #160c0a 62%); --preview-surface: #25120e; --preview-accent: linear-gradient(145deg, #ff4f4f, #ffd166); --preview-ink: #fff1e6; --preview-line: #633226; }
         .theme-option[data-theme-value="sakura"] .theme-preview { --preview-bg: linear-gradient(145deg, #fffafb, #f4dce5); --preview-surface: #ffffff; --preview-accent: linear-gradient(145deg, #9b4f7a, #df647d); --preview-ink: #35242d; --preview-line: #dec2cd; }
+        .theme-option[data-theme-value="mono"] .theme-preview { --preview-bg: #070707; --preview-surface: #181818; --preview-accent: #f2f2ef; --preview-ink: #f2f2ef; --preview-line: #424240; }
+        .theme-option[data-theme-value="dusk"] .theme-preview { --preview-bg: radial-gradient(circle at 18% 8%, #302d62, #100f21 64%); --preview-surface: #211e3a; --preview-accent: linear-gradient(145deg, #777bd8, #efb85d); --preview-ink: #f4eee7; --preview-line: #494464; }
+        .theme-option[data-theme-value="blueprint"] .theme-preview { --preview-bg: linear-gradient(rgba(85, 185, 243, .1) 1px, transparent 1px), linear-gradient(90deg, rgba(85, 185, 243, .1) 1px, #07131f 1px); --preview-surface: #0c2235; --preview-accent: #55b9f3; --preview-ink: #dcefff; --preview-line: #2c6181; }
 
         [data-theme] .theme-option .theme-check {
             width: 20px;
@@ -1248,6 +1319,17 @@
         [data-theme] .theme-option.active .theme-check { border-color: var(--blue); background: var(--blue); color: var(--paper); }
         .theme-dropdown-footer { display: flex; justify-content: space-between; gap: 12px; padding: 12px 6px 3px; letter-spacing: 0.06em; }
         .mobile-dashboard-actions { display: none; }
+        .list-pagination { display: flex; justify-content: center; padding: 18px 14px 4px; }
+        .list-pagination[hidden] { display: none; }
+        .list-pagination button { min-height: 44px; padding: 10px 18px; }
+        body.modal-open { overflow: hidden; }
+        body.modal-open .mobile-dashboard-actions,
+        body.modal-open .design-preview-card,
+        body.modal-open .design-preview-back,
+        body.modal-open .design-preview-forward,
+        body.modal-open #lang-suggest-toast,
+        body.modal-open #spicy-notification-toast { visibility: hidden; pointer-events: none; }
+        [data-dashboard-design="modern"] .page { padding-bottom: 104px; }
 
         /* Media Queries */
         @media (max-width: 850px) {
@@ -1261,7 +1343,7 @@
             .topbar-right .live-status { display: none; }
             .database-head { align-items: flex-start; flex-direction: column; gap: 14px; }
             .database-head > div:last-child { width: 100%; }
-            .search { width: 100%; }
+            .search { width: 100%; min-height: 44px; }
             .table-wrap {
                 margin: 0 -14px;
                 padding: 0 14px 6px;
@@ -1292,10 +1374,11 @@
             #database-tbody .cell-number { position: static; padding: 11px 8px; border: 0; border-bottom: 1px solid var(--paper-dark); border-radius: 0; background: transparent; }
             #database-tbody .table-user { padding: 11px 12px; font-size: 12px; letter-spacing: -0.02em; }
             #database-tbody .cell-actions { display: table-cell; padding: 6px 8px !important; border-bottom: 1px solid var(--paper-dark); text-align: center; }
-            #database-tbody .cell-actions .star-btn { width: 30px; height: 30px; border: 0; background: transparent; }
+            #database-tbody .cell-actions .star-btn { width: 44px; height: 44px; border: 0; background: transparent; }
             #database-tbody .mobile-empty-cell { padding: 24px 12px; text-align: center; }
-            .theme-selector > .theme-toggle { min-width: 116px; height: 38px; padding: 0 9px; }
-            .lang-selector > .theme-toggle { width: 60px; min-width: 60px; height: 38px; padding: 0 7px; gap: 4px; }
+            .theme-selector { z-index: 1300; }
+            .theme-selector > .theme-toggle { min-width: 116px; height: 44px; padding: 0 9px; }
+            .lang-selector > .theme-toggle { width: 60px; min-width: 60px; height: 44px; padding: 0 7px; gap: 4px; }
             .theme-toggle-swatch { width: 24px; height: 24px; }
             .theme-toggle-kicker { display: none; }
             [data-theme] .theme-option { grid-template-columns: 52px minmax(0, 1fr) 18px; gap: 7px; padding: 7px; }
@@ -1329,6 +1412,12 @@
             .mobile-dashboard-action.primary { background: var(--blue); color: #fff; }
             .mobile-dashboard-action.active { background: var(--ink); color: var(--paper); }
             .mobile-dashboard-action:active { transform: scale(0.97); }
+            .design-preview-card,
+            .design-preview-back,
+            .design-preview-forward { bottom: calc(84px + env(safe-area-inset-bottom)); }
+            #add-author-modal button,
+            #add-author-modal input { min-height: 44px; }
+            #lang-suggest-toast { right: 12px !important; bottom: calc(86px + env(safe-area-inset-bottom)) !important; left: 12px; max-width: none !important; }
         }
 
         @media (max-width: 440px) {
@@ -2137,7 +2226,7 @@
             align-items: center;
             justify-content: center;
             min-width: 42px;
-            height: 40px;
+            height: 44px;
             padding: 0 9px;
             border: 1px solid color-mix(in srgb, var(--green) 48%, var(--line));
             border-radius: max(8px, var(--theme-control-radius));
@@ -2224,8 +2313,8 @@
 
         @media (max-width: 850px) {
             .pulse-grid { grid-template-columns: 1fr; }
-            .pulse-metrics { grid-template-columns: 1.1fr 0.9fr; grid-template-rows: none; }
-            .pulse-metrics-secondary { grid-template-columns: 1fr; }
+            .pulse-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; }
+            .pulse-metrics-secondary { display: contents; }
             .main-grid { grid-template-columns: 1fr; }
             [data-dashboard-design="classic"] .pulse-metrics { grid-template-columns: 1fr; }
             [data-dashboard-design="classic"] .pulse-metrics-secondary { display: contents; }
@@ -2239,9 +2328,9 @@
             .theme-selector > .theme-toggle,
             .lang-selector > .theme-toggle,
             #settings-toggle {
-                width: 40px;
-                min-width: 40px;
-                height: 40px;
+                width: 44px;
+                min-width: 44px;
+                height: 44px;
                 padding: 0;
                 justify-content: center;
             }
@@ -2268,7 +2357,7 @@
                 grid-template-columns: 1.15fr 0.85fr;
                 gap: 8px;
             }
-            .pulse-metrics-secondary { gap: 8px; }
+            .pulse-metrics-secondary { display: grid; gap: 8px; }
             .pulse-metrics .stat { padding: 14px; }
             .pulse-metrics .stat-primary { min-height: 170px; }
             .pulse-metrics-secondary .stat { min-height: 81px; }
@@ -2441,6 +2530,32 @@
                                 <span class="theme-option-copy">
                                     <strong data-i18n="theme_sakura">Sakura</strong>
                                     <small data-i18n="theme_sakura_desc">Soft rose daylight</small>
+                                </span>
+                                <span class="theme-check" aria-hidden="true">✓</span>
+                            </button>
+                            <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="mono">
+                                <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
+                                <span class="theme-option-copy">
+                                    <strong data-i18n="theme_mono">Mono</strong>
+                                    <small data-i18n="theme_mono_desc">Black, white, focused</small>
+                                </span>
+                                <span class="theme-check" aria-hidden="true">✓</span>
+                            </button>
+
+                            <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="dusk">
+                                <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
+                                <span class="theme-option-copy">
+                                    <strong data-i18n="theme_dusk">Dusk</strong>
+                                    <small data-i18n="theme_dusk_desc">Indigo after sunset</small>
+                                </span>
+                                <span class="theme-check" aria-hidden="true">✓</span>
+                            </button>
+
+                            <button class="theme-option" type="button" role="option" aria-selected="false" data-theme-value="blueprint">
+                                <span class="theme-preview" aria-hidden="true"><span></span><i></i><b></b></span>
+                                <span class="theme-option-copy">
+                                    <strong data-i18n="theme_blueprint">Blueprint</strong>
+                                    <small data-i18n="theme_blueprint_desc">Technical cyan grid</small>
                                 </span>
                                 <span class="theme-check" aria-hidden="true">✓</span>
                             </button>
@@ -2785,11 +2900,14 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="list-pagination" id="database-pagination" hidden>
+                    <button class="back-button" id="load-more-authors" type="button" onclick="loadMoreAuthors()"></button>
+                </div>
             </section>
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.14 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.17 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -2841,11 +2959,11 @@
     </nav>
 
     <!-- Add Author Modal -->
-    <div id="add-author-modal" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
+    <div id="add-author-modal" role="dialog" aria-modal="true" aria-labelledby="add-author-modal-title" aria-hidden="true" style="display: none; position: fixed; inset: 0; background: rgba(16, 17, 20, 0.4); backdrop-filter: blur(8px); z-index: 1600; align-items: center; justify-content: center; transition: opacity 0.2s ease;">
         <div style="background: var(--white); border: 2px solid var(--ink); padding: 32px; width: 100%; max-width: 420px; box-shadow: 6px 6px 0 var(--ink); position: relative; margin: 16px;">
             <button id="close-modal-btn" style="position: absolute; top: 16px; right: 16px; background: transparent; border: 0; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--muted);" aria-label="Close" title="Close">&times;</button>
             <div class="eyebrow" style="margin-bottom: 8px;" data-i18n="modal_eyebrow">Add New Profile</div>
-            <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="modal_title">Track new author</h2>
+            <h2 id="add-author-modal-title" style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="modal_title">Track new author</h2>
             <p style="color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 24px;" data-i18n="modal_desc">
                 Enter the Spotify creator username from SpicyLyrics. The system will start fetching their snapshots immediately.
             </p>
@@ -2916,6 +3034,9 @@
         let activityFeedEvents = [];
         let sortColumn = 'views';
         let sortDirection = 'desc'; // 'asc' or 'desc'
+        let addAuthorReturnFocus = null;
+        const DASHBOARD_PAGE_SIZE = 40;
+        let dashboardVisibleCount = DASHBOARD_PAGE_SIZE;
 
         const MILESTONES = [
             100, 250, 500, 750, 1000,
@@ -3181,7 +3302,13 @@
                 theme_magma_desc: "Heat and contrast",
                 theme_sakura: "Sakura",
                 theme_sakura_desc: "Soft rose daylight",
-                theme_palettes: "10 palettes + Auto",
+                theme_mono: "Mono",
+                theme_mono_desc: "Black, white, focused",
+                theme_dusk: "Dusk",
+                theme_dusk_desc: "Indigo after sunset",
+                theme_blueprint: "Blueprint",
+                theme_blueprint_desc: "Technical cyan grid",
+                theme_palettes: "13 palettes + Auto",
                 theme_kicker: "Theme",
                 lang_switch: "Switch language?",
                 lang_yes: "Yes",
@@ -3339,7 +3466,13 @@
                 theme_magma_desc: "Жар и контраст",
                 theme_sakura: "Сакура",
                 theme_sakura_desc: "Мягкий розовый свет",
-                theme_palettes: "10 палитр + Авто",
+                theme_mono: "Моно",
+                theme_mono_desc: "Чёрно-белый фокус",
+                theme_dusk: "Сумерки",
+                theme_dusk_desc: "Индиго после заката",
+                theme_blueprint: "Чертёж",
+                theme_blueprint_desc: "Техническая сетка",
+                theme_palettes: "13 палитр + Авто",
                 theme_kicker: "Тема",
                 lang_switch: "Переключить язык?",
                 lang_yes: "Да",
@@ -3497,7 +3630,13 @@
                 theme_magma_desc: "Жар і контраст",
                 theme_sakura: "Сакура",
                 theme_sakura_desc: "М'яке рожеве світло",
-                theme_palettes: "10 палітр + Авто",
+                theme_mono: "Моно",
+                theme_mono_desc: "Чорно-білий фокус",
+                theme_dusk: "Сутінки",
+                theme_dusk_desc: "Індиго після заходу",
+                theme_blueprint: "Креслення",
+                theme_blueprint_desc: "Технічна сітка",
+                theme_palettes: "13 палітр + Авто",
                 theme_kicker: "Тема",
                 lang_switch: "Перемкнути мову?",
                 lang_yes: "Так",
@@ -3655,7 +3794,13 @@
                 theme_magma_desc: "Glut und Kontrast",
                 theme_sakura: "Sakura",
                 theme_sakura_desc: "Sanftes Rosenlicht",
-                theme_palettes: "10 Paletten + Auto",
+                theme_mono: "Mono",
+                theme_mono_desc: "Schwarz-weiß und fokussiert",
+                theme_dusk: "Dämmerung",
+                theme_dusk_desc: "Indigo nach Sonnenuntergang",
+                theme_blueprint: "Blaupause",
+                theme_blueprint_desc: "Technisches Cyan-Raster",
+                theme_palettes: "13 Paletten + Auto",
                 theme_kicker: "Theme",
                 lang_switch: "Sprache wechseln?",
                 lang_yes: "Ja",
@@ -3813,7 +3958,13 @@
                 theme_magma_desc: "Calore e contrasto",
                 theme_sakura: "Sakura",
                 theme_sakura_desc: "Morbida luce rosata",
-                theme_palettes: "10 tavolozze + Auto",
+                theme_mono: "Monocromo",
+                theme_mono_desc: "Bianco e nero essenziale",
+                theme_dusk: "Crepuscolo",
+                theme_dusk_desc: "Indaco dopo il tramonto",
+                theme_blueprint: "Cianografia",
+                theme_blueprint_desc: "Griglia tecnica ciano",
+                theme_palettes: "13 tavolozze + Auto",
                 theme_kicker: "Tema",
                 lang_switch: "Cambiare lingua?",
                 lang_yes: "Sì",
@@ -3971,7 +4122,13 @@
                 theme_magma_desc: "Żar i kontrast",
                 theme_sakura: "Sakura",
                 theme_sakura_desc: "Delikatne różowe światło",
-                theme_palettes: "10 palet + Auto",
+                theme_mono: "Mono",
+                theme_mono_desc: "Czerń, biel i skupienie",
+                theme_dusk: "Zmierzch",
+                theme_dusk_desc: "Indygo po zachodzie",
+                theme_blueprint: "Plan techniczny",
+                theme_blueprint_desc: "Techniczna siatka w cyjanie",
+                theme_palettes: "13 palet + Auto",
                 theme_kicker: "Motyw",
                 chart_sub_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_days: "Całkowita liczba wyświetleń w ciągu ostatnich {days} dni",
@@ -4119,7 +4276,10 @@
             cupertino:  { label: 'Midnight', swatches: ['#0b0b0f', '#0a84ff', '#30d158'] },
             steel:      { label: 'Graphite', swatches: ['#0c0f13', '#7894ad', '#4fc58b'] },
             magma:      { label: 'Magma',    swatches: ['#160c0a', '#ff7a3d', '#ffd166'] },
-            sakura:     { label: 'Sakura',   swatches: ['#fbf3f6', '#9b4f7a', '#df647d'] }
+            sakura:     { label: 'Sakura',   swatches: ['#fbf3f6', '#9b4f7a', '#df647d'] },
+            mono:       { label: 'Mono',     swatches: ['#070707', '#f2f2ef', '#777775'] },
+            dusk:       { label: 'Dusk',     swatches: ['#100f21', '#777bd8', '#efb85d'] },
+            blueprint:  { label: 'Blueprint', swatches: ['#07131f', '#55b9f3', '#78dbc0'] }
         };
 
         const themeColorScheme = window.matchMedia('(prefers-color-scheme: light)');
@@ -4305,6 +4465,12 @@
                 dropdown.addEventListener('keydown', (e) => {
                     if (e.key !== 'Escape') return;
                     e.stopPropagation();
+                    setSettingsOpen(false);
+                    toggle.focus();
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape' || !dropdown.classList.contains('open')) return;
                     setSettingsOpen(false);
                     toggle.focus();
                 });
@@ -4754,6 +4920,8 @@
             `;
             document.getElementById('top-authors-list').innerHTML = skeletonRows;
             document.getElementById('milestones-list').innerHTML = skeletonRows;
+            const pagination = document.getElementById('database-pagination');
+            if (pagination) pagination.hidden = true;
         }
 
         function showErrorState() {
@@ -4778,6 +4946,8 @@
                     </td>
                 </tr>
             `;
+            const pagination = document.getElementById('database-pagination');
+            if (pagination) pagination.hidden = true;
         }
 
         // Background loading of tracks for each user
@@ -5035,6 +5205,7 @@
                         }
                         return nameMatches || trackMatches;
                     });
+                    dashboardVisibleCount = DASHBOARD_PAGE_SIZE;
                     applySortAndRenderTable();
                 });
             }
@@ -5049,6 +5220,7 @@
                 sortDirection = 'desc';
             }
 
+            dashboardVisibleCount = DASHBOARD_PAGE_SIZE;
             applySortAndRenderTable();
         }
 
@@ -5150,10 +5322,12 @@
                         </td>
                     </tr>
                 `;
+                const pagination = document.getElementById('database-pagination');
+                if (pagination) pagination.hidden = true;
                 return;
             }
 
-            filteredUsers.forEach((u, idx) => {
+            filteredUsers.slice(0, dashboardVisibleCount).forEach((u, idx) => {
                 const row = document.createElement('tr');
                 const isNew = isNewUser(u.first_snapshot);
                 if (isNew) {
@@ -5164,6 +5338,7 @@
                     row.tabIndex = 0;
                     row.setAttribute('role', 'link');
                     row.onkeydown = (e) => {
+                        if (e.target !== row) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             openProfile(u.username);
@@ -5230,6 +5405,21 @@
                 `;
                 tbody.appendChild(row);
             });
+
+            const pagination = document.getElementById('database-pagination');
+            const loadMoreButton = document.getElementById('load-more-authors');
+            const remaining = Math.max(0, filteredUsers.length - dashboardVisibleCount);
+            if (pagination && loadMoreButton) {
+                pagination.hidden = remaining === 0;
+                const nextCount = Math.min(DASHBOARD_PAGE_SIZE, remaining);
+                loadMoreButton.textContent = `+${nextCount} ${dict.creators || 'authors'}`;
+                loadMoreButton.setAttribute('aria-label', `${nextCount} ${dict.creators || 'authors'}`);
+            }
+        }
+
+        function loadMoreAuthors() {
+            dashboardVisibleCount += DASHBOARD_PAGE_SIZE;
+            renderTable();
         }
 
         function focusMobileSearch() {
@@ -5242,7 +5432,10 @@
         function openMobileAddAuthor() {
             const modal = document.getElementById('add-author-modal');
             if (!modal) return;
+            addAuthorReturnFocus = document.activeElement;
             modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
             window.setTimeout(() => document.getElementById('new-username')?.focus(), 80);
         }
 
@@ -5279,14 +5472,20 @@
             if (!modal) return;
 
             openBtn.addEventListener('click', () => {
+                addAuthorReturnFocus = document.activeElement;
                 modal.style.display = 'flex';
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('modal-open');
                 feedback.style.display = 'none';
                 input.value = '';
                 input.focus();
             });
 
-            const closeModal = () => {
+            const closeModal = ({ restoreFocus = true } = {}) => {
                 modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+                if (restoreFocus && addAuthorReturnFocus?.focus) addAuthorReturnFocus.focus({ preventScroll: true });
             };
 
             closeBtn.addEventListener('click', closeModal);
@@ -5294,6 +5493,27 @@
 
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModal();
+            });
+
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeModal();
+                    return;
+                }
+                if (e.key !== 'Tab') return;
+                const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                    .filter((element) => element.getClientRects().length > 0);
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
             });
         }
 
@@ -5580,9 +5800,11 @@
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
 
                 <div style="margin-bottom: 16px;">
-                    <strong style="color: var(--ink);">v1.4.14 (2026-08-08)</strong>
+                    <strong style="color: var(--ink);">v1.4.17 (2026-08-11)</strong>
                     <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
                         <li>Smoothed achievement-card charts with monotone curves and merged same-day snapshots to remove sharp kinks and tiny vertical steps.</li>
+                        <li>Fixed mobile modal layering, keyboard focus, theme prepaint, touch targets, and floating control spacing.</li>
+                        <li>Added progressive loading to the author database and profile track lists.</li>
                     </ul>
                 </div>
 
