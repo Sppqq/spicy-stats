@@ -38,9 +38,13 @@ for (const page of pages) {
     if (page === 'user.html') {
         assert.match(html, /\[data-theme="mono"\] \.share-card-trigger \{ color: var\(--paper\); \}/);
     }
+    if (page === 'dashboard.html') {
+        assert.match(html, /\[data-theme="mono"\] \.ticker-live-badge \{ background: var\(--ink\) !important; color: var\(--paper\) !important; \}/);
+        assert.match(html, /class="ticker-live-badge"/);
+    }
 }
 
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.25/);
+assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.26/);
 
 console.log('theme palette regression checks passed');

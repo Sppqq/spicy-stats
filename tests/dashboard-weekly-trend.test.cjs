@@ -46,10 +46,22 @@ assert.equal(getPrepaintDesign('modern'), 'modern');
 assert.equal(getPrepaintDesign('unexpected'), 'modern', 'invalid stored values should use the modern default');
 assert.equal(getPrepaintDesign(null, true), 'modern', 'storage failures should keep the modern default');
 
+const filterSource = extractFunction(dashboardSource, 'filterWeeklyGrowthAnomalies');
 const normalizeSource = extractFunction(dashboardSource, 'normalizeWeeklyGrowth');
 const summarySource = extractFunction(dashboardSource, 'getWeeklyGrowthSummary');
 const dashboardContext = vm.createContext({});
-vm.runInContext(`${normalizeSource}\n${summarySource}`, dashboardContext);
+vm.runInContext(`${filterSource}\n${normalizeSource}\n${summarySource}`, dashboardContext);
+
+assert.deepEqual(
+    Array.from(dashboardContext.filterWeeklyGrowthAnomalies([180000, 190000, 2300000, 210000, 220000], true)),
+    [180000, 190000, 200000, 210000, 220000],
+    'isolated weekly growth spikes should be replaced with the neighboring pace'
+);
+assert.deepEqual(
+    Array.from(dashboardContext.filterWeeklyGrowthAnomalies([180000, 190000, 2300000, 210000], false)),
+    [180000, 190000, 2300000, 210000],
+    'weekly growth spikes should remain when anomaly filtering is disabled'
+);
 
 assert.deepEqual(
     Array.from(dashboardContext.normalizeWeeklyGrowth([120, -30, null, '240'])),
@@ -69,6 +81,12 @@ assert.equal(summary.comparisonPercent, 157);
 assert.equal(summary.peakIndex, 6);
 assert.equal(summary.peakValue, 900);
 assert.equal(summary.hasData, true);
+
+const filteredSummary = dashboardContext.getWeeklyGrowthSummary([180000, 190000, 2300000, 210000, 220000, 230000, 240000], true);
+assert.equal(filteredSummary.values[2], 200000);
+assert.equal(filteredSummary.peakIndex, 6);
+assert.equal(filteredSummary.peakValue, 240000);
+assert.equal(filteredSummary.average, 205000);
 
 const workerSource = fs.readFileSync(path.join(root, 'cloudflare_pages', 'worker.js'), 'utf8');
 const buildSource = extractFunction(workerSource, 'buildWeeklyGrowth');

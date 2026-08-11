@@ -856,6 +856,8 @@
         }
 
         [data-theme="mono"] .dark .positive { color: var(--ink); }
+        [data-theme="mono"] .ticker-live-badge { background: var(--ink) !important; color: var(--paper) !important; }
+        [data-theme="mono"] .ticker-live-badge .live-dot { background: var(--paper) !important; border-color: var(--paper) !important; }
 
         [data-theme="dusk"] {
             --paper: #100f21;
@@ -2790,7 +2792,7 @@
 
         <!-- Live Activity Ticker -->
         <div id="activity-ticker-container" style="margin-top: 14px; border: 1px solid var(--line); background: var(--white); font-family: 'DM Mono', monospace; font-size: 11px; padding: 10px 16px; position: relative; z-index: 1; height: 38px; display: none; align-items: center;">
-            <div style="background: var(--blue); color: #fff; padding: 2px 8px; font-weight: 700; border-radius: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 16px; z-index: 10; position: relative; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <div class="ticker-live-badge" style="background: var(--blue); color: #fff; padding: 2px 8px; font-weight: 700; border-radius: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; margin-right: 16px; z-index: 10; position: relative; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
                 <span class="live-dot" style="background: #fff; border-color: var(--blue); width: 6px; height: 6px; box-shadow: none; animation: none;"></span> LIVE
             </div>
             <div style="overflow: hidden; width: 100%; position: relative; display: flex; align-items: center; height: 100%;">
@@ -2945,7 +2947,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.22 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.23 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -4686,6 +4688,7 @@
                 const triggerReRender = () => {
                     if (typeof renderChart === 'function') renderChart();
                     if (typeof renderTrackChart === 'function' && currentTrackData) renderTrackChart(currentTrackData);
+                    if (typeof renderWeeklyTrend === 'function') renderWeeklyTrend();
                 };
 
                 masterCheckbox.addEventListener('change', () => {
@@ -5156,8 +5159,30 @@
             renderWeeklyTrend();
         }
 
-        function normalizeWeeklyGrowth(values) {
-            const recentValues = Array.isArray(values) ? values.slice(-7) : [];
+        function filterWeeklyGrowthAnomalies(values, enabled = false) {
+            const filteredValues = Array.isArray(values) ? values.slice() : [];
+            if (!enabled || filteredValues.length < 3) return filteredValues;
+
+            for (let index = 1; index < filteredValues.length - 1; index += 1) {
+                const previous = Number(filteredValues[index - 1]);
+                const current = Number(filteredValues[index]);
+                const next = Number(filteredValues[index + 1]);
+                if (!Number.isFinite(previous) || !Number.isFinite(current) || !Number.isFinite(next)) continue;
+                if (previous <= 0 || next <= 0) continue;
+
+                if (current > previous * 3 && current > next * 3) {
+                    filteredValues[index] = Math.round((previous + next) / 2);
+                }
+            }
+
+            return filteredValues;
+        }
+
+        function normalizeWeeklyGrowth(values, filterAnomalies = false) {
+            const recentValues = filterWeeklyGrowthAnomalies(
+                Array.isArray(values) ? values.slice(-7) : [],
+                filterAnomalies
+            );
             const paddedValues = Array(7 - recentValues.length).fill(null).concat(recentValues);
             return paddedValues.map(value => {
                 if (value === null || value === undefined || value === '') return 0;
@@ -5166,8 +5191,11 @@
             });
         }
 
-        function getWeeklyGrowthSummary(values) {
-            const recentValues = Array.isArray(values) ? values.slice(-7) : [];
+        function getWeeklyGrowthSummary(values, filterAnomalies = false) {
+            const recentValues = filterWeeklyGrowthAnomalies(
+                Array.isArray(values) ? values.slice(-7) : [],
+                filterAnomalies
+            );
             const rawValues = Array(7 - recentValues.length).fill(null).concat(recentValues);
             const normalizedValues = normalizeWeeklyGrowth(rawValues);
             const priorValues = rawValues.slice(0, 6)
@@ -5210,7 +5238,9 @@
 
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-            const summary = getWeeklyGrowthSummary(dashboardData.weekly_growth);
+            const filterEnabled = localStorage.getItem('spicy-filter-anomalies') !== 'false';
+            const filterGrowth = localStorage.getItem('spicy-anomaly-growth') !== 'false';
+            const summary = getWeeklyGrowthSummary(dashboardData.weekly_growth, filterEnabled && filterGrowth);
             const maximum = Math.max(...summary.values, 1);
             const dayFormatter = new Intl.DateTimeFormat(currentLang, { weekday: 'short' });
             const dates = Array.from({ length: 7 }, (_, index) => {
@@ -6029,6 +6059,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.23 (2026-08-11)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Improved the activity ticker LIVE badge contrast in the Mono theme.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.22 (2026-08-11)</strong>
