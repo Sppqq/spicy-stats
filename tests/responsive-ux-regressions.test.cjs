@@ -20,6 +20,11 @@ assert.match(dashboard, /<button class="modern-beta-corner" type="button" aria-d
 assert.match(dashboard, /setLanguageOpen\(false\);\s*toggle\.focus\(\);/);
 assert.equal((dashboard.match(/footer_github:/g) || []).length, 6);
 assert.match(dashboard, /Есть идея или нашли ошибку\? Telegram @lellyn · Discord @sppq/);
+assert.equal((dashboard.match(/data-i18n="ticker_speed_(?:very_slow|slow|normal|fast|very_fast|turbo)"/g) || []).length, 6);
+assert.equal((dashboard.match(/ticker_speed_very_slow:/g) || []).length, 6);
+assert.equal((dashboard.match(/ticker_speed_very_fast:/g) || []).length, 6);
+assert.equal((dashboard.match(/ticker_speed_turbo:/g) || []).length, 6);
+assert.match(dashboard, /turbo: 180/);
 
 assert.match(profile, /id="profile-error-state" role="alert" hidden/);
 assert.match(profile, /document\.body\.classList\.add\('profile-error'\)/);

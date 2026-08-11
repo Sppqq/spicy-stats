@@ -2674,9 +2674,12 @@
                                         <small data-i18n="ticker_speed_desc">How quickly events move across the screen.</small>
                                     </span>
                                     <select class="settings-select" id="setting-ticker-speed">
+                                        <option value="very_slow" data-i18n="ticker_speed_very_slow">Very slow</option>
                                         <option value="slow" data-i18n="ticker_speed_slow">Calm</option>
                                         <option value="normal" data-i18n="ticker_speed_normal">Normal</option>
                                         <option value="fast" data-i18n="ticker_speed_fast">Fast</option>
+                                        <option value="very_fast" data-i18n="ticker_speed_very_fast">Very fast</option>
+                                        <option value="turbo" data-i18n="ticker_speed_turbo">Turbo</option>
                                     </select>
                                 </label>
 
@@ -2934,7 +2937,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.19 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.20 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3300,9 +3303,12 @@
                 settings_visibility: "Ticker visibility",
                 ticker_speed: "Scroll speed",
                 ticker_speed_desc: "How quickly events move across the screen.",
+                ticker_speed_very_slow: "Very slow",
                 ticker_speed_slow: "Calm",
                 ticker_speed_normal: "Normal",
                 ticker_speed_fast: "Fast",
+                ticker_speed_very_fast: "Very fast",
+                ticker_speed_turbo: "Turbo",
                 ticker_events: "Events in the feed",
                 ticker_event_catalog: "Catalog updates",
                 ticker_event_catalog_desc: "Latest successful profile refreshes.",
@@ -3468,9 +3474,12 @@
                 settings_visibility: "Показывать ленту",
                 ticker_speed: "Скорость движения",
                 ticker_speed_desc: "Как быстро события проходят по экрану.",
+                ticker_speed_very_slow: "Очень медленно",
                 ticker_speed_slow: "Спокойно",
                 ticker_speed_normal: "Обычно",
                 ticker_speed_fast: "Быстро",
+                ticker_speed_very_fast: "Очень быстро",
+                ticker_speed_turbo: "Турбо",
                 ticker_events: "События в ленте",
                 ticker_event_catalog: "Обновления каталогов",
                 ticker_event_catalog_desc: "Последние успешные обновления профилей.",
@@ -3636,9 +3645,12 @@
                 settings_visibility: "Показувати стрічку",
                 ticker_speed: "Швидкість руху",
                 ticker_speed_desc: "Як швидко події рухаються екраном.",
+                ticker_speed_very_slow: "Дуже повільно",
                 ticker_speed_slow: "Спокійно",
                 ticker_speed_normal: "Звичайно",
                 ticker_speed_fast: "Швидко",
+                ticker_speed_very_fast: "Дуже швидко",
+                ticker_speed_turbo: "Турбо",
                 ticker_events: "Події у стрічці",
                 ticker_event_catalog: "Оновлення каталогів",
                 ticker_event_catalog_desc: "Останні успішні оновлення профілів.",
@@ -3804,9 +3816,12 @@
                 settings_visibility: "Ticker anzeigen",
                 ticker_speed: "Laufgeschwindigkeit",
                 ticker_speed_desc: "Wie schnell Ereignisse über den Bildschirm laufen.",
+                ticker_speed_very_slow: "Sehr langsam",
                 ticker_speed_slow: "Ruhig",
                 ticker_speed_normal: "Normal",
                 ticker_speed_fast: "Schnell",
+                ticker_speed_very_fast: "Sehr schnell",
+                ticker_speed_turbo: "Turbo",
                 ticker_events: "Ereignisse im Ticker",
                 ticker_event_catalog: "Katalog-Updates",
                 ticker_event_catalog_desc: "Letzte erfolgreiche Profilaktualisierungen.",
@@ -3972,9 +3987,12 @@
                 settings_visibility: "Visibilità ticker",
                 ticker_speed: "Velocità di scorrimento",
                 ticker_speed_desc: "Quanto velocemente scorrono gli eventi.",
+                ticker_speed_very_slow: "Molto lenta",
                 ticker_speed_slow: "Tranquilla",
                 ticker_speed_normal: "Normale",
                 ticker_speed_fast: "Veloce",
+                ticker_speed_very_fast: "Molto veloce",
+                ticker_speed_turbo: "Turbo",
                 ticker_events: "Eventi nel ticker",
                 ticker_event_catalog: "Aggiornamenti catalogo",
                 ticker_event_catalog_desc: "Ultimi aggiornamenti profilo riusciti.",
@@ -4140,9 +4158,12 @@
                 settings_visibility: "Widoczność tickera",
                 ticker_speed: "Prędkość przewijania",
                 ticker_speed_desc: "Jak szybko zdarzenia przesuwają się po ekranie.",
+                ticker_speed_very_slow: "Bardzo wolno",
                 ticker_speed_slow: "Spokojnie",
                 ticker_speed_normal: "Normalnie",
                 ticker_speed_fast: "Szybko",
+                ticker_speed_very_fast: "Bardzo szybko",
+                ticker_speed_turbo: "Turbo",
                 ticker_events: "Zdarzenia w tickerze",
                 ticker_event_catalog: "Aktualizacje katalogu",
                 ticker_event_catalog_desc: "Ostatnie udane aktualizacje profili.",
@@ -4570,7 +4591,8 @@
 
                 if (tickerSpeed) {
                     const savedSpeed = localStorage.getItem('spicy-ticker-speed');
-                    tickerSpeed.value = ['slow', 'normal', 'fast'].includes(savedSpeed) ? savedSpeed : 'normal';
+                    const allowedSpeeds = ['very_slow', 'slow', 'normal', 'fast', 'very_fast', 'turbo'];
+                    tickerSpeed.value = allowedSpeeds.includes(savedSpeed) ? savedSpeed : 'normal';
                 }
 
                 const syncTickerControls = () => {
@@ -4936,7 +4958,14 @@
             ticker.innerHTML = `${loopHalf}${loopHalf}`;
 
             const speedSetting = localStorage.getItem('spicy-ticker-speed') || 'normal';
-            const pixelsPerSecond = { slow: 18, normal: 36, fast: 72 }[speedSetting] || 36;
+            const pixelsPerSecond = {
+                very_slow: 14,
+                slow: 24,
+                normal: 48,
+                fast: 84,
+                very_fast: 128,
+                turbo: 180
+            }[speedSetting] || 48;
             const scrollLength = ticker.scrollWidth / 2;
             const duration = Math.max(1, scrollLength / pixelsPerSecond);
             ticker.style.setProperty('--ticker-duration', `${duration}s`);
@@ -5881,6 +5910,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.20 (2026-08-11)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added Very slow, Very fast, and Turbo ticker modes and increased the speed of existing modes.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.19 (2026-08-11)</strong>
