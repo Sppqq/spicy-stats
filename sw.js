@@ -1,5 +1,5 @@
 // File: sw.js
-const CACHE_NAME = 'spicy-monitor-cache-v1.4.20';
+const CACHE_NAME = 'spicy-monitor-cache-v1.4.21';
 const STATIC_ASSETS = [
   '/',
   '/dashboard.html',

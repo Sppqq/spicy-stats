@@ -1276,6 +1276,13 @@
         [data-theme="sakura"] #profile-chart-tooltip, [data-theme="sakura"] #track-chart-tooltip { border: 1px solid var(--line) !important; background: #fffafb !important; color: var(--ink) !important; box-shadow: 0 10px 28px rgba(104, 54, 78, 0.16) !important; }
 
         .profile-actions { display: flex; align-items: center; gap: 8px; }
+        .track-modal-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 12px; }
+        .track-modal-action { min-height: 42px; padding: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: 'DM Mono', monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; text-decoration: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .track-modal-action:hover { border-color: var(--ink); }
+        .track-modal-action.spotify { border-color: #1ed760; background: #1ed760; color: #07140b; }
+        .track-modal-action.spotify:hover { background: #1fdf64; border-color: #1fdf64; }
+        .track-modal-action[hidden] { display: none; }
+        @media (max-width: 480px) { .track-modal-actions { grid-template-columns: 1fr; } }
         .share-card-trigger { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 10px 28px color-mix(in srgb, var(--blue) 24%, transparent); }
         .share-card-trigger:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 84%, var(--ink)); color: #fff; }
         [data-theme="mono"] .share-card-trigger { color: var(--paper); }
@@ -2728,7 +2735,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.20 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.21 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3366,6 +3373,7 @@
                 milestone_to_go: "to go to",
                 share_card: "Share Card",
                 play_preview: "Play Preview",
+                open_spotify: "Open in Spotify",
                 pause_preview: "Pause",
                 loading_preview: "Searching preview...",
                 preview_not_found: "Preview unavailable",
@@ -3549,6 +3557,7 @@
                 milestone_to_go: "осталось до",
                 share_card: "Поделиться",
                 play_preview: "Слушать превью",
+                open_spotify: "Открыть в Spotify",
                 pause_preview: "Пауза",
                 loading_preview: "Поиск превью...",
                 preview_not_found: "Превью недоступно",
@@ -3730,6 +3739,7 @@
                 milestone_to_go: "залишилося до",
                 share_card: "Поділитися",
                 play_preview: "Слухати прев'ю",
+                open_spotify: "Відкрити в Spotify",
                 pause_preview: "Пауза",
                 loading_preview: "Пошук прев'ю...",
                 preview_not_found: "Прев'ю недоступне",
@@ -3911,6 +3921,7 @@
                 milestone_to_go: "verbleibend bis",
                 share_card: "Karte teilen",
                 play_preview: "Vorschau abspielen",
+                open_spotify: "In Spotify öffnen",
                 pause_preview: "Pause",
                 loading_preview: "Suche Vorschau...",
                 preview_not_found: "Vorschau nicht verfügbar",
@@ -4092,6 +4103,7 @@
                 milestone_to_go: "mancanti per",
                 share_card: "Condividi scheda",
                 play_preview: "Ascolta anteprima",
+                open_spotify: "Apri in Spotify",
                 pause_preview: "Pausa",
                 loading_preview: "Ricerca anteprima...",
                 preview_not_found: "Anteprima non disponibile",
@@ -4247,6 +4259,7 @@
                 data_source: 'Statystyki na podstawie danych <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 share_card: "Udostępnij kartę",
                 play_preview: "Odtwórz próbkę",
+                open_spotify: "Otwórz w Spotify",
                 pause_preview: "Pauza",
                 loading_preview: "Szukanie próbki...",
                 preview_not_found: "Próbka niedostępna",
@@ -6055,11 +6068,11 @@
                 row.className = 'track';
                 row.tabIndex = 0;
                 row.setAttribute('role', 'button');
-                row.onclick = () => openTrackStats(song.title, song.artist, song.views, song.growth);
+                row.onclick = () => openTrackStats(song.title, song.artist, song.views, song.growth, song.spotify_id);
                 row.onkeydown = (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        openTrackStats(song.title, song.artist, song.views, song.growth);
+                        openTrackStats(song.title, song.artist, song.views, song.growth, song.spotify_id);
                     }
                 };
                 const safeTitle = (song.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -6097,7 +6110,7 @@
             renderTracks();
         }
 
-        async function openTrackStats(title, artist, currentViews, growth) {
+        async function openTrackStats(title, artist, currentViews, growth, spotifyId = '') {
             const modal = document.getElementById('track-modal');
             const modalTitle = document.getElementById('track-modal-title');
             const modalArtist = document.getElementById('track-modal-artist');
@@ -6105,8 +6118,19 @@
             const modalGrowth = document.getElementById('track-modal-growth');
             const trackEstimateEl = document.getElementById('track-modal-estimate');
             const modalPlayBtn = document.getElementById('track-modal-play-btn');
+            const spotifyLink = document.getElementById('track-modal-spotify-link');
 
             if (!modal) return;
+            const normalizedSpotifyId = String(spotifyId || '').trim();
+            const hasSpotifyId = /^[A-Za-z0-9]{22}$/.test(normalizedSpotifyId);
+            if (spotifyLink) {
+                spotifyLink.hidden = !hasSpotifyId;
+                if (hasSpotifyId) {
+                    spotifyLink.href = `https://open.spotify.com/track/${normalizedSpotifyId}`;
+                } else {
+                    spotifyLink.removeAttribute('href');
+                }
+            }
 
             trackModalReturnFocus = document.activeElement;
 
@@ -7594,9 +7618,14 @@
                 </div>
             </div>
 
-            <button id="track-modal-play-btn" style="margin-top: 12px; width: 100%; padding: 10px; background: var(--green); color: #101114; border: none; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>▶</span> <span data-i18n="play_preview">Play Preview</span>
-            </button>
+            <div class="track-modal-actions">
+                <button id="track-modal-play-btn" class="track-modal-action">
+                    <span>▶</span> <span data-i18n="play_preview">Play Preview</span>
+                </button>
+                <a id="track-modal-spotify-link" class="track-modal-action spotify" target="_blank" rel="noopener noreferrer" hidden>
+                    <span aria-hidden="true">●</span> <span data-i18n="open_spotify">Open in Spotify</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -7645,6 +7674,13 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.21 (2026-08-11)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Added an official Spotify link to the track statistics dialog when a Spotify track ID is available.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.20 (2026-08-11)</strong>
