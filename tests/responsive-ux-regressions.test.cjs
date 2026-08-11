@@ -12,6 +12,14 @@ assert.match(dashboard, /document\.body\.classList\.add\('modal-open'\)/);
 assert.match(dashboard, /if \(e\.target !== row\) return;/);
 assert.match(dashboard, /const DASHBOARD_PAGE_SIZE = 40;/);
 assert.match(dashboard, /filteredUsers\.slice\(0, dashboardVisibleCount\)/);
+assert.match(dashboard, /id="setting-show-full-lists"/);
+assert.match(dashboard, /localStorage\.getItem\('spicy-show-full-lists'\) !== 'false'/);
+assert.match(dashboard, /shouldShowFullLists\(\)\s*\? filteredUsers/);
+assert.match(dashboard, /\.modern-beta-corner \{\s*position: fixed;\s*bottom: 18px;\s*left: 18px;/);
+assert.match(dashboard, /<button class="modern-beta-corner" type="button" aria-describedby="modern-beta-tooltip">/);
+assert.match(dashboard, /setLanguageOpen\(false\);\s*toggle\.focus\(\);/);
+assert.equal((dashboard.match(/footer_github:/g) || []).length, 6);
+assert.match(dashboard, /Есть идея или нашли ошибку\? Telegram @lellyn · Discord @sppq/);
 
 assert.match(profile, /id="profile-error-state" role="alert" hidden/);
 assert.match(profile, /document\.body\.classList\.add\('profile-error'\)/);
@@ -19,7 +27,19 @@ assert.match(profile, /id="track-modal" role="dialog" aria-modal="true" aria-lab
 assert.match(profile, /function closeTrackStatsModal\(\)/);
 assert.match(profile, /const TRACK_PAGE_SIZE = 50;/);
 assert.match(profile, /sortedSongs\.slice\(0, visibleTrackCount\)/);
+assert.match(profile, /id="setting-show-full-lists"/);
+assert.match(profile, /localStorage\.getItem\('spicy-show-full-lists'\) !== 'false'/);
+assert.match(profile, /shouldShowFullLists\(\)\s*\? sortedSongs/);
 assert.match(profile, /function trapFocusWithinModal\(event, modal\)/);
+assert.match(profile, /setLanguageOpen\(false\);\s*toggle\.focus\(\);/);
+assert.equal((profile.match(/footer_github:/g) || []).length, 6);
+assert.match(profile, /Есть идея или нашли ошибку\? Telegram @lellyn · Discord @sppq/);
+assert.equal((profile.match(/next_check_in:/g) || []).length, 6);
+assert.equal((profile.match(/update_queued:/g) || []).length, 6);
+assert.equal((profile.match(/update_schedule_pending:/g) || []).length, 6);
+assert.match(profile, /countdownEl\.textContent = `• \$\{dict\.update_schedule_pending\}`/);
+assert.match(profile, /countdownEl\.textContent = `• \$\{dict\.update_queued\}`/);
+assert.match(profile, /}, 60000\);/);
 
 assert.match(admin, /id="secret-key" required autofocus autocomplete="current-password"/);
 assert.match(admin, /input,\s*button,\s*select \{ min-height: 44px; \}/);

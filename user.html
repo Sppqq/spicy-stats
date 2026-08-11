@@ -1066,8 +1066,8 @@
             --muted: #a3a3a0;
             --line: #343432;
             --blue: #f2f2ef;
-            --green: #c9ccc7;
-            --coral: #ef8177;
+            --green: #c9c9c5;
+            --coral: #7c7c79;
             --white: #181818;
             --positive-text: #f2f2ef;
             --theme-card-radius: 0px;
@@ -1080,6 +1080,8 @@
             --menu-hover: rgba(255, 255, 255, 0.06);
             --menu-active: rgba(255, 255, 255, 0.11);
         }
+
+        [data-theme="mono"] .dark .positive { color: var(--ink); }
 
         [data-theme="dusk"] {
             --paper: #100f21;
@@ -2389,6 +2391,22 @@
                         <section class="settings-section">
                             <div class="settings-section-head">
                                 <span class="settings-section-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20"><path d="M4 5h12M4 10h12M4 15h12"></path></svg>
+                                </span>
+                                <div class="settings-section-copy">
+                                    <strong data-i18n="show_full_lists">Show full lists</strong>
+                                    <small data-i18n="show_full_lists_desc">Display every author and track without a load-more button.</small>
+                                </div>
+                            </div>
+                            <label class="settings-row">
+                                <span class="settings-row-copy"><strong data-i18n="full_lists_toggle">Show everything at once</strong></span>
+                                <input class="settings-switch-input" type="checkbox" id="setting-show-full-lists">
+                            </label>
+                        </section>
+
+                        <section class="settings-section">
+                            <div class="settings-section-head">
+                                <span class="settings-section-icon" aria-hidden="true">
                                     <svg viewBox="0 0 20 20"><path d="M3 13l3-3 3 2 4-7 4 3"></path><path d="M3 17h14"></path></svg>
                                 </span>
                                 <div class="settings-section-copy">
@@ -2707,16 +2725,16 @@
             </section>
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <div><span data-i18n="footer">Monitored by Spicy Monitor. Built by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.17 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.18 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
-                <div style="margin-top: 6px;"><span data-i18n="contact_info">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</span></div>
+                <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
-                <div style="margin-top: 6px;"><span data-i18n="data_source">Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a></span></div>
+                <div style="margin-top: 6px;"><span data-i18n="data_source">Stats powered by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a></span></div>
                 <div style="margin-top: 8px;">
                     <a href="https://github.com/Sppqq/spicy-stats" target="_blank" style="color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; opacity: 0.8; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                        Open Source on GitHub
+                        <span data-i18n="footer_github">Source code on GitHub</span>
                     </a>
                 </div>
             </footer>
@@ -2930,6 +2948,10 @@
         let trackModalReturnFocus = null;
         const TRACK_PAGE_SIZE = 50;
         let visibleTrackCount = TRACK_PAGE_SIZE;
+
+        function shouldShowFullLists() {
+            return localStorage.getItem('spicy-show-full-lists') !== 'false';
+        }
         const shareCardImageCache = new Map();
         try {
             const savedMetrics = localStorage.getItem('spicy-chart-metrics');
@@ -3201,6 +3223,9 @@
                 settings_title: "Display & data",
                 settings_subtitle: "Tune the profile without leaving the page.",
                 settings_local: "This device",
+                show_full_lists: "Show full lists",
+                show_full_lists_desc: "Display every author and track without a load-more button.",
+                full_lists_toggle: "Show everything at once",
                 anomalies_title: "Anomaly Filtering",
                 anomalies_desc: "Hide obvious collection glitches from charts.",
                 anomaly_enable: "Filter Anomalies",
@@ -3226,6 +3251,9 @@
                 performance: "Performance",
                 updated_history: "No update history",
                 last_updated: "Last updated",
+                next_check_in: "Next data check in about",
+                update_queued: "Waiting in the refresh queue",
+                update_schedule_pending: "Refresh schedule is being determined",
                 ago: "ago",
                 hour: "hour",
                 hours: "hours",
@@ -3273,9 +3301,11 @@
                 chart_sub_views_all: "Total views over all tracking history",
                 chart_sub_tracks_all: "Total track count over all tracking history",
                 chart_sub_both_all: "Views & track count over all tracking history",
-                contact_info: "For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq",
-                credits: 'Special thanks to <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> for the contribution',
-                data_source: 'Data provided by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — live creator metrics. A project by",
+                footer_github: "Source code on GitHub",
+                contact_info: "Found a bug or have an idea? Telegram @lellyn · Discord @sppq",
+                credits: 'Thanks to <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> for helping improve the project',
+                data_source: 'Stats powered by <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Auto",
                 theme_auto_desc: "Follows your device",
                 theme_carbon: "Carbon",
@@ -3374,6 +3404,9 @@
                 settings_title: "Отображение и данные",
                 settings_subtitle: "Настройте профиль, не покидая страницу.",
                 settings_local: "Это устройство",
+                show_full_lists: "Показывать списки полностью",
+                show_full_lists_desc: "Все авторы и треки сразу, без кнопки подгрузки.",
+                full_lists_toggle: "Показывать всё сразу",
                 anomalies_title: "Фильтрация аномалий",
                 anomalies_desc: "Скрывать очевидные сбои сбора данных на графиках.",
                 anomaly_enable: "Удалять аномалии",
@@ -3401,6 +3434,9 @@
                 performance: "Эффективность",
                 updated_history: "История обновлений отсутствует",
                 last_updated: "Обновлено",
+                next_check_in: "Проверка данных не раньше чем через",
+                update_queued: "Ожидает очереди на обновление",
+                update_schedule_pending: "Расписание обновлений уточняется",
                 ago: "назад",
                 hour: "час",
                 hours: "часа(ов)",
@@ -3448,9 +3484,11 @@
                 chart_sub_views_all: "Общие просмотры за все время отслеживания",
                 chart_sub_tracks_all: "Количество треков за все время отслеживания",
                 chart_sub_both_all: "Просмотры и количество треков за все время отслеживания",
-                contact_info: "По предложениям, багам и любым вопросам: Telegram @lellyn / Discord @sppq",
-                credits: 'Отдельная благодарность <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за вклад',
-                data_source: 'Данные предоставлены <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — живые метрики авторов. Проект",
+                footer_github: "Исходный код на GitHub",
+                contact_info: "Есть идея или нашли ошибку? Telegram @lellyn · Discord @sppq",
+                credits: 'Спасибо <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за помощь проекту',
+                data_source: 'Статистика на основе данных <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Авто",
                 theme_auto_desc: "Как в системе",
                 theme_carbon: "Карбон",
@@ -3549,6 +3587,9 @@
                 settings_title: "Відображення та дані",
                 settings_subtitle: "Налаштуйте профіль, не залишаючи сторінку.",
                 settings_local: "Цей пристрій",
+                show_full_lists: "Показувати списки повністю",
+                show_full_lists_desc: "Усі автори й треки одразу, без кнопки дозавантаження.",
+                full_lists_toggle: "Показувати все одразу",
                 anomalies_title: "Фільтрація аномалій",
                 anomalies_desc: "Приховувати очевидні збої збору даних на графіках.",
                 anomaly_enable: "Видаляти аномалії",
@@ -3576,6 +3617,9 @@
                 performance: "Ефективність",
                 updated_history: "Історія оновлень відсутня",
                 last_updated: "Оновлено",
+                next_check_in: "Перевірка даних не раніше ніж через",
+                update_queued: "Очікує в черзі на оновлення",
+                update_schedule_pending: "Розклад оновлень уточнюється",
                 ago: "тому",
                 hour: "годину",
                 hours: "години(ин)",
@@ -3621,9 +3665,11 @@
                 chart_sub_views_all: "Загальна кількість переглядів за всю історію відстеження",
                 chart_sub_tracks_all: "Кількість треків за всю історію відстеження",
                 chart_sub_both_all: "Перегляди та кількість треків за всю історію відстеження",
-                contact_info: "З пропозиціями, багами та будь-якими питаннями: Telegram @lellyn / Discord @sppq",
-                credits: 'Окрема подяка <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за внесок',
-                data_source: 'Дані надані <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — живі метрики авторів. Проєкт",
+                footer_github: "Вихідний код на GitHub",
+                contact_info: "Є ідея або знайшли помилку? Telegram @lellyn · Discord @sppq",
+                credits: 'Дякуємо <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> за допомогу проєкту',
+                data_source: 'Статистика на основі даних <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Авто",
                 theme_auto_desc: "Як у системі",
                 theme_carbon: "Карбон",
@@ -3722,6 +3768,9 @@
                 settings_title: "Anzeige & Daten",
                 settings_subtitle: "Passe das Profil direkt auf dieser Seite an.",
                 settings_local: "Dieses Gerät",
+                show_full_lists: "Listen vollständig anzeigen",
+                show_full_lists_desc: "Alle Autoren und Tracks sofort ohne Nachladen anzeigen.",
+                full_lists_toggle: "Alles sofort anzeigen",
                 anomalies_title: "Anomalie-Filterung",
                 anomalies_desc: "Blende offensichtliche Erfassungsfehler in Diagrammen aus.",
                 anomaly_enable: "Anomalien filtern",
@@ -3749,6 +3798,9 @@
                 performance: "Leistung",
                 updated_history: "Keine Aktualisierungshistorie",
                 last_updated: "Zuletzt aktualisiert vor",
+                next_check_in: "Nächste Datenprüfung frühestens in",
+                update_queued: "Wartet in der Aktualisierungswarteschlange",
+                update_schedule_pending: "Aktualisierungszeitplan wird ermittelt",
                 ago: "",
                 hour: "Stunde",
                 hours: "Stunden",
@@ -3794,9 +3846,11 @@
                 chart_sub_views_all: "Gesamtansichten über die gesamte Erfassungshistorie",
                 chart_sub_tracks_all: "Trackanzahl über die gesamte Erfassungshistorie",
                 chart_sub_both_all: "Aufrufe und Trackanzahl über die gesamte Erfassungshistorie",
-                contact_info: "Für Vorschläge, Fehlerberichte und andere Anfragen: Telegram @lellyn / Discord @sppq",
-                credits: 'Besonderer Dank an <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> für den Beitrag',
-                data_source: 'Daten bereitgestellt von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — Live-Metriken für Creators. Ein Projekt von",
+                footer_github: "Quellcode auf GitHub",
+                contact_info: "Idee oder Fehler gefunden? Telegram @lellyn · Discord @sppq",
+                credits: 'Danke an <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> für die Unterstützung',
+                data_source: 'Statistiken auf Basis von <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Auto",
                 theme_auto_desc: "Folgt deinem Gerät",
                 theme_carbon: "Carbon",
@@ -3895,6 +3949,9 @@
                 settings_title: "Visualizzazione e dati",
                 settings_subtitle: "Regola il profilo senza lasciare la pagina.",
                 settings_local: "Questo dispositivo",
+                show_full_lists: "Mostra gli elenchi completi",
+                show_full_lists_desc: "Mostra subito tutti gli autori e i brani senza caricamenti aggiuntivi.",
+                full_lists_toggle: "Mostra tutto subito",
                 anomalies_title: "Filtro anomalie",
                 anomalies_desc: "Nascondi dai grafici gli errori evidenti di raccolta.",
                 anomaly_enable: "Filtra anomalie",
@@ -3922,6 +3979,9 @@
                 performance: "Prestazioni",
                 updated_history: "Nessuna cronologia aggiornamenti",
                 last_updated: "Ultimo aggiornamento",
+                next_check_in: "Prossimo controllo dati non prima di",
+                update_queued: "In attesa nella coda di aggiornamento",
+                update_schedule_pending: "Pianificazione dell'aggiornamento in corso",
                 ago: "fa",
                 hour: "ora",
                 hours: "ore",
@@ -3967,9 +4027,11 @@
                 chart_sub_views_all: "Visualizzazioni totali su tutta la cronologia di monitoraggio",
                 chart_sub_tracks_all: "Numero di brani su tutta la cronologia di monitoraggio",
                 chart_sub_both_all: "Visualizzazioni e brani su tutta la cronologia di monitoraggio",
-                contact_info: "Per suggerimenti, segnalazioni di bug e altre domande: Telegram @lellyn / Discord @sppq",
-                credits: 'Un ringraziamento speciale a <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> per il contributo',
-                data_source: 'Dati forniti da <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — metriche live per creator. Un progetto di",
+                footer_github: "Codice sorgente su GitHub",
+                contact_info: "Hai un'idea o hai trovato un errore? Telegram @lellyn · Discord @sppq",
+                credits: 'Grazie a <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> per il supporto al progetto',
+                data_source: 'Statistiche basate sui dati di <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 theme_auto: "Auto",
                 theme_auto_desc: "Segue il tuo dispositivo",
                 theme_carbon: "Carbon",
@@ -4098,6 +4160,9 @@
                 settings_title: "Widok i dane",
                 settings_subtitle: "Dostosuj profil bez opuszczania strony.",
                 settings_local: "To urządzenie",
+                show_full_lists: "Pokazuj pełne listy",
+                show_full_lists_desc: "Wyświetlaj od razu wszystkich autorów i utwory bez doładowywania.",
+                full_lists_toggle: "Pokaż wszystko od razu",
                 anomalies_title: "Filtrowanie anomalii",
                 anomalies_desc: "Ukrywaj na wykresach oczywiste błędy zbierania danych.",
                 anomaly_enable: "Filtruj anomalie",
@@ -4125,6 +4190,9 @@
                 performance: "Wyniki",
                 updated_history: "Brak historii aktualizacji",
                 last_updated: "Ostatnia aktualizacja",
+                next_check_in: "Następne sprawdzenie danych najwcześniej za",
+                update_queued: "Oczekuje w kolejce na aktualizację",
+                update_schedule_pending: "Trwa ustalanie harmonogramu aktualizacji",
                 ago: "temu",
                 hour: "godzinę",
                 hours: "godziny",
@@ -4170,9 +4238,11 @@
                 chart_sub_views_all: "Całkowita liczba wyświetleń w całej historii śledzenia",
                 chart_sub_tracks_all: "Liczba utworów w całej historii śledzenia",
                 chart_sub_both_all: "Wyświetlenia i liczba utworów w całej historii śledzenia",
-                contact_info: "W sprawach sugestii, błędów i innych pytań: Telegram @lellyn / Discord @sppq",
-                credits: 'Specjalne podziękowania dla <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wkład',
-                data_source: 'Dane udostępnione przez <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
+                footer: "Spicy Monitor — bieżące statystyki twórców. Projekt",
+                footer_github: "Kod źródłowy na GitHubie",
+                contact_info: "Masz pomysł lub znalazłeś błąd? Telegram @lellyn · Discord @sppq",
+                credits: 'Dziękujemy <a href="https://discord.com/users/777443663995207700" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">@hik0w</a> za wsparcie projektu',
+                data_source: 'Statystyki na podstawie danych <a href="https://spicylyrics.org" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">SpicyLyrics</a>',
                 share_card: "Udostępnij kartę",
                 play_preview: "Odtwórz próbkę",
                 pause_preview: "Pauza",
@@ -4309,6 +4379,13 @@
 
                 document.addEventListener('click', () => {
                     setLanguageOpen(false);
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape' || !dropdown.classList.contains('open')) return;
+                    e.preventDefault();
+                    setLanguageOpen(false);
+                    toggle.focus();
                 });
 
                 new MutationObserver(() => {
@@ -4492,6 +4569,7 @@
         function initSettings() {
             const toggle = document.getElementById('settings-toggle');
             const dropdown = document.getElementById('settings-dropdown');
+            const fullListsCheckbox = document.getElementById('setting-show-full-lists');
 
             if (toggle && dropdown) {
                 const setSettingsOpen = (isOpen) => {
@@ -4530,6 +4608,15 @@
                 new MutationObserver(() => {
                     toggle.setAttribute('aria-expanded', String(dropdown.classList.contains('open')));
                 }).observe(dropdown, { attributes: true, attributeFilter: ['class'] });
+            }
+
+            if (fullListsCheckbox) {
+                fullListsCheckbox.checked = shouldShowFullLists();
+                fullListsCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('spicy-show-full-lists', fullListsCheckbox.checked);
+                    visibleTrackCount = TRACK_PAGE_SIZE;
+                    if (profileData) renderTracks();
+                });
             }
 
             // Anomaly settings
@@ -4848,9 +4935,8 @@
             document.getElementById('profile-updated').textContent = updatedTime ? `${dict.last_updated} ${timeAgo(updatedTime)}` : dict.updated_history;
 
             // Calculate clock offset between server and client to prevent local system clock drift issues
-            const serverTime = profileData.server_time ? new Date(profileData.server_time) : new Date();
-            const clientTime = new Date();
-            const clockOffset = serverTime.getTime() - clientTime.getTime();
+            const parsedServerTime = profileData.server_time ? Date.parse(profileData.server_time) : NaN;
+            const clockOffset = Number.isFinite(parsedServerTime) ? parsedServerTime - Date.now() : 0;
 
             // Next update countdown timer logic
             if (window.updateCountdownInterval) {
@@ -4863,48 +4949,33 @@
             const updateCountdown = () => {
                 const countdownEl = document.getElementById('profile-next-update');
                 if (!countdownEl) return;
+                countdownEl.style.display = 'inline';
                 if (!profileData.next_update) {
-                    countdownEl.style.display = 'none';
+                    countdownEl.textContent = `• ${dict.update_schedule_pending}`;
                     return;
                 }
-                const nextUpdate = new Date(profileData.next_update);
+                const nextUpdateMs = Date.parse(profileData.next_update);
+                if (!Number.isFinite(nextUpdateMs)) {
+                    countdownEl.textContent = `• ${dict.update_schedule_pending}`;
+                    return;
+                }
                 const synchronizedNow = Date.now() + clockOffset;
-                const diffMs = nextUpdate.getTime() - synchronizedNow;
+                const diffMs = nextUpdateMs - synchronizedNow;
                 if (diffMs <= 0) {
-                    let updatingText = '• Updating now...';
-                    if (currentLang === 'ru') updatingText = '• Обновление сейчас...';
-                    else if (currentLang === 'uk') updatingText = '• Оновлення зараз...';
-                    else if (currentLang === 'de') updatingText = '• Aktualisierung jetzt...';
-                    else if (currentLang === 'it') updatingText = '• Aggiornamento in corso...';
-                    else if (currentLang === 'pl') updatingText = '• Aktualizacja teraz...';
-
-                    countdownEl.textContent = updatingText;
-                    // Auto-refresh profile data in 15 seconds after countdown reaches 0
+                    countdownEl.textContent = `• ${dict.update_queued}`;
+                    // Check periodically without hammering the API while this profile waits in the queue.
                     if (!window.autoRefreshTimeout) {
                         window.autoRefreshTimeout = setTimeout(() => {
                             window.autoRefreshTimeout = null;
                             loadProfile(true);
-                        }, 15000);
+                        }, 60000);
                     }
                     return;
                 }
-                const diffSec = Math.floor(diffMs / 1000);
+                const diffSec = Math.ceil(diffMs / 1000);
                 const m = Math.floor(diffSec / 60);
                 const s = diffSec % 60;
-                let nextUpdateText = `• Next update in ${m}m ${s}s`;
-                if (currentLang === 'ru') {
-                    nextUpdateText = `• Сл. обновление через ${m}м ${s}с`;
-                } else if (currentLang === 'uk') {
-                    nextUpdateText = `• Наст. оновлення через ${m}м ${s}с`;
-                } else if (currentLang === 'de') {
-                    nextUpdateText = `• Nächstes Update in ${m}m ${s}s`;
-                } else if (currentLang === 'it') {
-                    nextUpdateText = `• Prossimo aggiornamento tra ${m}m ${s}s`;
-                } else if (currentLang === 'pl') {
-                    nextUpdateText = `• Następna aktualizacja za ${m}m ${s}s`;
-                }
-                countdownEl.textContent = nextUpdateText;
-                countdownEl.style.display = 'inline';
+                countdownEl.textContent = `• ${dict.next_check_in} ${m}${dict.m} ${s}${dict.s}`;
             };
             updateCountdown();
             window.updateCountdownInterval = setInterval(updateCountdown, 1000);
@@ -5960,7 +6031,11 @@
                 if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.title_asc}`;
             }
 
-            sortedSongs.slice(0, visibleTrackCount).forEach((song, i) => {
+            const visibleSongs = shouldShowFullLists()
+                ? sortedSongs
+                : sortedSongs.slice(0, visibleTrackCount);
+
+            visibleSongs.forEach((song, i) => {
                 const rank = (i + 1).toString().padStart(2, '0');
 
                 let growthSign = '';
@@ -6004,7 +6079,9 @@
 
             const pagination = document.getElementById('tracks-pagination');
             const loadMoreButton = document.getElementById('load-more-tracks');
-            const remaining = Math.max(0, sortedSongs.length - visibleTrackCount);
+            const remaining = shouldShowFullLists()
+                ? 0
+                : Math.max(0, sortedSongs.length - visibleTrackCount);
             if (pagination && loadMoreButton) {
                 pagination.hidden = remaining === 0;
                 const nextCount = Math.min(TRACK_PAGE_SIZE, remaining);
@@ -7566,6 +7643,19 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+
+                <div style="margin-bottom: 16px;">
+                    <strong style="color: var(--ink);">v1.4.18 (2026-08-11)</strong>
+                    <ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);">
+                        <li>Fixed Escape key handling for the language menu when focus remains on its trigger.</li>
+                        <li>Added a default-on setting to show author and track lists in full.</li>
+                        <li>Fixed activity feed events for new tracks, milestones, profiles, and profile merges.</li>
+                        <li>Moved the homepage beta marker out of the header into a compact bottom-left badge.</li>
+                        <li>Made Mono status colors fully monochrome across metrics, tables, and charts.</li>
+                        <li>Rewrote and localized the footer with shorter project, contact, data, and source-code labels.</li>
+                        <li>Replaced the misleading profile update countdown with queue-aware, always-visible refresh status.</li>
+                    </ul>
+                </div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.17 (2026-08-11)</strong>

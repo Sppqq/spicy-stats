@@ -115,6 +115,17 @@ async function checkSchema(env) {
         await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_track_metadata_isrc ON track_metadata(isrc)").run().catch(() => {});
         await env.DB.prepare("ALTER TABLE snapshots ADD COLUMN total_songs INTEGER").run().catch(() => {});
 
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action_type TEXT NOT NULL,
+                details TEXT NOT NULL,
+                ip_address TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        `).run().catch(() => {});
+        await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_feed ON audit_logs(action_type, created_at DESC)").run().catch(() => {});
+
 
         await env.DB.prepare(`
             CREATE TABLE IF NOT EXISTS notification_settings (
@@ -331,6 +342,7 @@ async function handleAddUser(request, env, ctx) {
 
     // Если есть очередь, кидаем первичное обновление в нее, иначе делаем руками в фоне
     if (savedUser) {
+        await logActivityEvent(env, "user_add", `➕ Added new profile: @${savedUser.username}`);
         if (env.SCRAPE_QUEUE) ctx.waitUntil(env.SCRAPE_QUEUE.send({ id: savedUser.id, username: savedUser.username, discord_id: savedUser.discord_id }));
         else ctx.waitUntil(scrapeAndSave(savedUser.id, savedUser.username, savedUser.discord_id, env));
     }
@@ -525,12 +537,14 @@ async function handleUserDetailAPI(username, request, env) {
         });
     }
 
-    // ИСПРАВЛЕНИЕ 2: Возвращаем таймер "Обновление через..." (10 минут с момента last_scraped_at)
+    // The queue starts no earlier than 10 minutes after the latest successful snapshot.
+    // It can start later when other profiles are ahead, so the client treats this as eligibility time.
     let nextUpdateTimestamp = null;
-    if (user.last_scraped_at) {
-        const parsedLastScraped = parseDate(user.last_scraped_at);
-        if (parsedLastScraped) {
-            nextUpdateTimestamp = new Date(parsedLastScraped.getTime() + 10 * 60000).toISOString();
+    const latestSuccessfulUpdate = history && history.length > 0 ? history[0].timestamp : user.last_scraped_at;
+    if (latestSuccessfulUpdate) {
+        const parsedLatestUpdate = parseDate(latestSuccessfulUpdate);
+        if (parsedLatestUpdate) {
+            nextUpdateTimestamp = new Date(parsedLatestUpdate.getTime() + 10 * 60000).toISOString();
         }
     }
 
@@ -539,6 +553,7 @@ async function handleUserDetailAPI(username, request, env) {
         total_views: totalViews, growth24h, first_snapshot: firstSnapshot ? firstSnapshot.timestamp : null,
         total_songs: totalSongs, highlights: topTracks, chart_data: chartDataRaw, songs: finalSongs,
         next_update: nextUpdateTimestamp,
+        next_update_is_earliest: true,
         server_time: new Date().toISOString()
     };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
@@ -1027,6 +1042,7 @@ async function handleAdminMergeUsers(request, env) {
     try {
         await env.DB.prepare("UPDATE snapshots SET user_id = ? WHERE user_id = ?").bind(targetUser.id, sourceUser.id).run();
         await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(sourceUser.id).run();
+        await logActivityEvent(env, "profile_merge", `🔀 Merged profile @${sourceClean} into @${targetClean}`);
 
         return new Response(JSON.stringify({ success: true }), { headers: getCorsHeaders(request, env) });
     } catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: getCorsHeaders(request, env) }); }
@@ -1125,6 +1141,21 @@ function handleExport(request, env) {
 // ==========================================
 // UTILITY И SCRAPER ФУНКЦИИ (ОПТИМИЗИРОВАННЫЕ)
 // ==========================================
+
+async function logActivityEvent(env, actionType, details) {
+    try {
+        await env.DB.prepare("INSERT INTO audit_logs (action_type, details) VALUES (?, ?)")
+            .bind(actionType, details)
+            .run();
+    } catch (err) {
+        console.error(`Failed to log activity event (${actionType}):`, err.message);
+    }
+}
+
+function formatMilestoneValue(value) {
+    if (value >= 1000000) return `${Math.floor(value / 1000000)}M`;
+    return `${Math.floor(value / 1000)}K`;
+}
 
 function parseDate(rawStr) {
     if (!rawStr) return null;
@@ -1372,7 +1403,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
     const changedSongs = [];
     const currentSongsMap = new Map();
 
-    let hasNewTracks = false;
+    const newTracks = [];
 
     if (data.songs) {
         for (const song of data.songs) {
@@ -1382,8 +1413,8 @@ async function scrapeAndSave(userId, username, discordId, env) {
             const prevSong = latestSongsMap.get(key);
             if (prevSong === undefined || prevSong.views !== song.views) {
                 changedSongs.push(song);
-                if (prevSong === undefined) {
-                    hasNewTracks = true;
+                if (prevSnap && prevSong === undefined) {
+                    newTracks.push(song);
                 }
             }
         }
@@ -1400,7 +1431,7 @@ async function scrapeAndSave(userId, username, discordId, env) {
     const hasPending = missingTracker.size > 0;
 
     // EARLY EXIT: Check if absolutely nothing changed (views, counts, no pending tracks, no missing tracks, no new tracks)
-    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending && !hasMissingTracks && !hasNewTracks) {
+    if (prevSnap && oldViews === data.total_views && oldSongsCount === totalSongsCount && !hasPending && !hasMissingTracks && newTracks.length === 0) {
         return;
     }
 
@@ -1473,10 +1504,14 @@ async function scrapeAndSave(userId, username, discordId, env) {
         return;
     }
 
+    for (const song of newTracks) {
+        await logActivityEvent(env, "new_track", `🎵 @${username} added a new track: ${song.title || "Hidden"}`);
+    }
+
     // Уведомление о майлстоунах
     if (oldViews > 0 && Math.floor(data.total_views / 50000) > Math.floor(oldViews / 50000)) {
         const ms = Math.floor(data.total_views / 50000) * 50000;
-
+        await logActivityEvent(env, "milestone_reached", `🎉 @${username} reached ${formatMilestoneValue(ms)} views!`);
     }
 
     if (data.discord_id) {

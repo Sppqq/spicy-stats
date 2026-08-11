@@ -29,9 +29,14 @@ for (const page of pages) {
         assert.equal(nameKeyCount, 6, `${page} should localize ${theme.key} in all six languages`);
         assert.equal(descriptionKeyCount, 6, `${page} should localize ${theme.key}_desc in all six languages`);
     }
+
+    const monoBlock = html.match(/\[data-theme="mono"\]\s*\{([\s\S]*?)\n\s*\}/)?.[1] || '';
+    assert.match(monoBlock, /--green: #c9c9c5;/, `${page} Mono positive accent should be grayscale`);
+    assert.match(monoBlock, /--coral: #7c7c79;/, `${page} Mono negative accent should be grayscale`);
+    assert.doesNotMatch(monoBlock, /#ef8177/i, `${page} Mono should not retain the salmon negative accent`);
 }
 
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.17/);
+assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.18/);
 
 console.log('theme palette regression checks passed');
