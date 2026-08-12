@@ -5340,16 +5340,13 @@
                 return;
             }
 
-            const maxAllowedSongs = profileData.total_songs || 0;
+            const currentTotalSongs = profileData.total_songs || 0;
             let normalizedPoints = points.map(p => {
-                let rawTracks = p.tracks !== undefined ? p.tracks : maxAllowedSongs;
-                if (maxAllowedSongs > 0 && rawTracks > maxAllowedSongs) {
-                    rawTracks = maxAllowedSongs;
-                }
                 return {
                     x: p.x,
                     views: p.views !== undefined ? p.views : (p.y || 0),
-                    tracks: rawTracks
+                    // Historical counts may be higher than the current total after a track is removed.
+                    tracks: p.tracks !== undefined ? p.tracks : currentTotalSongs
                 };
             });
 
