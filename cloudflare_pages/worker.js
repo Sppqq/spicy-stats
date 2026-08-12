@@ -244,6 +244,7 @@ export default {
             else if (url.pathname === "/api/add-user" && request.method === "POST") response = await handleAddUser(request, env, ctx);
             else if (url.pathname === "/api/dashboard" && request.method === "GET") response = await handleDashboardAPI(request, env);
             else if (url.pathname === "/api/track-history" && request.method === "GET") response = await handleTrackHistoryAPI(request, env);
+            else if (url.pathname === "/api/user-snapshot" && request.method === "GET") response = await handleUserSnapshotAPI(request, env);
             else if (url.pathname.startsWith("/api/user/") && request.method === "GET") response = await handleUserDetailAPI(url.pathname.split("/")[3], request, env);
             else if (url.pathname === "/api/activity-feed" && request.method === "GET") response = await handleActivityFeedAPI(request, env);
             else if (url.pathname === "/api/admin/stats" && request.method === "POST") response = await handleAdminStats(request, env);
@@ -1209,6 +1210,86 @@ async function logActivityEvent(env, actionType, details) {
     } catch (err) {
         console.error(`Failed to log activity event (${actionType}):`, err.message);
     }
+}
+
+async function loadSongsAtSnapshot(userId, snapshotId, env) {
+    const { results } = await env.DB.prepare(`
+        SELECT spotify_id, views, title, artist, isrc, meta_title, meta_artist
+        FROM (
+            SELECT ss.spotify_id, ss.views, ss.title, ss.artist,
+                   tm.isrc, tm.title AS meta_title, tm.artist AS meta_artist,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY COALESCE(NULLIF(ss.spotify_id, ''), LOWER(TRIM(ss.title)) || '|||' || LOWER(TRIM(ss.artist)))
+                       ORDER BY s.id DESC
+                   ) AS rn
+            FROM snapshot_songs ss
+            JOIN snapshots s ON ss.snapshot_id = s.id
+            LEFT JOIN track_metadata tm ON ss.spotify_id = tm.spotify_id
+            WHERE s.user_id = ? AND s.id <= ?
+        ) state
+        WHERE rn = 1 AND views >= 0
+    `).bind(userId, snapshotId).all();
+
+    return aggregateSongs(results || []);
+}
+
+function getSnapshotSongKey(song) {
+    return song.isrc
+        ? `isrc:${song.isrc}`
+        : `text:${song.normTitle}|||${song.primaryArtist}`;
+}
+
+async function handleUserSnapshotAPI(request, env) {
+    const url = new URL(request.url);
+    const username = (url.searchParams.get("username") || "").trim().replace(/^@/, "");
+    const timestamp = url.searchParams.get("timestamp");
+    if (!username || !timestamp) {
+        return new Response(JSON.stringify({ error: "Missing username or timestamp" }), { status: 400, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+    }
+
+    const user = await env.DB.prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)").bind(username).first();
+    if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+
+    const snapshot = await env.DB.prepare(`
+        SELECT id, total_views, total_songs, timestamp
+        FROM snapshots
+        WHERE user_id = ? AND timestamp = ?
+        ORDER BY id DESC LIMIT 1
+    `).bind(user.id, timestamp).first();
+    if (!snapshot) return new Response(JSON.stringify({ error: "Snapshot not found" }), { status: 404, headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+
+    const previous = await env.DB.prepare(`
+        SELECT id, timestamp FROM snapshots
+        WHERE user_id = ? AND id < ?
+        ORDER BY id DESC LIMIT 1
+    `).bind(user.id, snapshot.id).first();
+
+    const currentSongs = await loadSongsAtSnapshot(user.id, snapshot.id, env);
+    const previousSongs = previous ? await loadSongsAtSnapshot(user.id, previous.id, env) : [];
+    const previousMap = new Map(previousSongs.map(song => [getSnapshotSongKey(song), song]));
+    const currentMap = new Map(currentSongs.map(song => [getSnapshotSongKey(song), song]));
+
+    const songs = currentSongs.map(song => {
+        const before = previousMap.get(getSnapshotSongKey(song));
+        const previousViews = before ? before.views : song.views;
+        return {
+            ...song,
+            growth: song.views - previousViews,
+            growthPct: previousViews > 0 ? ((song.views - previousViews) / previousViews) * 100 : 0
+        };
+    });
+    const added = songs.filter(song => !previousMap.has(getSnapshotSongKey(song)));
+    const removed = previousSongs.filter(song => !currentMap.has(getSnapshotSongKey(song)));
+
+    return new Response(JSON.stringify({
+        timestamp: snapshot.timestamp,
+        previous_timestamp: previous?.timestamp || null,
+        total_views: snapshot.total_views || 0,
+        total_songs: songs.length,
+        songs,
+        added,
+        removed
+    }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
 function formatMilestoneValue(value) {

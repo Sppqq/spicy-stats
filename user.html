@@ -503,6 +503,26 @@
         }
 
         .profile-chart { margin-top: 12px; }
+        .snapshot-viewer {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            margin-top: 12px;
+            padding: 13px 16px;
+            border: 1px solid var(--coral);
+            background: color-mix(in srgb, var(--coral) 8%, var(--panel));
+        }
+        .snapshot-viewer[hidden] { display: none; }
+        .snapshot-viewer-kicker { color: var(--coral); font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+        .snapshot-viewer-title { margin-top: 3px; font-size: 14px; font-weight: 800; }
+        .snapshot-viewer-meta { margin-top: 4px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.5; }
+        .snapshot-viewer-changes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+        .snapshot-change { padding: 3px 6px; border: 1px solid var(--line); font-family: 'DM Mono', monospace; font-size: 9px; }
+        .snapshot-change.added { color: var(--positive-text); }
+        .snapshot-change.removed { color: var(--coral); }
+        .profile-chart .chart { cursor: crosshair; }
+        .profile-chart.is-snapshot-loading .chart { cursor: progress; opacity: 0.75; }
         .chart-wrap { padding: 22px 20px 16px; }
 
         .chart {
@@ -1283,6 +1303,10 @@
         .track-modal-action.spotify:hover { background: #1fdf64; border-color: #1fdf64; }
         .track-modal-action[hidden] { display: none; }
         @media (max-width: 480px) { .track-modal-actions { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) {
+            .snapshot-viewer { grid-template-columns: 1fr; padding: 12px; }
+            .snapshot-viewer .back-button { width: 100%; }
+        }
         .share-card-trigger { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 10px 28px color-mix(in srgb, var(--blue) 24%, transparent); }
         .share-card-trigger:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 84%, var(--ink)); color: #fff; }
         [data-theme="mono"] .share-card-trigger { color: var(--paper); }
@@ -1319,6 +1343,7 @@
         .profile-chart.is-fullscreen .chart { height: min(62dvh, 620px); touch-action: none; }
         body.chart-fullscreen-open, body.share-card-open, body.track-modal-open { overflow: hidden; }
         body.profile-error .profile-chart,
+        body.profile-error .snapshot-viewer,
         body.profile-error .profile-content,
         body.profile-error .profile-stats,
         body.profile-error .profile-actions,
@@ -2611,6 +2636,16 @@
                 </div>
             </section>
 
+            <section class="snapshot-viewer" id="snapshot-viewer" aria-live="polite" hidden>
+                <div>
+                    <div class="snapshot-viewer-kicker" id="snapshot-viewer-kicker">Historical snapshot</div>
+                    <div class="snapshot-viewer-title" id="snapshot-viewer-title"></div>
+                    <div class="snapshot-viewer-meta" id="snapshot-viewer-meta"></div>
+                    <div class="snapshot-viewer-changes" id="snapshot-viewer-changes"></div>
+                </div>
+                <button class="back-button" id="return-current-snapshot" type="button" onclick="returnToCurrentSnapshot()">Return to current</button>
+            </section>
+
             <section class="profile-content" style="margin-top: 12px;">
                 <article class="panel">
                     <div class="panel-heading">
@@ -2951,6 +2986,8 @@
         let username = null;
         let chartTimeframe = 30;
         let chartMetrics = { views: true, tracks: false, delta: false };
+        let selectedSnapshotData = null;
+        let snapshotRequestId = 0;
         let shareCardRenderId = 0;
         let lastShareCardBlob = null;
         let shareCardReturnFocus = null;
@@ -4814,6 +4851,107 @@
             return localeMap[currentLang] || 'en-US';
         }
 
+        function getSnapshotCopy() {
+            const lang = localStorage.getItem('spicy-lang') || 'en';
+            const copies = {
+                en: { kicker: 'Historical snapshot', at: 'Catalog at', tracks: 'tracks', views: 'views', added: 'Added', removed: 'Removed', noChanges: 'No catalog changes since the previous snapshot', back: 'Return to current', loading: 'Loading snapshot...', failed: 'Could not load this snapshot', hint: 'Click to view this catalog snapshot', historicalGrowth: 'Change since previous snapshot' },
+                ru: { kicker: 'Исторический снапшот', at: 'Каталог на', tracks: 'треков', views: 'просмотров', added: 'Добавлено', removed: 'Удалено', noChanges: 'С прошлого снапшота состав не изменился', back: 'Вернуться к текущему', loading: 'Загружаю снапшот...', failed: 'Не удалось загрузить этот снапшот', hint: 'Нажмите, чтобы открыть каталог этого снапшота', historicalGrowth: 'Изменение с прошлого снапшота' },
+                uk: { kicker: 'Історичний снапшот', at: 'Каталог на', tracks: 'треків', views: 'переглядів', added: 'Додано', removed: 'Видалено', noChanges: 'Від попереднього снапшота склад не змінився', back: 'Повернутися до поточного', loading: 'Завантаження снапшота...', failed: 'Не вдалося завантажити цей снапшот', hint: 'Натисніть, щоб відкрити каталог цього снапшота', historicalGrowth: 'Зміна від попереднього снапшота' },
+                de: { kicker: 'Historischer Snapshot', at: 'Katalog am', tracks: 'Tracks', views: 'Aufrufe', added: 'Hinzugefügt', removed: 'Entfernt', noChanges: 'Keine Katalogänderungen seit dem vorherigen Snapshot', back: 'Zurück zum aktuellen Stand', loading: 'Snapshot wird geladen...', failed: 'Snapshot konnte nicht geladen werden', hint: 'Klicken, um diesen Katalog-Snapshot zu öffnen', historicalGrowth: 'Änderung seit dem vorherigen Snapshot' },
+                it: { kicker: 'Snapshot storico', at: 'Catalogo del', tracks: 'brani', views: 'visualizzazioni', added: 'Aggiunti', removed: 'Rimossi', noChanges: 'Nessuna modifica dal precedente snapshot', back: 'Torna alla versione attuale', loading: 'Caricamento snapshot...', failed: 'Impossibile caricare questo snapshot', hint: 'Fai clic per aprire il catalogo di questo snapshot', historicalGrowth: 'Modifica dallo snapshot precedente' },
+                pl: { kicker: 'Migawka historyczna', at: 'Katalog z', tracks: 'utworów', views: 'wyświetleń', added: 'Dodano', removed: 'Usunięto', noChanges: 'Brak zmian od poprzedniej migawki', back: 'Wróć do bieżącego', loading: 'Ładowanie migawki...', failed: 'Nie udało się wczytać tej migawki', hint: 'Kliknij, aby otworzyć katalog z tej migawki', historicalGrowth: 'Zmiana od poprzedniej migawki' }
+            };
+            return copies[lang] || copies.en;
+        }
+
+        function setSnapshotLoading(isLoading) {
+            document.querySelector('.profile-chart')?.classList.toggle('is-snapshot-loading', isLoading);
+        }
+
+        function renderSnapshotViewer() {
+            const viewer = document.getElementById('snapshot-viewer');
+            if (!viewer) return;
+            if (!selectedSnapshotData) {
+                viewer.hidden = true;
+                return;
+            }
+            const copy = getSnapshotCopy();
+            const date = parseUTCDate(selectedSnapshotData.timestamp);
+            const formattedDate = date ? date.toLocaleString(getLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : selectedSnapshotData.timestamp;
+            document.getElementById('snapshot-viewer-kicker').textContent = copy.kicker;
+            document.getElementById('snapshot-viewer-title').textContent = `${copy.at} ${formattedDate}`;
+            document.getElementById('snapshot-viewer-meta').textContent = `${formatFullNumber(selectedSnapshotData.total_songs)} ${copy.tracks} · ${formatFullNumber(selectedSnapshotData.total_views)} ${copy.views}`;
+            document.getElementById('return-current-snapshot').textContent = copy.back;
+
+            const changes = document.getElementById('snapshot-viewer-changes');
+            changes.replaceChildren();
+            const groups = [
+                { items: selectedSnapshotData.added || [], label: copy.added, className: 'added', prefix: '+' },
+                { items: selectedSnapshotData.removed || [], label: copy.removed, className: 'removed', prefix: '−' }
+            ];
+            let changeCount = 0;
+            groups.forEach(group => group.items.forEach(song => {
+                changeCount++;
+                const badge = document.createElement('span');
+                badge.className = `snapshot-change ${group.className}`;
+                badge.textContent = `${group.prefix} ${group.label}: ${song.title} — ${song.artist}`;
+                changes.appendChild(badge);
+            }));
+            if (changeCount === 0) {
+                const badge = document.createElement('span');
+                badge.className = 'snapshot-change';
+                badge.textContent = copy.noChanges;
+                changes.appendChild(badge);
+            }
+            viewer.hidden = false;
+        }
+
+        async function loadSnapshotAtPoint(point) {
+            if (!point?.snapshotTimestamp || !profileData) return;
+            const requestId = ++snapshotRequestId;
+            const copy = getSnapshotCopy();
+            setSnapshotLoading(true);
+            const list = document.getElementById('tracks-list');
+            if (list) list.innerHTML = `<div style="padding:30px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;">${copy.loading}</div>`;
+            try {
+                const res = await spicyFetch(`${API_BASE}/user-snapshot?username=${encodeURIComponent(username)}&timestamp=${encodeURIComponent(point.snapshotTimestamp)}`);
+                if (!res.ok) throw new Error(copy.failed);
+                const data = await res.json();
+                if (requestId !== snapshotRequestId) return;
+                selectedSnapshotData = data;
+                visibleTrackCount = TRACK_PAGE_SIZE;
+                renderSnapshotViewer();
+                const tracksEl = document.getElementById('stat-tracks');
+                if (tracksEl) tracksEl.textContent = data.total_songs;
+                renderTracks();
+                document.getElementById('snapshot-viewer')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                if (requestId !== snapshotRequestId) return;
+                console.error(error);
+                renderTracks();
+                const viewer = document.getElementById('snapshot-viewer');
+                if (viewer) {
+                    viewer.hidden = false;
+                    document.getElementById('snapshot-viewer-title').textContent = copy.failed;
+                    document.getElementById('snapshot-viewer-meta').textContent = '';
+                    document.getElementById('snapshot-viewer-changes').replaceChildren();
+                }
+            } finally {
+                if (requestId === snapshotRequestId) setSnapshotLoading(false);
+            }
+        }
+
+        function returnToCurrentSnapshot() {
+            snapshotRequestId++;
+            selectedSnapshotData = null;
+            visibleTrackCount = TRACK_PAGE_SIZE;
+            setSnapshotLoading(false);
+            renderSnapshotViewer();
+            const tracksEl = document.getElementById('stat-tracks');
+            if (tracksEl) tracksEl.textContent = profileData?.total_songs || 0;
+            renderTracks();
+        }
+
         async function loadProfile(silent = false) {
             if (!silent) showLoading();
             try {
@@ -4841,6 +4979,8 @@
                     }
                 }
                 profileData = await res.json();
+                selectedSnapshotData = null;
+                renderSnapshotViewer();
 
                 renderProfile(rankText);
             } catch (err) {
@@ -5313,7 +5453,8 @@
                     const startPt = {
                         x: new Date(timeframeCutoff).toISOString(),
                         views: interpViews,
-                        tracks: interpTracks
+                        tracks: interpTracks,
+                        snapshotTimestamp: nextPt.x
                     };
                     points = [startPt, ...rawPoints.slice(firstAfterIdx)];
                 } else if (firstAfterIdx === 0) {
@@ -5346,7 +5487,8 @@
                     x: p.x,
                     views: p.views !== undefined ? p.views : (p.y || 0),
                     // Historical counts may be higher than the current total after a track is removed.
-                    tracks: p.tracks !== undefined ? p.tracks : currentTotalSongs
+                    tracks: p.tracks !== undefined ? p.tracks : currentTotalSongs,
+                    snapshotTimestamp: p.snapshotTimestamp || p.x
                 };
             });
 
@@ -5416,7 +5558,7 @@
                 const prevViews = i > 0 ? normalizedPoints[i - 1].views : p.views;
                 const delta = Math.max(0, p.views - prevViews);
 
-                return { x, yViews, yTracks, date: p.x, views: p.views, tracks: p.tracks, delta };
+                return { x, yViews, yTracks, date: p.x, snapshotTimestamp: p.snapshotTimestamp, views: p.views, tracks: p.tracks, delta };
             });
 
             const deltaContainer = document.getElementById('profile-chart-delta-bars');
@@ -5756,6 +5898,8 @@
         function setupProfileChartTooltip(scaledPoints, activeMilestoneNotes = {}) {
             const chartWrap = document.querySelector('.profile-chart .chart-wrap');
             const svgElement = document.querySelector('.profile-chart .chart');
+            let activeSnapshotPoint = null;
+            let lastPointerType = 'mouse';
             let tooltip = document.getElementById('profile-chart-tooltip');
 
             if (!tooltip) {
@@ -5817,6 +5961,7 @@
 
                 const currentLang = localStorage.getItem('spicy-lang') || 'en';
                 const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+                const snapshotCopy = getSnapshotCopy();
                 const dateObj = parseUTCDate(closestPt.date);
                 const formattedDate = dateObj ? dateObj.toLocaleDateString(getLocale(), { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : closestPt.date;
 
@@ -5845,6 +5990,8 @@
                         content += `<div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(255,255,255,0.25); color: #10b981; font-weight: bold;">${note}</div>`;
                     });
                 }
+                content += `<div style="margin-top:6px;padding-top:5px;border-top:1px dashed var(--line);color:var(--muted);font-size:9px;">${snapshotCopy.hint}</div>`;
+                activeSnapshotPoint = closestPt;
 
                 tooltip.style.display = 'block';
                 tooltip.innerHTML = content;
@@ -5879,15 +6026,32 @@
 
             svgElement.onpointermove = showPointDetails;
             svgElement.onpointerdown = (e) => {
+                lastPointerType = e.pointerType || 'mouse';
                 if (e.pointerType === 'touch' && document.querySelector('.profile-chart')?.classList.contains('is-fullscreen')) {
                     e.preventDefault();
                 }
                 showPointDetails(e);
             };
+            svgElement.onpointerup = (e) => {
+                if (e.pointerType === 'touch' && activeSnapshotPoint) loadSnapshotAtPoint(activeSnapshotPoint);
+            };
+            svgElement.onclick = () => {
+                if (lastPointerType !== 'touch' && activeSnapshotPoint) loadSnapshotAtPoint(activeSnapshotPoint);
+            };
+            svgElement.tabIndex = 0;
+            svgElement.setAttribute('role', 'button');
+            svgElement.setAttribute('aria-label', getSnapshotCopy().hint);
+            svgElement.onkeydown = (e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && activeSnapshotPoint) {
+                    e.preventDefault();
+                    loadSnapshotAtPoint(activeSnapshotPoint);
+                }
+            };
 
             const hidePointDetails = () => {
                 tooltip.style.display = 'none';
                 crosshair.style.display = 'none';
+                activeSnapshotPoint = null;
             };
             svgElement.onpointerleave = hidePointDetails;
             svgElement.onpointercancel = hidePointDetails;
@@ -6009,7 +6173,8 @@
             const list = document.getElementById('tracks-list');
             list.innerHTML = '';
 
-            if (!profileData.songs || profileData.songs.length === 0) {
+            const sourceSongs = selectedSnapshotData?.songs || profileData.songs || [];
+            if (sourceSongs.length === 0) {
                 list.innerHTML = `
                     <div style="padding: 20px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace;">
                         ${dict.no_tracks}
@@ -6023,21 +6188,22 @@
             const sortSelect = document.getElementById('track-sort-select');
             const sortVal = sortSelect ? sortSelect.value : 'views-desc';
 
-            const sortedSongs = [...profileData.songs];
+            const sortedSongs = [...sourceSongs];
             const sortLabelMeta = document.getElementById('tracks-sort-meta');
+            const snapshotCopy = getSnapshotCopy();
 
             if (sortVal === 'views-desc') {
                 sortedSongs.sort((a, b) => b.views - a.views);
-                if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.views_full}`;
+                if (sortLabelMeta) sortLabelMeta.textContent = selectedSnapshotData ? `${snapshotCopy.kicker} · ${dict.sorted_by} ${dict.views_full}` : `${dict.sorted_by} ${dict.views_full}`;
             } else if (sortVal === 'views-asc') {
                 sortedSongs.sort((a, b) => a.views - b.views);
-                if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.views_asc}`;
+                if (sortLabelMeta) sortLabelMeta.textContent = selectedSnapshotData ? `${snapshotCopy.kicker} · ${dict.sorted_by} ${dict.views_asc}` : `${dict.sorted_by} ${dict.views_asc}`;
             } else if (sortVal === 'growth-desc') {
                 sortedSongs.sort((a, b) => b.growth - a.growth);
-                if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.growth_full}`;
+                if (sortLabelMeta) sortLabelMeta.textContent = selectedSnapshotData ? snapshotCopy.historicalGrowth : `${dict.sorted_by} ${dict.growth_full}`;
             } else if (sortVal === 'growth-asc') {
                 sortedSongs.sort((a, b) => a.growth - b.growth);
-                if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.growth_asc}`;
+                if (sortLabelMeta) sortLabelMeta.textContent = selectedSnapshotData ? snapshotCopy.historicalGrowth : `${dict.sorted_by} ${dict.growth_asc}`;
             } else if (sortVal === 'title-asc') {
                 sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
                 if (sortLabelMeta) sortLabelMeta.textContent = `${dict.sorted_by} ${dict.title_asc}`;
