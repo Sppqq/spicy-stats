@@ -45,6 +45,6 @@ for (const page of pages) {
 }
 
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.30/);
+assert.match(serviceWorker, /spicy-monitor-cache-v1\.4\.31/);
 
 console.log('theme palette regression checks passed');

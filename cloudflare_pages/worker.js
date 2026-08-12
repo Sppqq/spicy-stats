@@ -1,4 +1,3 @@
-// Build trigger: v1.0.1 - Notifications Update
 function timingSafeEqualStr(a, b) {
     if (typeof a !== 'string' || typeof b !== 'string') return false;
     const aLen = a.length;

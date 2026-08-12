@@ -1,0 +1,12 @@
+---
+description: Keep one release version and changelog entry everywhere in Spicy Stats
+alwaysApply: true
+---
+
+# Release version parity
+
+- Every release must use one identical SemVer value in `dashboard.html`, `user.html`, `admin.html`, `sw.js`, and `cloudflare_pages/package.json`.
+- Every version bump must add a dated changelog entry for that exact version to all three HTML pages.
+- Never bump only the service-worker cache version. The cache name is the public release version.
+- Update `tests/public-version-parity.test.cjs` to the new version and date; run the complete Node test suite before delivery.
+- Keep historical changelog entries intact. Do not invent entries for old missing versions; enforce this rule for all new releases.
