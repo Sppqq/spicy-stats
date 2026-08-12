@@ -420,6 +420,22 @@
             overflow: hidden;
             word-break: break-word;
         }
+        .track-title-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+        .track-title-line .track-title { min-width: 0; }
+        .track-removed-badge {
+            flex: 0 0 auto;
+            padding: 2px 5px;
+            border: 1px solid color-mix(in srgb, var(--coral) 72%, var(--line));
+            color: var(--coral);
+            background: color-mix(in srgb, var(--coral) 8%, transparent);
+            font-family: 'DM Mono', monospace;
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            line-height: 1.2;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
         .track-artist {
             color: var(--muted);
             font-size: 11px;
@@ -4854,12 +4870,12 @@
         function getSnapshotCopy() {
             const lang = localStorage.getItem('spicy-lang') || 'en';
             const copies = {
-                en: { kicker: 'Historical snapshot', at: 'Catalog at', tracks: 'tracks', views: 'views', added: 'Added', removed: 'Removed', noChanges: 'No catalog changes since the previous snapshot', back: 'Return to current', loading: 'Loading snapshot...', failed: 'Could not load this snapshot', hint: 'Click to view this catalog snapshot', historicalGrowth: 'Change since previous snapshot' },
-                ru: { kicker: 'Исторический снапшот', at: 'Каталог на', tracks: 'треков', views: 'просмотров', added: 'Добавлено', removed: 'Удалено', noChanges: 'С прошлого снапшота состав не изменился', back: 'Вернуться к текущему', loading: 'Загружаю снапшот...', failed: 'Не удалось загрузить этот снапшот', hint: 'Нажмите, чтобы открыть каталог этого снапшота', historicalGrowth: 'Изменение с прошлого снапшота' },
-                uk: { kicker: 'Історичний снапшот', at: 'Каталог на', tracks: 'треків', views: 'переглядів', added: 'Додано', removed: 'Видалено', noChanges: 'Від попереднього снапшота склад не змінився', back: 'Повернутися до поточного', loading: 'Завантаження снапшота...', failed: 'Не вдалося завантажити цей снапшот', hint: 'Натисніть, щоб відкрити каталог цього снапшота', historicalGrowth: 'Зміна від попереднього снапшота' },
-                de: { kicker: 'Historischer Snapshot', at: 'Katalog am', tracks: 'Tracks', views: 'Aufrufe', added: 'Hinzugefügt', removed: 'Entfernt', noChanges: 'Keine Katalogänderungen seit dem vorherigen Snapshot', back: 'Zurück zum aktuellen Stand', loading: 'Snapshot wird geladen...', failed: 'Snapshot konnte nicht geladen werden', hint: 'Klicken, um diesen Katalog-Snapshot zu öffnen', historicalGrowth: 'Änderung seit dem vorherigen Snapshot' },
-                it: { kicker: 'Snapshot storico', at: 'Catalogo del', tracks: 'brani', views: 'visualizzazioni', added: 'Aggiunti', removed: 'Rimossi', noChanges: 'Nessuna modifica dal precedente snapshot', back: 'Torna alla versione attuale', loading: 'Caricamento snapshot...', failed: 'Impossibile caricare questo snapshot', hint: 'Fai clic per aprire il catalogo di questo snapshot', historicalGrowth: 'Modifica dallo snapshot precedente' },
-                pl: { kicker: 'Migawka historyczna', at: 'Katalog z', tracks: 'utworów', views: 'wyświetleń', added: 'Dodano', removed: 'Usunięto', noChanges: 'Brak zmian od poprzedniej migawki', back: 'Wróć do bieżącego', loading: 'Ładowanie migawki...', failed: 'Nie udało się wczytać tej migawki', hint: 'Kliknij, aby otworzyć katalog z tej migawki', historicalGrowth: 'Zmiana od poprzedniej migawki' }
+                en: { kicker: 'Historical snapshot', at: 'Catalog at', tracks: 'tracks', views: 'views', added: 'Added', removed: 'Removed', deleted: 'Deleted', noChanges: 'No catalog changes since the previous snapshot', back: 'Return to current', loading: 'Loading snapshot...', failed: 'Could not load this snapshot', hint: 'Click to view this catalog snapshot', historicalGrowth: '24h growth at this snapshot' },
+                ru: { kicker: 'Исторический снапшот', at: 'Каталог на', tracks: 'треков', views: 'просмотров', added: 'Добавлено', removed: 'Удалено', deleted: 'Удалён', noChanges: 'С прошлого снапшота состав не изменился', back: 'Вернуться к текущему', loading: 'Загружаю снапшот...', failed: 'Не удалось загрузить этот снапшот', hint: 'Нажмите, чтобы открыть каталог этого снапшота', historicalGrowth: 'Прирост за 24ч на момент снапшота' },
+                uk: { kicker: 'Історичний снапшот', at: 'Каталог на', tracks: 'треків', views: 'переглядів', added: 'Додано', removed: 'Видалено', deleted: 'Видалено', noChanges: 'Від попереднього снапшота склад не змінився', back: 'Повернутися до поточного', loading: 'Завантаження снапшота...', failed: 'Не вдалося завантажити цей снапшот', hint: 'Натисніть, щоб відкрити каталог цього снапшота', historicalGrowth: 'Приріст за 24г на момент снапшота' },
+                de: { kicker: 'Historischer Snapshot', at: 'Katalog am', tracks: 'Tracks', views: 'Aufrufe', added: 'Hinzugefügt', removed: 'Entfernt', deleted: 'Gelöscht', noChanges: 'Keine Katalogänderungen seit dem vorherigen Snapshot', back: 'Zurück zum aktuellen Stand', loading: 'Snapshot wird geladen...', failed: 'Snapshot konnte nicht geladen werden', hint: 'Klicken, um diesen Katalog-Snapshot zu öffnen', historicalGrowth: '24h-Wachstum zum Snapshot' },
+                it: { kicker: 'Snapshot storico', at: 'Catalogo del', tracks: 'brani', views: 'visualizzazioni', added: 'Aggiunti', removed: 'Rimossi', deleted: 'Eliminato', noChanges: 'Nessuna modifica dal precedente snapshot', back: 'Torna alla versione attuale', loading: 'Caricamento snapshot...', failed: 'Impossibile caricare questo snapshot', hint: 'Fai clic per aprire il catalogo di questo snapshot', historicalGrowth: 'Crescita 24h allo snapshot' },
+                pl: { kicker: 'Migawka historyczna', at: 'Katalog z', tracks: 'utworów', views: 'wyświetleń', added: 'Dodano', removed: 'Usunięto', deleted: 'Usunięty', noChanges: 'Brak zmian od poprzedniej migawki', back: 'Wróć do bieżącego', loading: 'Ładowanie migawki...', failed: 'Nie udało się wczytać tej migawki', hint: 'Kliknij, aby otworzyć katalog z tej migawki', historicalGrowth: 'Wzrost 24h dla tej migawki' }
             };
             return copies[lang] || copies.en;
         }
@@ -6166,6 +6182,13 @@
             }
         }
 
+        function getProfileSongKey(song) {
+            if (song?.isrc) return `isrc:${String(song.isrc).trim().toLowerCase()}`;
+            const title = String(song?.normTitle || song?.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            const artist = String(song?.primaryArtist || song?.artist || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            return `text:${title}|||${artist}`;
+        }
+
         function renderTracks() {
             const currentLang = localStorage.getItem('spicy-lang') || 'en';
             const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
@@ -6191,6 +6214,7 @@
             const sortedSongs = [...sourceSongs];
             const sortLabelMeta = document.getElementById('tracks-sort-meta');
             const snapshotCopy = getSnapshotCopy();
+            const currentSongKeys = new Set((profileData.songs || []).map(getProfileSongKey));
 
             if (sortVal === 'views-desc') {
                 sortedSongs.sort((a, b) => b.views - a.views);
@@ -6215,6 +6239,7 @@
 
             visibleSongs.forEach((song, i) => {
                 const rank = (i + 1).toString().padStart(2, '0');
+                const isDeletedNow = Boolean(selectedSnapshotData) && !currentSongKeys.has(getProfileSongKey(song));
 
                 let growthSign = '';
                 let growthColor = 'var(--muted)';
@@ -6244,7 +6269,10 @@
                 row.innerHTML = `
                     <div class="track-number">${rank}</div>
                     <div class="track-info">
-                        <div class="track-title" title="${safeTitle}">${song.title}</div>
+                        <div class="track-title-line">
+                            <div class="track-title" title="${safeTitle}">${song.title}</div>
+                            ${isDeletedNow ? `<span class="track-removed-badge">${snapshotCopy.deleted}</span>` : ''}
+                        </div>
                         <div class="track-artist" title="${safeArtist}">${song.artist}</div>
                     </div>
                     <div class="track-stats-right">

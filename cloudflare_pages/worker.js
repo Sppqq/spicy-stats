@@ -1264,18 +1264,33 @@ async function handleUserSnapshotAPI(request, env) {
         ORDER BY id DESC LIMIT 1
     `).bind(user.id, snapshot.id).first();
 
+    const growthBaseline = await env.DB.prepare(`
+        SELECT id, timestamp FROM snapshots
+        WHERE user_id = ?
+          AND id < ?
+          AND strftime('%s', substr(timestamp, 1, 19)) <=
+              strftime('%s', datetime(substr(?, 1, 19), '-12 hours'))
+        ORDER BY ABS(
+            strftime('%s', substr(timestamp, 1, 19)) -
+            strftime('%s', datetime(substr(?, 1, 19), '-24 hours'))
+        ) ASC
+        LIMIT 1
+    `).bind(user.id, snapshot.id, snapshot.timestamp, snapshot.timestamp).first();
+
     const currentSongs = await loadSongsAtSnapshot(user.id, snapshot.id, env);
     const previousSongs = previous ? await loadSongsAtSnapshot(user.id, previous.id, env) : [];
+    const baselineSongs = growthBaseline ? await loadSongsAtSnapshot(user.id, growthBaseline.id, env) : [];
     const previousMap = new Map(previousSongs.map(song => [getSnapshotSongKey(song), song]));
+    const baselineMap = new Map(baselineSongs.map(song => [getSnapshotSongKey(song), song]));
     const currentMap = new Map(currentSongs.map(song => [getSnapshotSongKey(song), song]));
 
     const songs = currentSongs.map(song => {
-        const before = previousMap.get(getSnapshotSongKey(song));
-        const previousViews = before ? before.views : song.views;
+        const baseline = baselineMap.get(getSnapshotSongKey(song));
+        const baselineViews = baseline ? baseline.views : song.views;
         return {
             ...song,
-            growth: song.views - previousViews,
-            growthPct: previousViews > 0 ? ((song.views - previousViews) / previousViews) * 100 : 0
+            growth: song.views - baselineViews,
+            growthPct: baselineViews > 0 ? ((song.views - baselineViews) / baselineViews) * 100 : 0
         };
     });
     const added = songs.filter(song => !previousMap.has(getSnapshotSongKey(song)));
@@ -1284,6 +1299,7 @@ async function handleUserSnapshotAPI(request, env) {
     return new Response(JSON.stringify({
         timestamp: snapshot.timestamp,
         previous_timestamp: previous?.timestamp || null,
+        growth_baseline_timestamp: growthBaseline?.timestamp || null,
         total_views: snapshot.total_views || 0,
         total_songs: songs.length,
         songs,
