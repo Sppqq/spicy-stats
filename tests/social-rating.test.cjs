@@ -42,7 +42,7 @@ test('dashboard and profile render the same server-provided rating', () => {
     assert.match(profile, /profileData\.social_rating/);
     assert.match(profile, /profileData\.social_rank/);
     assert.doesNotMatch(profile, /escapeHtml\(profileData\.social_rank/);
-    assert.match(profile, /socialRatingEl\.replaceChildren\(socialRankEl, socialScoreEl\)/);
+    assert.match(profile, /socialRatingEl\.replaceChildren\(socialRankEl, socialScoreEl, socialActionEl, socialChevronEl\)/);
 });
 
 test('social rating is hidden by default and controlled by a shared opt-in setting', () => {
@@ -63,4 +63,16 @@ test('profile explains rating gains and losses by component', () => {
     assert.match(profile, /function renderSocialRatingDetails\(dict\)/);
     assert.match(profile, /social-detail-delta/);
     assert.match(profile, /aria-controls="profile-social-details"/);
+});
+
+test('profile makes the rating breakdown discoverable', () => {
+    assert.match(profile, /social_explain: "ЗА ЧТО\?"/);
+    assert.match(profile, /className = 'profile-social-action'/);
+    assert.match(profile, /profile-social-rating\[aria-expanded="true"\]/);
+});
+
+test('profile avatar and refresh countdown avoid visual and text artifacts', () => {
+    assert.match(profile, /transform:scale\(1\.04\)/);
+    assert.match(profile, /String\(s\)\.padStart\(2, '0'\)/);
+    assert.doesNotMatch(profile, /\$\{m\}\$\{dict\.m\} \$\{s\}\$\{dict\.s\}/);
 });
