@@ -4,8 +4,8 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.join(__dirname, '..');
-const release = '1.4.31';
-const releaseDate = '2026-08-12';
+const release = '1.4.32';
+const releaseDate = '2026-08-15';
 const pages = ['dashboard.html', 'user.html', 'admin.html'];
 
 test('all pages show the current release in the footer and changelog', () => {

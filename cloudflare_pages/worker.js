@@ -1436,6 +1436,53 @@ async function saveSnapshotWithRetry(userId, totalViews, totalSongsCount, songEn
     }
 }
 
+function encodeSpicyLyricsInput(values) {
+    const root = {};
+    const flattened = [root];
+    for (const [key, value] of Object.entries(values)) {
+        root[key] = flattened.length;
+        flattened.push(value);
+    }
+    return JSON.stringify(flattened);
+}
+
+function decodeSpicyLyricsData(data) {
+    if (!Array.isArray(data)) return data;
+
+    const decoded = new Map();
+    const hydrate = (reference) => {
+        if (reference === -1) return undefined;
+        if (!Number.isInteger(reference) || reference < 0 || reference >= data.length) return reference;
+        if (decoded.has(reference)) return decoded.get(reference);
+
+        const value = data[reference];
+        if (value === null || typeof value !== "object") {
+            decoded.set(reference, value);
+            return value;
+        }
+
+        const result = Array.isArray(value) ? [] : {};
+        decoded.set(reference, result);
+        if (Array.isArray(value)) {
+            for (const item of value) result.push(hydrate(item));
+        } else {
+            for (const [key, item] of Object.entries(value)) result[key] = hydrate(item);
+        }
+        return result;
+    };
+
+    return hydrate(0);
+}
+
+async function fetchSpicyLyricsTRPC(method, input, headers) {
+    const baseUrl = `https://spicylyrics.org/api/trpc/${method}?input=`;
+    const response = await fetch(`${baseUrl}${encodeURIComponent(encodeSpicyLyricsInput(input))}`, { headers });
+    if (!response.ok) return null;
+
+    const payload = await response.json();
+    return decodeSpicyLyricsData(payload.result?.data);
+}
+
 async function fetchUserDataFromAPI(username, discordId = null) {
     const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" };
     let userId = discordId, discord_avatar = null;
@@ -1454,20 +1501,19 @@ async function fetchUserDataFromAPI(username, discordId = null) {
         else throw new Error("USER_NOT_CREATOR");
     }
 
-    const profileRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfile?input=${encodeURIComponent(JSON.stringify({ json: { id: userId, includeTracks: true } }))}`, { headers });
-    if (!profileRes.ok) return null;
-    const profileJson = await profileRes.json();
+    const profileData = await fetchSpicyLyricsTRPC("ttml.getTTMLProfile", { id: userId, includeTracks: true }, headers);
+    if (!profileData) return null;
 
-    const perUser = profileJson.result?.data?.json?.perUser;
-    const profile = profileJson.result?.data?.json?.profile;
+    const perUser = profileData.perUser;
+    const profile = profileData.profile;
     if (!perUser && !profile) throw new Error("USER_NOT_FOUND");
 
     // Аватарка напрямую из API JSON
     discord_avatar = profile?.data?.avatar || perUser?.avatar || null;
 
-    const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
-    if (!tracksRes.ok) return null;
-    const tracksDetails = (await tracksRes.json()).result?.data?.json?.data || [];
+    const tracksData = await fetchSpicyLyricsTRPC("ttml.getTTMLProfileTracks", { id: userId }, headers);
+    if (!tracksData) return null;
+    const tracksDetails = tracksData.data || [];
 
     const tracksMap = new Map();
     for (const track of tracksDetails) {
