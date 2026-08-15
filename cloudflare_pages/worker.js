@@ -421,34 +421,44 @@ async function handleDashboardAPI(request, env) {
         SELECT 0
         UNION ALL
         SELECT day_offset + 1 FROM day_offsets WHERE day_offset < 7
+    ),
+    ranked_samples AS (
+        SELECT
+            u.id AS user_id,
+            d.day_offset,
+            s.total_views,
+            ROW_NUMBER() OVER (
+                PARTITION BY u.id, d.day_offset
+                ORDER BY
+                    CASE WHEN d.day_offset = 0 THEN 0 ELSE ABS(
+                        strftime('%s', substr(s.timestamp, 1, 19))
+                        - strftime('%s', datetime('now', printf('-%d hours', d.day_offset * 24)))
+                    ) END ASC,
+                    s.id DESC
+            ) AS sample_rank
+        FROM users u
+        CROSS JOIN day_offsets d
+        JOIN snapshots s ON s.user_id = u.id
+            AND (
+                (d.day_offset = 0 AND s.id = (
+                    SELECT id FROM snapshots s_latest
+                    WHERE s_latest.user_id = u.id
+                    ORDER BY s_latest.id DESC
+                    LIMIT 1
+                ))
+                OR
+                (d.day_offset > 0
+                    AND substr(s.timestamp, 1, 19) >= datetime('now', printf('-%d hours', d.day_offset * 24 + 12))
+                    AND substr(s.timestamp, 1, 19) <= datetime('now', printf('-%d hours', d.day_offset * 24 - 12)))
+            )
     )
     SELECT
-        u.id AS user_id,
-        d.day_offset,
-        CASE
-            WHEN d.day_offset = 0 THEN (
-                SELECT total_views
-                FROM snapshots s_latest
-                WHERE s_latest.user_id = u.id
-                ORDER BY s_latest.id DESC
-                LIMIT 1
-            )
-            ELSE (
-                SELECT total_views
-                FROM snapshots s_history
-                WHERE s_history.user_id = u.id
-                    AND substr(s_history.timestamp, 1, 19) >= datetime('now', printf('-%d hours', d.day_offset * 24 + 12))
-                    AND substr(s_history.timestamp, 1, 19) <= datetime('now', printf('-%d hours', d.day_offset * 24 - 12))
-                ORDER BY ABS(
-                    strftime('%s', substr(s_history.timestamp, 1, 19))
-                    - strftime('%s', datetime('now', printf('-%d hours', d.day_offset * 24)))
-                ) ASC, s_history.id DESC
-                LIMIT 1
-            )
-        END AS total_views
-    FROM users u
-    CROSS JOIN day_offsets d
-    ORDER BY u.id, d.day_offset
+        user_id,
+        day_offset,
+        total_views
+    FROM ranked_samples
+    WHERE sample_rank = 1
+    ORDER BY user_id, day_offset
   `).all();
 
     const globalSongs = users.reduce((sum, u) => sum + (u.total_songs || 0), 0);

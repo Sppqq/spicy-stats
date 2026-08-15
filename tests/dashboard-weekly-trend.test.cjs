@@ -47,10 +47,11 @@ assert.equal(getPrepaintDesign('unexpected'), 'modern', 'invalid stored values s
 assert.equal(getPrepaintDesign(null, true), 'modern', 'storage failures should keep the modern default');
 
 const filterSource = extractFunction(dashboardSource, 'filterWeeklyGrowthAnomalies');
+const alignSource = extractFunction(dashboardSource, 'alignWeeklyGrowthWithPulse');
 const normalizeSource = extractFunction(dashboardSource, 'normalizeWeeklyGrowth');
 const summarySource = extractFunction(dashboardSource, 'getWeeklyGrowthSummary');
 const dashboardContext = vm.createContext({});
-vm.runInContext(`${filterSource}\n${normalizeSource}\n${summarySource}`, dashboardContext);
+vm.runInContext(`${filterSource}\n${alignSource}\n${normalizeSource}\n${summarySource}`, dashboardContext);
 
 assert.deepEqual(
     Array.from(dashboardContext.filterWeeklyGrowthAnomalies([180000, 190000, 2300000, 210000, 220000], true)),
@@ -61,6 +62,14 @@ assert.deepEqual(
     Array.from(dashboardContext.filterWeeklyGrowthAnomalies([180000, 190000, 2300000, 210000], false)),
     [180000, 190000, 2300000, 210000],
     'weekly growth spikes should remain when anomaly filtering is disabled'
+);
+assert.deepEqual(
+    Array.from(dashboardContext.alignWeeklyGrowthWithPulse(
+        [200000, 210000, 220000, 230000, 240000, 250000, 428200],
+        [{ growth: 100000 }, { growth: 70600 }, { growth: -5000 }]
+    )),
+    [200000, 210000, 220000, 230000, 240000, 250000, 170600],
+    'today weekly bar must equal the same positive 24-hour growth shown in the pulse card'
 );
 assert.deepEqual(
     Array.from(dashboardContext.filterWeeklyGrowthAnomalies([931900, 190000, 210000, 220000, 230000, 240000, 250000], true)),
@@ -126,8 +135,13 @@ assert.deepEqual(
 
 assert.match(workerSource, /weekly_growth:\s*buildWeeklyGrowth\(weeklyGrowthSamples\)/);
 assert.match(
+    dashboardSource,
+    /alignWeeklyGrowthWithPulse\(dashboardData\.weekly_growth, dashboardData\.users\)/,
+    'weekly rendering should align today with the dashboard pulse source'
+);
+assert.match(
     workerSource,
-    /s_history\.timestamp[\s\S]*?day_offset \* 24 \+ 12[\s\S]*?day_offset \* 24 - 12[\s\S]*?ORDER BY ABS/,
+    /ROW_NUMBER\(\) OVER[\s\S]*?PARTITION BY u\.id, d\.day_offset[\s\S]*?day_offset \* 24 \+ 12[\s\S]*?day_offset \* 24 - 12[\s\S]*?sample_rank = 1/,
     'weekly boundaries should use the closest snapshot within a 12-hour window'
 );
 assert.doesNotMatch(
