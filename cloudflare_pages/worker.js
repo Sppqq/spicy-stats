@@ -425,6 +425,11 @@ function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot,
     };
 }
 
+function isSocialRatingEligible(firstSnapshot, referenceTime = Date.now()) {
+    const firstSeen = firstSnapshot ? Date.parse(firstSnapshot) : NaN;
+    return Number.isFinite(firstSeen) && referenceTime - firstSeen >= 24 * 60 * 60 * 1000;
+}
+
 function buildProfileSocialSignals(history, snapshotIndex = 0) {
     const current = history?.[snapshotIndex];
     const currentTime = current ? Date.parse(current.timestamp) : NaN;
@@ -559,11 +564,14 @@ async function handleDashboardAPI(request, env) {
                 }
             }
             const tracksGrowth7d = u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0;
-            const socialRating = calculateSocialRating(u.current_views, growth, u.total_songs, u.first_snapshot, {
-                growth7d: u.past_views_7d !== null ? (u.current_views || 0) - u.past_views_7d : 0,
-                tracksGrowth7d,
-                dailyGrowth
-            });
+            const socialRatingEligible = isSocialRatingEligible(u.first_snapshot);
+            const socialRating = socialRatingEligible
+                ? calculateSocialRating(u.current_views, growth, u.total_songs, u.first_snapshot, {
+                    growth7d: u.past_views_7d !== null ? (u.current_views || 0) - u.past_views_7d : 0,
+                    tracksGrowth7d,
+                    dailyGrowth
+                })
+                : null;
             return {
                 username: u.username,
                 views: u.current_views || 0,
@@ -572,8 +580,8 @@ async function handleDashboardAPI(request, env) {
                 total_songs: u.total_songs || 0,
                 tracks_growth_7d: tracksGrowth7d,
                 last_updated: u.last_updated || null,
-                social_rating: socialRating.score,
-                social_rank: socialRating.rank
+                social_rating: socialRating?.score ?? null,
+                social_rank: socialRating?.rank ?? null
             };
         })
     };
@@ -720,9 +728,12 @@ async function handleUserDetailAPI(username, request, env) {
         }
     }
 
-    const socialRating = calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp, buildProfileSocialSignals(history, 0));
+    const socialRatingEligible = isSocialRatingEligible(firstSnapshot?.timestamp);
+    const socialRating = socialRatingEligible
+        ? calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp, buildProfileSocialSignals(history, 0))
+        : null;
     let previousSocialRating = null;
-    if (history && history.length > 1) {
+    if (socialRatingEligible && history && history.length > 1) {
         const previousSnapshot = history[1];
         const previousTime = Date.parse(previousSnapshot.timestamp);
         const previousTarget = previousTime - 24 * 60 * 60 * 1000;
@@ -736,7 +747,7 @@ async function handleUserDetailAPI(username, request, env) {
         const previousGrowth = previousBaseline ? previousSnapshot.total_views - previousBaseline.total_views : null;
         previousSocialRating = calculateSocialRating(previousSnapshot.total_views, previousGrowth, previousSnapshot.total_songs, firstSnapshot?.timestamp, buildProfileSocialSignals(history, 1));
     }
-    const socialRatingDetails = {
+    const socialRatingDetails = socialRating ? {
         components: socialRating.components,
         previous_score: previousSocialRating?.score ?? null,
         score_delta: previousSocialRating ? socialRating.score - previousSocialRating.score : null,
@@ -744,15 +755,15 @@ async function handleUserDetailAPI(username, request, env) {
             key,
             previousSocialRating ? value - previousSocialRating.components[key] : null
         ]))
-    };
+    } : null;
     const data = {
         username: user.username, discord_id: user.discord_id || null, discord_avatar: user.discord_avatar || null,
         total_views: totalViews, growth24h, first_snapshot: firstSnapshot ? firstSnapshot.timestamp : null,
         total_songs: totalSongs, highlights: topTracks, chart_data: chartDataRaw, songs: finalSongs,
         next_update: nextUpdateTimestamp,
         next_update_is_earliest: true,
-        social_rating: socialRating.score,
-        social_rank: socialRating.rank,
+        social_rating: socialRating?.score ?? null,
+        social_rank: socialRating?.rank ?? null,
         social_rating_details: socialRatingDetails,
         server_time: new Date().toISOString()
     };

@@ -23,6 +23,7 @@ function extractFunction(name) {
 
 const context = { Date, Math, Number };
 vm.runInNewContext(`${extractFunction('calculateSocialRating')}; this.calculateSocialRating = calculateSocialRating;`, context);
+vm.runInNewContext(`${extractFunction('isSocialRatingEligible')}; this.isSocialRatingEligible = isSocialRatingEligible;`, context);
 
 test('social rating rewards reach, momentum, efficiency and sustained activity', () => {
     const low = context.calculateSocialRating(1000, 5, 3, null);
@@ -48,9 +49,20 @@ test('relative velocity and views per track distinguish similarly sized catalogs
     assert.ok(active.components.weekly_momentum > stagnant.components.weekly_momentum);
 });
 
+test('social rating stays unavailable during the first 24 hours', () => {
+    const now = Date.parse('2026-08-15T12:00:00Z');
+    assert.equal(context.isSocialRatingEligible('2026-08-14T12:00:01Z', now), false);
+    assert.equal(context.isSocialRatingEligible('2026-08-14T12:00:00Z', now), true);
+    assert.equal(context.isSocialRatingEligible(null, now), false);
+    assert.match(worker, /social_rating: socialRating\?\.score \?\? null/);
+    assert.match(worker, /social_rating_details: socialRatingDetails/);
+    assert.match(dashboard, /u\.social_rating === null \|\| u\.social_rating === undefined \? '—'/);
+    assert.match(profile, /socialRatingWrapEl\.hidden = !hasSocialRating/);
+});
+
 test('dashboard and profile render the same server-provided rating', () => {
-    assert.match(worker, /social_rating: socialRating\.score/);
-    assert.match(worker, /social_rank: socialRating\.rank/);
+    assert.match(worker, /social_rating: socialRating\?\.score \?\? null/);
+    assert.match(worker, /social_rank: socialRating\?\.rank \?\? null/);
     assert.match(dashboard, /toggleSort\('social_rating'\)/);
     assert.match(dashboard, /u\.social_rating/);
     assert.match(profile, /profileData\.social_rating/);

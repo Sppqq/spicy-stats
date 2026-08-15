@@ -429,6 +429,7 @@
         .profile-social-rating { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0; border: 0; background: transparent; color: var(--green); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; cursor: help; }
         .profile-social-rank { padding: 2px 5px; border: 1px solid currentColor; line-height: 1; }
         html:not([data-show-social-rating="true"]) .profile-social-wrap { display: none; }
+        .profile-social-wrap[hidden] { display: none; }
         .profile-social-details { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: 300px; padding: 10px; border: 1px solid var(--line); background: var(--white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--ink) 12%, transparent); font-family: 'DM Mono', monospace; font-size: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s; }
         .profile-social-wrap:hover .profile-social-details,
         .profile-social-wrap:focus-within .profile-social-details,
@@ -2812,7 +2813,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.41 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.42 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -5196,7 +5197,10 @@
             document.getElementById('profile-rank').textContent = `${dict.author_profile} / ${rankText}`;
             document.getElementById('profile-name').textContent = `@${profileData.username}`;
             const socialRatingEl = document.getElementById('profile-social-rating');
-            if (socialRatingEl) {
+            const socialRatingWrapEl = document.getElementById('profile-social-wrap');
+            const hasSocialRating = profileData.social_rating !== null && profileData.social_rating !== undefined;
+            if (socialRatingWrapEl) socialRatingWrapEl.hidden = !hasSocialRating;
+            if (socialRatingEl && hasSocialRating) {
                 const socialRankEl = document.createElement('span');
                 socialRankEl.className = 'profile-social-rank';
                 socialRankEl.textContent = String(profileData.social_rank || 'D');
@@ -7972,6 +7976,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.42 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Social rating is now unavailable until a profile has at least 24 hours of history.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.41 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Expanded social rating with weekly momentum, relative velocity, track efficiency, release activity, and growth consistency.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.40 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Changed the social-rating breakdown to a hover and tap popover.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.39 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Made the social-rating breakdown discoverable and fixed profile avatar seams and countdown units.</li></ul></div>
