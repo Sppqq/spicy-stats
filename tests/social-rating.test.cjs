@@ -40,4 +40,16 @@ test('dashboard and profile render the same server-provided rating', () => {
     assert.match(dashboard, /u\.social_rating/);
     assert.match(profile, /profileData\.social_rating/);
     assert.match(profile, /profileData\.social_rank/);
+    assert.doesNotMatch(profile, /escapeHtml\(profileData\.social_rank/);
+    assert.match(profile, /socialRatingEl\.replaceChildren\(socialRankEl, socialScoreEl\)/);
+});
+
+test('social rating is hidden by default and controlled by a shared opt-in setting', () => {
+    for (const html of [dashboard, profile]) {
+        assert.match(html, /spicy-show-social-rating/);
+        assert.match(html, /id="setting-show-social-rating"/);
+        assert.match(html, /dataset\.showSocialRating/);
+    }
+    assert.match(dashboard, /html:not\(\[data-show-social-rating="true"\]\) \.social-rating-column/);
+    assert.match(profile, /html:not\(\[data-show-social-rating="true"\]\) \.profile-social-rating/);
 });

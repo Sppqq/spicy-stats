@@ -63,6 +63,11 @@
                 // Modern remains the default when storage is unavailable.
             }
             document.documentElement.dataset.dashboardDesign = dashboardDesign;
+            try {
+                document.documentElement.dataset.showSocialRating = localStorage.getItem('spicy-show-social-rating') === 'true' ? 'true' : 'false';
+            } catch (_) {
+                document.documentElement.dataset.showSocialRating = 'false';
+            }
         })();
     </script>
 
@@ -571,6 +576,7 @@
         tbody tr.disabled:hover td { color: inherit !important; }
         .social-rating { display: inline-flex; align-items: baseline; gap: 5px; font-family: 'DM Mono', monospace; font-weight: 800; color: var(--green); }
         .social-rating-rank { min-width: 18px; padding: 2px 4px; border: 1px solid currentColor; font-size: 9px; line-height: 1; text-align: center; }
+        html:not([data-show-social-rating="true"]) .social-rating-column { display: none; }
 
         .table-user { font-weight: 800; }
         .table-muted { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; }
@@ -2742,6 +2748,11 @@
                         </section>
 
                         <section class="settings-section">
+                            <div class="settings-section-head"><div class="settings-section-copy"><strong data-i18n="show_social_rating">Social rating</strong><small data-i18n="show_social_rating_desc">Show the experimental creator score.</small></div></div>
+                            <label class="settings-row"><span class="settings-row-copy"><strong data-i18n="social_rating_toggle">Show social rating</strong></span><input class="settings-switch-input" type="checkbox" id="setting-show-social-rating"></label>
+                        </section>
+
+                        <section class="settings-section">
                             <div class="settings-section-head">
                                 <span class="settings-section-icon" aria-hidden="true">
                                     <svg viewBox="0 0 20 20"><path d="M3 13l3-3 3 2 4-7 4 3"></path><path d="M3 17h14"></path></svg>
@@ -2933,7 +2944,7 @@
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('growth'); }"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks'); }"><span data-i18n="th_tracks">Tracks</span> <span id="sort-tracks"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks_growth_7d'); }"><span data-i18n="th_7d">7d tracks</span> <span id="sort-tracks_growth_7d"></span></th>
-                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('social_rating')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('social_rating'); }"><span data-i18n="th_social">Social rating</span> <span id="sort-social_rating"></span></th>
+                                <th class="social-rating-column" role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('social_rating')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('social_rating'); }"><span data-i18n="th_social">Social rating</span> <span id="sort-social_rating"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('last_updated'); }"><span data-i18n="th_updated">Updated</span> <span id="sort-last_updated"></span></th>
                             </tr>
                         </thead>
@@ -2950,7 +2961,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.36 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.37 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3311,6 +3322,9 @@
                 settings_local: "This device",
                 show_full_lists: "Show full lists",
                 show_full_lists_desc: "Display every author and track without a load-more button.",
+                show_social_rating: "Social rating",
+                show_social_rating_desc: "Show the experimental creator score.",
+                social_rating_toggle: "Show social rating",
                 full_lists_toggle: "Show everything at once",
                 show_ticker: "Show Live Ticker",
                 show_ticker_desc: "Keep recent catalog updates under the header.",
@@ -3483,6 +3497,9 @@
                 settings_local: "Это устройство",
                 show_full_lists: "Показывать списки полностью",
                 show_full_lists_desc: "Все авторы и треки сразу, без кнопки подгрузки.",
+                show_social_rating: "Социальный рейтинг",
+                show_social_rating_desc: "Показывать экспериментальную оценку авторов.",
+                social_rating_toggle: "Показывать соцрейтинг",
                 full_lists_toggle: "Показывать всё сразу",
                 show_ticker: "Показывать ленту активности",
                 show_ticker_desc: "Последние обновления каталога под шапкой.",
@@ -3655,6 +3672,9 @@
                 settings_local: "Цей пристрій",
                 show_full_lists: "Показувати списки повністю",
                 show_full_lists_desc: "Усі автори й треки одразу, без кнопки дозавантаження.",
+                show_social_rating: "Соціальний рейтинг",
+                show_social_rating_desc: "Показувати експериментальну оцінку авторів.",
+                social_rating_toggle: "Показувати соцрейтинг",
                 full_lists_toggle: "Показувати все одразу",
                 show_ticker: "Показувати стрічку активності",
                 show_ticker_desc: "Останні оновлення каталогу під шапкою.",
@@ -3827,6 +3847,9 @@
                 settings_local: "Dieses Gerät",
                 show_full_lists: "Listen vollständig anzeigen",
                 show_full_lists_desc: "Alle Autoren und Tracks sofort ohne Nachladen anzeigen.",
+                show_social_rating: "Sozialrating",
+                show_social_rating_desc: "Experimentelle Creator-Wertung anzeigen.",
+                social_rating_toggle: "Sozialrating anzeigen",
                 full_lists_toggle: "Alles sofort anzeigen",
                 show_ticker: "Live-Ticker anzeigen",
                 show_ticker_desc: "Zeige aktuelle Katalog-Updates unter der Kopfzeile.",
@@ -3999,6 +4022,9 @@
                 settings_local: "Questo dispositivo",
                 show_full_lists: "Mostra gli elenchi completi",
                 show_full_lists_desc: "Mostra subito tutti gli autori e i brani senza caricamenti aggiuntivi.",
+                show_social_rating: "Rating sociale",
+                show_social_rating_desc: "Mostra la valutazione sperimentale dei creator.",
+                social_rating_toggle: "Mostra rating sociale",
                 full_lists_toggle: "Mostra tutto subito",
                 show_ticker: "Mostra Live Ticker",
                 show_ticker_desc: "Mostra gli ultimi aggiornamenti del catalogo sotto l'intestazione.",
@@ -4171,6 +4197,9 @@
                 settings_local: "To urządzenie",
                 show_full_lists: "Pokazuj pełne listy",
                 show_full_lists_desc: "Wyświetlaj od razu wszystkich autorów i utwory bez doładowywania.",
+                show_social_rating: "Ocena społeczna",
+                show_social_rating_desc: "Pokaż eksperymentalną ocenę twórców.",
+                social_rating_toggle: "Pokaż ocenę społeczną",
                 full_lists_toggle: "Pokaż wszystko od razu",
                 show_ticker: "Pokaż Live Ticker",
                 show_ticker_desc: "Pokazuj najnowsze aktualizacje katalogu pod nagłówkiem.",
@@ -4552,6 +4581,7 @@
             const tickerSpeed = document.getElementById('setting-ticker-speed');
             const tickerEventInputs = [...document.querySelectorAll('.ticker-event-input')];
             const fullListsCheckbox = document.getElementById('setting-show-full-lists');
+            const socialRatingCheckbox = document.getElementById('setting-show-social-rating');
 
             if (toggle && dropdown) {
                 const setSettingsOpen = (isOpen) => {
@@ -4662,6 +4692,14 @@
                     localStorage.setItem('spicy-show-full-lists', fullListsCheckbox.checked);
                     dashboardVisibleCount = DASHBOARD_PAGE_SIZE;
                     renderTable();
+                });
+            }
+
+            if (socialRatingCheckbox) {
+                socialRatingCheckbox.checked = localStorage.getItem('spicy-show-social-rating') === 'true';
+                socialRatingCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('spicy-show-social-rating', String(socialRatingCheckbox.checked));
+                    document.documentElement.dataset.showSocialRating = String(socialRatingCheckbox.checked);
                 });
             }
 
@@ -5701,7 +5739,7 @@
                     <td data-mobile-label="${escapeHtml(dict.th_7d || '7d tracks')}" class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
                         ${tracksGrowthSign}${formatFullNumber(tracksGrowthVal)}
                     </td>
-                    <td data-mobile-label="${escapeHtml(dict.th_social || 'Social rating')}"><span class="social-rating"><span class="social-rating-rank">${escapeHtml(u.social_rank || 'D')}</span>${Number(u.social_rating || 0)}</span></td>
+                    <td class="social-rating-column" data-mobile-label="${escapeHtml(dict.th_social || 'Social rating')}"><span class="social-rating"><span class="social-rating-rank">${escapeHtml(u.social_rank || 'D')}</span>${Number(u.social_rating || 0)}</span></td>
                     <td data-mobile-label="${escapeHtml(dict.th_updated || 'Updated')}" class="table-muted">${timeAgo(u.last_updated)}</td>
                 `;
                 tbody.appendChild(row);
@@ -6101,6 +6139,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.37 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Made refresh intervals adapt to each creator's 24-hour view growth.</li><li>Made social rating opt-in and hidden by default.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.36 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Added a 0–1000 social rating and D–S rank for every creator.</li><li>Protected historical anchors by thinning dense snapshot clusters before old records.</li></ul></div>
 
                 <div style="margin-bottom: 16px;">
