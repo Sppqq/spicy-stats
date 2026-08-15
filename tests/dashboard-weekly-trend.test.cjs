@@ -62,6 +62,16 @@ assert.deepEqual(
     [180000, 190000, 2300000, 210000],
     'weekly growth spikes should remain when anomaly filtering is disabled'
 );
+assert.deepEqual(
+    Array.from(dashboardContext.filterWeeklyGrowthAnomalies([931900, 190000, 210000, 220000, 230000, 240000, 250000], true)),
+    [200000, 190000, 210000, 220000, 230000, 240000, 250000],
+    'an isolated spike at the oldest edge should not remain the weekly peak'
+);
+assert.deepEqual(
+    Array.from(dashboardContext.filterWeeklyGrowthAnomalies([180000, 190000, 200000, 210000, 220000, 230000, 931900], true)),
+    [180000, 190000, 200000, 210000, 220000, 230000, 225000],
+    'an intraday spike at the newest edge should not be announced as a record'
+);
 
 assert.deepEqual(
     Array.from(dashboardContext.normalizeWeeklyGrowth([120, -30, null, '240'])),
@@ -87,6 +97,11 @@ assert.equal(filteredSummary.values[2], 200000);
 assert.equal(filteredSummary.peakIndex, 6);
 assert.equal(filteredSummary.peakValue, 240000);
 assert.equal(filteredSummary.average, 205000);
+
+const edgeFilteredSummary = dashboardContext.getWeeklyGrowthSummary([931900, 190000, 210000, 220000, 230000, 240000, 250000], true);
+assert.equal(edgeFilteredSummary.values[0], 200000);
+assert.equal(edgeFilteredSummary.peakIndex, 6);
+assert.equal(edgeFilteredSummary.peakValue, 250000);
 
 const workerSource = fs.readFileSync(path.join(root, 'cloudflare_pages', 'worker.js'), 'utf8');
 const buildSource = extractFunction(workerSource, 'buildWeeklyGrowth');
