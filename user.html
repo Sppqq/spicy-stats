@@ -2812,7 +2812,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.40 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.41 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3314,7 +3314,7 @@
                 show_full_lists: "Show full lists",
                 show_full_lists_desc: "Display every author and track without a load-more button.",
                 show_social_rating: "Social rating", show_social_rating_desc: "Show the experimental creator score.", social_rating_toggle: "Show social rating",
-                social_explain: "WHY?", social_since_previous: "Since previous snapshot", social_first_rating: "First rating — no comparison yet", social_reach: "Reach / views", social_momentum: "24h momentum", social_catalog: "Catalog", social_history: "Tracking history",
+                social_explain: "WHY?", social_since_previous: "Since previous snapshot", social_first_rating: "First rating — no comparison yet", social_reach: "Reach / views", social_momentum: "24h momentum", social_weekly_momentum: "7d momentum", social_velocity: "Relative velocity", social_efficiency: "Views per track", social_catalog: "Catalog", social_releases: "New releases", social_consistency: "Growth consistency", social_history: "Tracking history",
                 full_lists_toggle: "Show everything at once",
                 anomalies_title: "Anomaly Filtering",
                 anomalies_desc: "Hide obvious collection glitches from charts.",
@@ -3498,7 +3498,7 @@
                 show_full_lists: "Показывать списки полностью",
                 show_full_lists_desc: "Все авторы и треки сразу, без кнопки подгрузки.",
                 show_social_rating: "Социальный рейтинг", show_social_rating_desc: "Показывать экспериментальную оценку авторов.", social_rating_toggle: "Показывать соцрейтинг",
-                social_explain: "ЗА ЧТО?", social_since_previous: "С прошлого снимка", social_first_rating: "Первая оценка — сравнения пока нет", social_reach: "Охват / просмотры", social_momentum: "Рост за 24 часа", social_catalog: "Каталог", social_history: "История наблюдения",
+                social_explain: "ЗА ЧТО?", social_since_previous: "С прошлого снимка", social_first_rating: "Первая оценка — сравнения пока нет", social_reach: "Охват / просмотры", social_momentum: "Рост за 24 часа", social_weekly_momentum: "Рост за 7 дней", social_velocity: "Скорость относительно базы", social_efficiency: "Просмотры на трек", social_catalog: "Каталог", social_releases: "Новые релизы", social_consistency: "Стабильность роста", social_history: "История наблюдения",
                 full_lists_toggle: "Показывать всё сразу",
                 anomalies_title: "Фильтрация аномалий",
                 anomalies_desc: "Скрывать очевидные сбои сбора данных на графиках.",
@@ -3684,7 +3684,7 @@
                 show_full_lists: "Показувати списки повністю",
                 show_full_lists_desc: "Усі автори й треки одразу, без кнопки дозавантаження.",
                 show_social_rating: "Соціальний рейтинг", show_social_rating_desc: "Показувати експериментальну оцінку авторів.", social_rating_toggle: "Показувати соцрейтинг",
-                social_explain: "ЗА ЩО?", social_since_previous: "З попереднього знімка", social_first_rating: "Перша оцінка — порівняння ще немає", social_reach: "Охоплення / перегляди", social_momentum: "Зростання за 24 години", social_catalog: "Каталог", social_history: "Історія спостереження",
+                social_explain: "ЗА ЩО?", social_since_previous: "З попереднього знімка", social_first_rating: "Перша оцінка — порівняння ще немає", social_reach: "Охоплення / перегляди", social_momentum: "Зростання за 24 години", social_weekly_momentum: "Зростання за 7 днів", social_velocity: "Відносна швидкість", social_efficiency: "Перегляди на трек", social_catalog: "Каталог", social_releases: "Нові релізи", social_consistency: "Стабільність зростання", social_history: "Історія спостереження",
                 full_lists_toggle: "Показувати все одразу",
                 anomalies_title: "Фільтрація аномалій",
                 anomalies_desc: "Приховувати очевидні збої збору даних на графіках.",
@@ -3868,7 +3868,7 @@
                 show_full_lists: "Listen vollständig anzeigen",
                 show_full_lists_desc: "Alle Autoren und Tracks sofort ohne Nachladen anzeigen.",
                 show_social_rating: "Sozialrating", show_social_rating_desc: "Experimentelle Creator-Wertung anzeigen.", social_rating_toggle: "Sozialrating anzeigen",
-                social_explain: "WARUM?", social_since_previous: "Seit dem vorherigen Snapshot", social_first_rating: "Erste Wertung — noch kein Vergleich", social_reach: "Reichweite / Aufrufe", social_momentum: "24h-Dynamik", social_catalog: "Katalog", social_history: "Beobachtungszeit",
+                social_explain: "WARUM?", social_since_previous: "Seit dem vorherigen Snapshot", social_first_rating: "Erste Wertung — noch kein Vergleich", social_reach: "Reichweite / Aufrufe", social_momentum: "24h-Dynamik", social_weekly_momentum: "7-Tage-Dynamik", social_velocity: "Relative Geschwindigkeit", social_efficiency: "Aufrufe pro Track", social_catalog: "Katalog", social_releases: "Neue Releases", social_consistency: "Wachstumskonstanz", social_history: "Beobachtungszeit",
                 full_lists_toggle: "Alles sofort anzeigen",
                 anomalies_title: "Anomalie-Filterung",
                 anomalies_desc: "Blende offensichtliche Erfassungsfehler in Diagrammen aus.",
@@ -4052,7 +4052,7 @@
                 show_full_lists: "Mostra gli elenchi completi",
                 show_full_lists_desc: "Mostra subito tutti gli autori e i brani senza caricamenti aggiuntivi.",
                 show_social_rating: "Rating sociale", show_social_rating_desc: "Mostra la valutazione sperimentale dei creator.", social_rating_toggle: "Mostra rating sociale",
-                social_explain: "PERCHÉ?", social_since_previous: "Dallo snapshot precedente", social_first_rating: "Prima valutazione — nessun confronto", social_reach: "Copertura / visualizzazioni", social_momentum: "Crescita 24h", social_catalog: "Catalogo", social_history: "Periodo monitorato",
+                social_explain: "PERCHÉ?", social_since_previous: "Dallo snapshot precedente", social_first_rating: "Prima valutazione — nessun confronto", social_reach: "Copertura / visualizzazioni", social_momentum: "Crescita 24h", social_weekly_momentum: "Crescita 7g", social_velocity: "Velocità relativa", social_efficiency: "Visualizzazioni per traccia", social_catalog: "Catalogo", social_releases: "Nuove uscite", social_consistency: "Costanza della crescita", social_history: "Periodo monitorato",
                 full_lists_toggle: "Mostra tutto subito",
                 anomalies_title: "Filtro anomalie",
                 anomalies_desc: "Nascondi dai grafici gli errori evidenti di raccolta.",
@@ -4266,7 +4266,7 @@
                 show_full_lists: "Pokazuj pełne listy",
                 show_full_lists_desc: "Wyświetlaj od razu wszystkich autorów i utwory bez doładowywania.",
                 show_social_rating: "Ocena społeczna", show_social_rating_desc: "Pokaż eksperymentalną ocenę twórców.", social_rating_toggle: "Pokaż ocenę społeczną",
-                social_explain: "ZA CO?", social_since_previous: "Od poprzedniego zapisu", social_first_rating: "Pierwsza ocena — brak porównania", social_reach: "Zasięg / wyświetlenia", social_momentum: "Wzrost 24h", social_catalog: "Katalog", social_history: "Historia monitorowania",
+                social_explain: "ZA CO?", social_since_previous: "Od poprzedniego zapisu", social_first_rating: "Pierwsza ocena — brak porównania", social_reach: "Zasięg / wyświetlenia", social_momentum: "Wzrost 24h", social_weekly_momentum: "Wzrost 7d", social_velocity: "Względna prędkość", social_efficiency: "Wyświetlenia na utwór", social_catalog: "Katalog", social_releases: "Nowe wydania", social_consistency: "Stabilność wzrostu", social_history: "Historia monitorowania",
                 full_lists_toggle: "Pokaż wszystko od razu",
                 anomalies_title: "Filtrowanie anomalii",
                 anomalies_desc: "Ukrywaj na wykresach oczywiste błędy zbierania danych.",
@@ -5156,7 +5156,12 @@
             const labels = {
                 reach: dict.social_reach,
                 momentum: dict.social_momentum,
+                weekly_momentum: dict.social_weekly_momentum,
+                velocity: dict.social_velocity,
+                efficiency: dict.social_efficiency,
                 catalog: dict.social_catalog,
+                releases: dict.social_releases,
+                consistency: dict.social_consistency,
                 history: dict.social_history
             };
             const rows = Object.entries(details.components).map(([key, value]) => {
@@ -7967,6 +7972,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.41 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Expanded social rating with weekly momentum, relative velocity, track efficiency, release activity, and growth consistency.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.40 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Changed the social-rating breakdown to a hover and tap popover.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.39 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Made the social-rating breakdown discoverable and fixed profile avatar seams and countdown units.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.38 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Added an explainable social-rating breakdown with per-component gains and losses.</li></ul></div>

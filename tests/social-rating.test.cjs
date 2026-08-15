@@ -24,14 +24,28 @@ function extractFunction(name) {
 const context = { Date, Math, Number };
 vm.runInNewContext(`${extractFunction('calculateSocialRating')}; this.calculateSocialRating = calculateSocialRating;`, context);
 
-test('social rating rewards reach, momentum and catalog strength', () => {
+test('social rating rewards reach, momentum, efficiency and sustained activity', () => {
     const low = context.calculateSocialRating(1000, 5, 3, null);
-    const high = context.calculateSocialRating(3000000, 50000, 200, '2026-01-01T00:00:00Z');
+    const high = context.calculateSocialRating(3000000, 50000, 200, '2026-01-01T00:00:00Z', {
+        growth7d: 280000,
+        tracksGrowth7d: 5,
+        dailyGrowth: [42000, 39000, 41000, 38000, 40000, 39000, 41000]
+    });
     assert.ok(high.score > low.score);
     assert.match(low.rank, /^[D-S]$/);
     assert.match(high.rank, /^[D-S]$/);
     assert.ok(high.score <= 1000);
-    assert.deepEqual(Object.keys(high.components).sort(), ['catalog', 'history', 'momentum', 'reach']);
+    assert.deepEqual(Object.keys(high.components).sort(), ['catalog', 'consistency', 'efficiency', 'history', 'momentum', 'reach', 'releases', 'velocity', 'weekly_momentum']);
+    assert.ok(high.components.consistency > 0);
+    assert.ok(high.components.releases > 0);
+});
+
+test('relative velocity and views per track distinguish similarly sized catalogs', () => {
+    const stagnant = context.calculateSocialRating(1000000, 100, 100, '2026-01-01T00:00:00Z', { growth7d: 700, dailyGrowth: [100, 100, 100, 100, 100, 100, 100] });
+    const active = context.calculateSocialRating(1000000, 20000, 100, '2026-01-01T00:00:00Z', { growth7d: 120000, dailyGrowth: [18000, 17000, 17500, 16500, 18000, 17000, 16000] });
+    assert.ok(active.score > stagnant.score);
+    assert.ok(active.components.velocity > stagnant.components.velocity);
+    assert.ok(active.components.weekly_momentum > stagnant.components.weekly_momentum);
 });
 
 test('dashboard and profile render the same server-provided rating', () => {

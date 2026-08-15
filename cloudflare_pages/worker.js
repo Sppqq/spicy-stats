@@ -377,17 +377,36 @@ function buildWeeklyGrowth(samples) {
     return totals.map((total, index) => contributorCounts[index] > 0 ? Math.round(total) : null);
 }
 
-function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot) {
+function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot, signals) {
+    signals = signals || {};
     const views = Math.max(0, Number(totalViews) || 0);
     const growth = Math.max(0, Number(growth24h) || 0);
     const songs = Math.max(0, Number(totalSongs) || 0);
+    const growth7d = Math.max(0, Number(signals.growth7d) || 0);
+    const tracksGrowth7d = Math.max(0, Number(signals.tracksGrowth7d) || 0);
+    const dailyGrowth = Array.isArray(signals.dailyGrowth)
+        ? signals.dailyGrowth.map(value => Math.max(0, Number(value) || 0)).filter(Number.isFinite)
+        : [];
     const firstSeen = firstSnapshot ? Date.parse(firstSnapshot) : NaN;
     const trackedDays = Number.isFinite(firstSeen) ? Math.max(0, (Date.now() - firstSeen) / 86400000) : 0;
-    const reach = Math.min(400, Math.log10(views + 1) / 7 * 400);
-    const momentum = Math.min(300, Math.log10(growth + 1) / 5 * 300);
-    const catalog = Math.min(150, Math.log10(songs + 1) / 2.5 * 150);
-    const history = Math.min(150, trackedDays / 180 * 150);
-    const score = Math.max(0, Math.min(1000, Math.round(reach + momentum + catalog + history)));
+    const viewsPerTrack = songs > 0 ? views / songs : 0;
+    const dailyVelocity = views > 0 ? growth / views : 0;
+    const meanDailyGrowth = dailyGrowth.length ? dailyGrowth.reduce((sum, value) => sum + value, 0) / dailyGrowth.length : 0;
+    const variance = dailyGrowth.length
+        ? dailyGrowth.reduce((sum, value) => sum + Math.pow(value - meanDailyGrowth, 2), 0) / dailyGrowth.length
+        : 0;
+    const consistencyRatio = meanDailyGrowth > 0 ? Math.max(0, 1 - Math.sqrt(variance) / meanDailyGrowth) : 0;
+
+    const reach = Math.min(230, Math.log10(views + 1) / 7 * 230);
+    const momentum = Math.min(180, Math.log10(growth + 1) / 5 * 180);
+    const weeklyMomentum = Math.min(120, Math.log10(growth7d + 1) / 6 * 120);
+    const velocity = Math.min(110, Math.sqrt(Math.min(0.05, dailyVelocity) / 0.05) * 110);
+    const efficiency = Math.min(110, Math.log10(viewsPerTrack + 1) / 5 * 110);
+    const catalog = Math.min(80, Math.log10(songs + 1) / 2.5 * 80);
+    const releases = Math.min(70, Math.log2(tracksGrowth7d + 1) / 3 * 70);
+    const consistency = Math.min(60, consistencyRatio * 60);
+    const history = Math.min(40, trackedDays / 180 * 40);
+    const score = Math.max(0, Math.min(1000, Math.round(reach + momentum + weeklyMomentum + velocity + efficiency + catalog + releases + consistency + history)));
     const rank = score >= 850 ? "S" : score >= 700 ? "A" : score >= 500 ? "B" : score >= 300 ? "C" : "D";
     return {
         score,
@@ -395,9 +414,41 @@ function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot)
         components: {
             reach: Math.round(reach),
             momentum: Math.round(momentum),
+            weekly_momentum: Math.round(weeklyMomentum),
+            velocity: Math.round(velocity),
+            efficiency: Math.round(efficiency),
             catalog: Math.round(catalog),
+            releases: Math.round(releases),
+            consistency: Math.round(consistency),
             history: Math.round(history)
         }
+    };
+}
+
+function buildProfileSocialSignals(history, snapshotIndex = 0) {
+    const current = history?.[snapshotIndex];
+    const currentTime = current ? Date.parse(current.timestamp) : NaN;
+    if (!current || !Number.isFinite(currentTime)) return {};
+    const samples = [current];
+    for (let offset = 1; offset <= 7; offset++) {
+        const target = currentTime - offset * 86400000;
+        const sample = history
+            .slice(snapshotIndex + 1)
+            .filter(item => {
+                const time = Date.parse(item.timestamp);
+                return Number.isFinite(time) && Math.abs(time - target) <= 12 * 60 * 60 * 1000;
+            })
+            .sort((a, b) => Math.abs(Date.parse(a.timestamp) - target) - Math.abs(Date.parse(b.timestamp) - target))[0];
+        samples.push(sample || null);
+    }
+    const dailyGrowth = [];
+    for (let index = 0; index < 7; index++) {
+        if (samples[index] && samples[index + 1]) dailyGrowth.push(samples[index].total_views - samples[index + 1].total_views);
+    }
+    return {
+        growth7d: samples[7] ? current.total_views - samples[7].total_views : 0,
+        tracksGrowth7d: samples[7] ? Math.max(0, (current.total_songs || 0) - (samples[7].total_songs || 0)) : 0,
+        dailyGrowth
     };
 }
 
@@ -418,9 +469,9 @@ async function handleDashboardAPI(request, env) {
         WHERE id = (SELECT id FROM snapshots s2 WHERE s2.user_id = s1.user_id ORDER BY id DESC LIMIT 1)
     )
     SELECT
-        u.username, ls.latest_views AS current_views, u.last_scraped_at AS last_updated, s_past.total_views AS past_views,
+        u.id, u.username, ls.latest_views AS current_views, u.last_scraped_at AS last_updated, s_past.total_views AS past_views,
         (SELECT timestamp FROM snapshots WHERE user_id = u.id ORDER BY id ASC LIMIT 1) AS first_snapshot,
-        s_past_7d.id AS past_7d_id,
+        s_past_7d.id AS past_7d_id, s_past_7d.total_views AS past_views_7d,
         COALESCE(ls.latest_total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = ls.latest_id AND views >= 0), 0) AS total_songs,
         COALESCE(s_past_7d.total_songs, (SELECT COUNT(DISTINCT LOWER(COALESCE(NULLIF(TRIM(title), ''), 'Hidden')) || '|||' || LOWER(COALESCE(NULLIF(TRIM(artist), ''), 'SpicyLyrics'))) FROM snapshot_songs WHERE snapshot_id = s_past_7d.id AND views >= 0), 0) AS total_songs_7d
     FROM users u
@@ -486,6 +537,11 @@ async function handleDashboardAPI(request, env) {
   `).all();
 
     const globalSongs = users.reduce((sum, u) => sum + (u.total_songs || 0), 0);
+    const growthSamplesByUser = new Map();
+    for (const sample of weeklyGrowthSamples) {
+        if (!growthSamplesByUser.has(sample.user_id)) growthSamplesByUser.set(sample.user_id, []);
+        growthSamplesByUser.get(sample.user_id).push(sample);
+    }
 
     const data = {
         total_users: globalQuery.total_users || 0,
@@ -494,14 +550,27 @@ async function handleDashboardAPI(request, env) {
         weekly_growth: buildWeeklyGrowth(weeklyGrowthSamples),
         users: users.map(u => {
             const growth = u.past_views !== null ? (u.current_views || 0) - u.past_views : null;
-            const socialRating = calculateSocialRating(u.current_views, growth, u.total_songs, u.first_snapshot);
+            const samples = (growthSamplesByUser.get(u.id) || []).sort((a, b) => a.day_offset - b.day_offset);
+            const samplesByOffset = new Map(samples.map(sample => [sample.day_offset, sample.total_views]));
+            const dailyGrowth = [];
+            for (let offset = 0; offset < 7; offset++) {
+                if (samplesByOffset.has(offset) && samplesByOffset.has(offset + 1)) {
+                    dailyGrowth.push(samplesByOffset.get(offset) - samplesByOffset.get(offset + 1));
+                }
+            }
+            const tracksGrowth7d = u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0;
+            const socialRating = calculateSocialRating(u.current_views, growth, u.total_songs, u.first_snapshot, {
+                growth7d: u.past_views_7d !== null ? (u.current_views || 0) - u.past_views_7d : 0,
+                tracksGrowth7d,
+                dailyGrowth
+            });
             return {
                 username: u.username,
                 views: u.current_views || 0,
                 growth,
                 first_snapshot: u.first_snapshot || null,
                 total_songs: u.total_songs || 0,
-                tracks_growth_7d: u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0,
+                tracks_growth_7d: tracksGrowth7d,
                 last_updated: u.last_updated || null,
                 social_rating: socialRating.score,
                 social_rank: socialRating.rank
@@ -651,7 +720,7 @@ async function handleUserDetailAPI(username, request, env) {
         }
     }
 
-    const socialRating = calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp);
+    const socialRating = calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp, buildProfileSocialSignals(history, 0));
     let previousSocialRating = null;
     if (history && history.length > 1) {
         const previousSnapshot = history[1];
@@ -665,7 +734,7 @@ async function handleUserDetailAPI(username, request, env) {
             })
             .sort((a, b) => Math.abs(Date.parse(a.timestamp) - previousTarget) - Math.abs(Date.parse(b.timestamp) - previousTarget))[0];
         const previousGrowth = previousBaseline ? previousSnapshot.total_views - previousBaseline.total_views : null;
-        previousSocialRating = calculateSocialRating(previousSnapshot.total_views, previousGrowth, previousSnapshot.total_songs, firstSnapshot?.timestamp);
+        previousSocialRating = calculateSocialRating(previousSnapshot.total_views, previousGrowth, previousSnapshot.total_songs, firstSnapshot?.timestamp, buildProfileSocialSignals(history, 1));
     }
     const socialRatingDetails = {
         components: socialRating.components,
