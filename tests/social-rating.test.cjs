@@ -42,7 +42,7 @@ test('dashboard and profile render the same server-provided rating', () => {
     assert.match(profile, /profileData\.social_rating/);
     assert.match(profile, /profileData\.social_rank/);
     assert.doesNotMatch(profile, /escapeHtml\(profileData\.social_rank/);
-    assert.match(profile, /socialRatingEl\.replaceChildren\(socialRankEl, socialScoreEl, socialActionEl, socialChevronEl\)/);
+    assert.match(profile, /socialRatingEl\.replaceChildren\(socialRankEl, socialScoreEl\)/);
 });
 
 test('social rating is hidden by default and controlled by a shared opt-in setting', () => {
@@ -52,7 +52,7 @@ test('social rating is hidden by default and controlled by a shared opt-in setti
         assert.match(html, /dataset\.showSocialRating/);
     }
     assert.match(dashboard, /html:not\(\[data-show-social-rating="true"\]\) \.social-rating-column/);
-    assert.match(profile, /html:not\(\[data-show-social-rating="true"\]\) \.profile-social-rating/);
+    assert.match(profile, /html:not\(\[data-show-social-rating="true"\]\) \.profile-social-wrap/);
 });
 
 test('profile explains rating gains and losses by component', () => {
@@ -65,10 +65,11 @@ test('profile explains rating gains and losses by component', () => {
     assert.match(profile, /aria-controls="profile-social-details"/);
 });
 
-test('profile makes the rating breakdown discoverable', () => {
-    assert.match(profile, /social_explain: "ЗА ЧТО\?"/);
-    assert.match(profile, /className = 'profile-social-action'/);
-    assert.match(profile, /profile-social-rating\[aria-expanded="true"\]/);
+test('profile shows the rating breakdown on hover and supports tap', () => {
+    assert.match(profile, /\.profile-social-wrap:hover \.profile-social-details/);
+    assert.match(profile, /\.profile-social-wrap:focus-within \.profile-social-details/);
+    assert.match(profile, /wrapEl\.classList\.toggle\('is-open'\)/);
+    assert.doesNotMatch(profile, /id="profile-social-details" hidden/);
 });
 
 test('profile avatar and refresh countdown avoid visual and text artifacts', () => {

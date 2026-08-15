@@ -425,17 +425,14 @@
             overflow: hidden;
             word-break: break-word;
         }
-        .profile-social-rating { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0; border: 0; background: transparent; color: var(--green); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer; }
-        .profile-social-rating:hover .profile-social-action,
-        .profile-social-rating:focus-visible .profile-social-action { color: var(--ink); border-color: currentColor; }
+        .profile-social-wrap { position: relative; display: table; }
+        .profile-social-rating { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0; border: 0; background: transparent; color: var(--green); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; cursor: help; }
         .profile-social-rank { padding: 2px 5px; border: 1px solid currentColor; line-height: 1; }
-        .profile-social-action { margin-left: 3px; padding-bottom: 1px; border-bottom: 1px dashed currentColor; color: var(--muted); font-size: 8px; transition: color 0.15s ease; }
-        .profile-social-chevron { display: inline-block; transition: transform 0.15s ease; }
-        .profile-social-rating[aria-expanded="true"] .profile-social-chevron { transform: rotate(180deg); }
-        html:not([data-show-social-rating="true"]) .profile-social-rating,
-        html:not([data-show-social-rating="true"]) .profile-social-details { display: none; }
-        .profile-social-details { width: min(360px, 100%); margin-top: 8px; padding: 10px; border: 1px solid var(--line); background: var(--white); font-family: 'DM Mono', monospace; font-size: 9px; }
-        .profile-social-details[hidden] { display: none; }
+        html:not([data-show-social-rating="true"]) .profile-social-wrap { display: none; }
+        .profile-social-details { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: 300px; padding: 10px; border: 1px solid var(--line); background: var(--white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--ink) 12%, transparent); font-family: 'DM Mono', monospace; font-size: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s; }
+        .profile-social-wrap:hover .profile-social-details,
+        .profile-social-wrap:focus-within .profile-social-details,
+        .profile-social-wrap.is-open .profile-social-details { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
         .social-detail-summary { margin-bottom: 7px; color: var(--ink); font-weight: 800; }
         .social-detail-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); }
         .social-detail-delta.positive { color: var(--green); }
@@ -2543,8 +2540,10 @@
 
                         <div>
                             <div class="eyebrow" id="profile-rank">Author profile / Rank #--</div>
-                            <button class="profile-social-rating" id="profile-social-rating" type="button" aria-expanded="false" aria-controls="profile-social-details" onclick="toggleSocialRatingDetails()"><span class="profile-social-rank">D</span><span>0 / 1000</span></button>
-                            <div class="profile-social-details" id="profile-social-details" hidden></div>
+                            <div class="profile-social-wrap" id="profile-social-wrap">
+                                <button class="profile-social-rating" id="profile-social-rating" type="button" aria-expanded="false" aria-controls="profile-social-details" onclick="toggleSocialRatingDetails()"><span class="profile-social-rank">D</span><span>0 / 1000</span></button>
+                                <div class="profile-social-details" id="profile-social-details"></div>
+                            </div>
                             <h1 id="profile-name">@username</h1>
                             <div class="profile-caption">
                                 <span id="profile-updated">Last updated 2 minutes ago</span>
@@ -2813,7 +2812,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.39 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.40 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -5137,11 +5136,11 @@
         }
 
         function toggleSocialRatingDetails() {
-            const detailsEl = document.getElementById('profile-social-details');
+            const wrapEl = document.getElementById('profile-social-wrap');
             const ratingEl = document.getElementById('profile-social-rating');
-            if (!detailsEl || !ratingEl) return;
-            detailsEl.hidden = !detailsEl.hidden;
-            ratingEl.setAttribute('aria-expanded', String(!detailsEl.hidden));
+            if (!wrapEl || !ratingEl) return;
+            const isOpen = wrapEl.classList.toggle('is-open');
+            ratingEl.setAttribute('aria-expanded', String(isOpen));
         }
 
         function renderSocialRatingDetails(dict) {
@@ -5198,13 +5197,7 @@
                 socialRankEl.textContent = String(profileData.social_rank || 'D');
                 const socialScoreEl = document.createElement('span');
                 socialScoreEl.textContent = `${Number(profileData.social_rating || 0)} / 1000 SOCIAL`;
-                const socialActionEl = document.createElement('span');
-                socialActionEl.className = 'profile-social-action';
-                socialActionEl.textContent = dict.social_explain;
-                const socialChevronEl = document.createElement('span');
-                socialChevronEl.className = 'profile-social-chevron';
-                socialChevronEl.textContent = '⌄';
-                socialRatingEl.replaceChildren(socialRankEl, socialScoreEl, socialActionEl, socialChevronEl);
+                socialRatingEl.replaceChildren(socialRankEl, socialScoreEl);
             }
             renderSocialRatingDetails(dict);
 
@@ -7974,6 +7967,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.40 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Changed the social-rating breakdown to a hover and tap popover.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.39 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Made the social-rating breakdown discoverable and fixed profile avatar seams and countdown units.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.38 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Added an explainable social-rating breakdown with per-component gains and losses.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.37 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Made refresh intervals adapt to each creator's 24-hour view growth.</li><li>Made social rating opt-in and hidden by default.</li></ul></div>
