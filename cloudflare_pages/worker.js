@@ -389,7 +389,16 @@ function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot)
     const history = Math.min(150, trackedDays / 180 * 150);
     const score = Math.max(0, Math.min(1000, Math.round(reach + momentum + catalog + history)));
     const rank = score >= 850 ? "S" : score >= 700 ? "A" : score >= 500 ? "B" : score >= 300 ? "C" : "D";
-    return { score, rank };
+    return {
+        score,
+        rank,
+        components: {
+            reach: Math.round(reach),
+            momentum: Math.round(momentum),
+            catalog: Math.round(catalog),
+            history: Math.round(history)
+        }
+    };
 }
 
 async function handleDashboardAPI(request, env) {
@@ -643,6 +652,30 @@ async function handleUserDetailAPI(username, request, env) {
     }
 
     const socialRating = calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp);
+    let previousSocialRating = null;
+    if (history && history.length > 1) {
+        const previousSnapshot = history[1];
+        const previousTime = Date.parse(previousSnapshot.timestamp);
+        const previousTarget = previousTime - 24 * 60 * 60 * 1000;
+        const previousBaseline = history
+            .slice(2)
+            .filter(snapshot => {
+                const time = Date.parse(snapshot.timestamp);
+                return Number.isFinite(time) && time <= previousTime - 12 * 60 * 60 * 1000;
+            })
+            .sort((a, b) => Math.abs(Date.parse(a.timestamp) - previousTarget) - Math.abs(Date.parse(b.timestamp) - previousTarget))[0];
+        const previousGrowth = previousBaseline ? previousSnapshot.total_views - previousBaseline.total_views : null;
+        previousSocialRating = calculateSocialRating(previousSnapshot.total_views, previousGrowth, previousSnapshot.total_songs, firstSnapshot?.timestamp);
+    }
+    const socialRatingDetails = {
+        components: socialRating.components,
+        previous_score: previousSocialRating?.score ?? null,
+        score_delta: previousSocialRating ? socialRating.score - previousSocialRating.score : null,
+        component_deltas: Object.fromEntries(Object.entries(socialRating.components).map(([key, value]) => [
+            key,
+            previousSocialRating ? value - previousSocialRating.components[key] : null
+        ]))
+    };
     const data = {
         username: user.username, discord_id: user.discord_id || null, discord_avatar: user.discord_avatar || null,
         total_views: totalViews, growth24h, first_snapshot: firstSnapshot ? firstSnapshot.timestamp : null,
@@ -651,6 +684,7 @@ async function handleUserDetailAPI(username, request, env) {
         next_update_is_earliest: true,
         social_rating: socialRating.score,
         social_rank: socialRating.rank,
+        social_rating_details: socialRatingDetails,
         server_time: new Date().toISOString()
     };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });

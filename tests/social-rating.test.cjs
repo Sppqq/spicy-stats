@@ -31,6 +31,7 @@ test('social rating rewards reach, momentum and catalog strength', () => {
     assert.match(low.rank, /^[D-S]$/);
     assert.match(high.rank, /^[D-S]$/);
     assert.ok(high.score <= 1000);
+    assert.deepEqual(Object.keys(high.components).sort(), ['catalog', 'history', 'momentum', 'reach']);
 });
 
 test('dashboard and profile render the same server-provided rating', () => {
@@ -52,4 +53,14 @@ test('social rating is hidden by default and controlled by a shared opt-in setti
     }
     assert.match(dashboard, /html:not\(\[data-show-social-rating="true"\]\) \.social-rating-column/);
     assert.match(profile, /html:not\(\[data-show-social-rating="true"\]\) \.profile-social-rating/);
+});
+
+test('profile explains rating gains and losses by component', () => {
+    assert.match(worker, /social_rating_details: socialRatingDetails/);
+    assert.match(worker, /component_deltas: Object\.fromEntries/);
+    assert.match(worker, /previousSocialRating \? socialRating\.score - previousSocialRating\.score : null/);
+    assert.match(profile, /function toggleSocialRatingDetails\(\)/);
+    assert.match(profile, /function renderSocialRatingDetails\(dict\)/);
+    assert.match(profile, /social-detail-delta/);
+    assert.match(profile, /aria-controls="profile-social-details"/);
 });
