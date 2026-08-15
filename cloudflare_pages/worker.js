@@ -377,6 +377,21 @@ function buildWeeklyGrowth(samples) {
     return totals.map((total, index) => contributorCounts[index] > 0 ? Math.round(total) : null);
 }
 
+function calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot) {
+    const views = Math.max(0, Number(totalViews) || 0);
+    const growth = Math.max(0, Number(growth24h) || 0);
+    const songs = Math.max(0, Number(totalSongs) || 0);
+    const firstSeen = firstSnapshot ? Date.parse(firstSnapshot) : NaN;
+    const trackedDays = Number.isFinite(firstSeen) ? Math.max(0, (Date.now() - firstSeen) / 86400000) : 0;
+    const reach = Math.min(400, Math.log10(views + 1) / 7 * 400);
+    const momentum = Math.min(300, Math.log10(growth + 1) / 5 * 300);
+    const catalog = Math.min(150, Math.log10(songs + 1) / 2.5 * 150);
+    const history = Math.min(150, trackedDays / 180 * 150);
+    const score = Math.max(0, Math.min(1000, Math.round(reach + momentum + catalog + history)));
+    const rank = score >= 850 ? "S" : score >= 700 ? "A" : score >= 500 ? "B" : score >= 300 ? "C" : "D";
+    return { score, rank };
+}
+
 async function handleDashboardAPI(request, env) {
     const globalQuery = await env.DB.prepare("SELECT COUNT(id) as total_users FROM users").first();
 
@@ -468,15 +483,21 @@ async function handleDashboardAPI(request, env) {
         global_views: totalViewsQuery.global_views || 0,
         global_tracks: globalSongs,
         weekly_growth: buildWeeklyGrowth(weeklyGrowthSamples),
-        users: users.map(u => ({
-            username: u.username,
-            views: u.current_views || 0,
-            growth: u.past_views !== null ? (u.current_views || 0) - u.past_views : null,
-            first_snapshot: u.first_snapshot || null,
-            total_songs: u.total_songs || 0,
-            tracks_growth_7d: u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0,
-            last_updated: u.last_updated || null
-        }))
+        users: users.map(u => {
+            const growth = u.past_views !== null ? (u.current_views || 0) - u.past_views : null;
+            const socialRating = calculateSocialRating(u.current_views, growth, u.total_songs, u.first_snapshot);
+            return {
+                username: u.username,
+                views: u.current_views || 0,
+                growth,
+                first_snapshot: u.first_snapshot || null,
+                total_songs: u.total_songs || 0,
+                tracks_growth_7d: u.past_7d_id !== null ? Math.max(0, (u.total_songs || 0) - (u.total_songs_7d || 0)) : 0,
+                last_updated: u.last_updated || null,
+                social_rating: socialRating.score,
+                social_rank: socialRating.rank
+            };
+        })
     };
 
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
@@ -621,12 +642,15 @@ async function handleUserDetailAPI(username, request, env) {
         }
     }
 
+    const socialRating = calculateSocialRating(totalViews, growth24h, totalSongs, firstSnapshot?.timestamp);
     const data = {
         username: user.username, discord_id: user.discord_id || null, discord_avatar: user.discord_avatar || null,
         total_views: totalViews, growth24h, first_snapshot: firstSnapshot ? firstSnapshot.timestamp : null,
         total_songs: totalSongs, highlights: topTracks, chart_data: chartDataRaw, songs: finalSongs,
         next_update: nextUpdateTimestamp,
         next_update_is_earliest: true,
+        social_rating: socialRating.score,
+        social_rank: socialRating.rank,
         server_time: new Date().toISOString()
     };
     return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
@@ -1384,17 +1408,103 @@ async function deleteUserFromDB(userId, env) {
     ]);
 }
 
+const DENSE_SNAPSHOT_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+function selectSnapshotsForPruning(snapshots, count) {
+    const remaining = (snapshots || [])
+        .map(snapshot => ({ ...snapshot, time: Date.parse(snapshot.timestamp) }))
+        .filter(snapshot => Number.isFinite(snapshot.time))
+        .sort((a, b) => a.time - b.time || a.id - b.id);
+    const selected = [];
+    const targetCount = Math.max(0, Math.min(Number(count) || 0, remaining.length - 1));
+
+    while (selected.length < targetCount && remaining.length > 1) {
+        const denseCandidates = [];
+
+        // Never remove the first or latest point while a dense interior cluster exists.
+        for (let index = 1; index < remaining.length - 1; index++) {
+            const previous = remaining[index - 1];
+            const current = remaining[index];
+            const next = remaining[index + 1];
+            const previousGap = current.time - previous.time;
+            const nextGap = next.time - current.time;
+
+            if (previousGap <= DENSE_SNAPSHOT_INTERVAL_MS && nextGap <= DENSE_SNAPSHOT_INTERVAL_MS) {
+                const preservesTrackCount = current.total_songs === previous.total_songs && current.total_songs === next.total_songs;
+                denseCandidates.push({ index, span: previousGap + nextGap, preservesTrackCount });
+            }
+        }
+
+        if (denseCandidates.length > 0) {
+            denseCandidates.sort((a, b) =>
+                Number(b.preservesTrackCount) - Number(a.preservesTrackCount) ||
+                a.span - b.span ||
+                remaining[a.index].time - remaining[b.index].time
+            );
+            const [removed] = remaining.splice(denseCandidates[0].index, 1);
+            selected.push(removed.id);
+            continue;
+        }
+
+        // Dense history has already been thinned. Only then fall back to the oldest point.
+        selected.push(remaining.shift().id);
+    }
+
+    return selected;
+}
+
 async function deleteOldestSnapshotsForUser(userId, count, env) {
     try {
-        await env.DB.prepare(
-            "DELETE FROM snapshot_songs WHERE snapshot_id IN (SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?)"
-        ).bind(userId, count).run().catch(() => {});
+        const { results: snapshots } = await env.DB.prepare(
+            "SELECT id, total_songs, timestamp FROM snapshots WHERE user_id = ? ORDER BY timestamp ASC, id ASC"
+        ).bind(userId).all();
+        const selectedIds = selectSnapshotsForPruning(snapshots, count);
+        let deletedCount = 0;
 
-        const res = await env.DB.prepare(
-            "DELETE FROM snapshots WHERE id IN (SELECT id FROM snapshots WHERE user_id = ? ORDER BY id ASC LIMIT ?)"
-        ).bind(userId, count).run().catch(() => {});
+        for (const snapshotId of selectedIds) {
+            const successor = await env.DB.prepare(`
+                SELECT id FROM snapshots
+                WHERE user_id = ? AND id != ? AND (
+                    timestamp > (SELECT timestamp FROM snapshots WHERE id = ?)
+                    OR (timestamp = (SELECT timestamp FROM snapshots WHERE id = ?) AND id > ?)
+                )
+                ORDER BY timestamp ASC, id ASC
+                LIMIT 1
+            `).bind(userId, snapshotId, snapshotId, snapshotId, snapshotId).first();
 
-        return res?.meta?.changes || count;
+            const statements = [];
+            if (successor) {
+                // Snapshots store song deltas. Carry forward values that the successor does not
+                // override so pruning a middle point cannot corrupt later catalog reconstruction.
+                statements.push(env.DB.prepare(`
+                    INSERT OR IGNORE INTO snapshot_songs (snapshot_id, spotify_id, title, artist, views)
+                    SELECT ?, old.spotify_id, old.title, old.artist, old.views
+                    FROM snapshot_songs old
+                    WHERE old.snapshot_id = ? AND NOT EXISTS (
+                        SELECT 1 FROM snapshot_songs next
+                        WHERE next.snapshot_id = ? AND (
+                            (NULLIF(old.spotify_id, '') IS NOT NULL AND next.spotify_id = old.spotify_id)
+                            OR (
+                                NULLIF(old.spotify_id, '') IS NULL
+                                AND NULLIF(next.spotify_id, '') IS NULL
+                                AND LOWER(TRIM(next.title)) = LOWER(TRIM(old.title))
+                                AND LOWER(TRIM(next.artist)) = LOWER(TRIM(old.artist))
+                            )
+                        )
+                    )
+                `).bind(successor.id, snapshotId, successor.id));
+            }
+
+            statements.push(
+                env.DB.prepare("DELETE FROM snapshot_songs WHERE snapshot_id = ?").bind(snapshotId),
+                env.DB.prepare("DELETE FROM snapshots WHERE id = ?").bind(snapshotId)
+            );
+            const results = await env.DB.batch(statements);
+            const deleteResult = results[results.length - 1];
+            deletedCount += deleteResult?.meta?.changes || 0;
+        }
+
+        return deletedCount;
     } catch (err) {
         console.error(`Failed to prune old snapshots for user ${userId}:`, err);
         return 0;
@@ -1438,7 +1548,7 @@ async function saveSnapshotWithRetry(userId, totalViews, totalSongsCount, songEn
             }
 
             if (attempt < maxAttempts) {
-                // Delete 5 oldest snapshots of THIS user to free up plenty of space
+                // Thin dense snapshot clusters first; only then remove the oldest history.
                 const deletedCount = await deleteOldestSnapshotsForUser(userId, 5, env);
                 if (deletedCount === 0) {
                     throw err;

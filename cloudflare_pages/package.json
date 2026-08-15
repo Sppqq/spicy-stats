@@ -1,6 +1,6 @@
 {
   "name": "spicy-stats-backend",
-  "version": "1.4.35",
+  "version": "1.4.36",
   "description": "Spicy stats Cloudflare Worker backend",
   "scripts": {
     "deploy": "wrangler deploy"

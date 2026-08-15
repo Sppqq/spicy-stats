@@ -569,6 +569,8 @@
         tbody tr.disabled { cursor: not-allowed; opacity: 0.55; }
         tbody tr.disabled:hover { background: transparent; color: inherit; }
         tbody tr.disabled:hover td { color: inherit !important; }
+        .social-rating { display: inline-flex; align-items: baseline; gap: 5px; font-family: 'DM Mono', monospace; font-weight: 800; color: var(--green); }
+        .social-rating-rank { min-width: 18px; padding: 2px 4px; border: 1px solid currentColor; font-size: 9px; line-height: 1; text-align: center; }
 
         .table-user { font-weight: 800; }
         .table-muted { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; }
@@ -2931,6 +2933,7 @@
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('growth')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('growth'); }"><span data-i18n="th_growth">24h growth</span> <span id="sort-growth"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks'); }"><span data-i18n="th_tracks">Tracks</span> <span id="sort-tracks"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('tracks_growth_7d')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('tracks_growth_7d'); }"><span data-i18n="th_7d">7d tracks</span> <span id="sort-tracks_growth_7d"></span></th>
+                                <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('social_rating')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('social_rating'); }"><span data-i18n="th_social">Social rating</span> <span id="sort-social_rating"></span></th>
                                 <th role="columnheader" aria-sort="none" tabindex="0" style="cursor: pointer; user-select: none;" onclick="toggleSort('last_updated')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleSort('last_updated'); }"><span data-i18n="th_updated">Updated</span> <span id="sort-last_updated"></span></th>
                             </tr>
                         </thead>
@@ -2947,7 +2950,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.35 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.36 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -3263,6 +3266,7 @@
                 th_growth: "24h growth",
                 th_tracks: "Tracks",
                 th_7d: "7d tracks",
+                th_social: "Social rating",
                 th_updated: "Updated",
                 footer: "Spicy Monitor — live creator metrics. A project by",
                 footer_github: "Source code on GitHub",
@@ -3434,6 +3438,7 @@
                 th_growth: "Рост 24ч",
                 th_tracks: "Треки",
                 th_7d: "7д треки",
+                th_social: "Соцрейтинг",
                 th_updated: "Обновлено",
                 footer: "Spicy Monitor — живые метрики авторов. Проект",
                 footer_github: "Исходный код на GitHub",
@@ -3605,6 +3610,7 @@
                 th_growth: "Зростання 24г",
                 th_tracks: "Треки",
                 th_7d: "7д треки",
+                th_social: "Соцрейтинг",
                 th_updated: "Оновлено",
                 footer: "Spicy Monitor — живі метрики авторів. Проєкт",
                 footer_github: "Вихідний код на GitHub",
@@ -3776,6 +3782,7 @@
                 th_growth: "24h Wachstum",
                 th_tracks: "Tracks",
                 th_7d: "7d Tracks",
+                th_social: "Sozialrating",
                 th_updated: "Aktualisiert",
                 footer: "Spicy Monitor — Live-Metriken für Creators. Ein Projekt von",
                 footer_github: "Quellcode auf GitHub",
@@ -3947,6 +3954,7 @@
                 th_growth: "Crescita 24h",
                 th_tracks: "Brani",
                 th_7d: "Brani 7g",
+                th_social: "Rating sociale",
                 th_updated: "Aggiornato",
                 footer: "Spicy Monitor — metriche live per creator. Un progetto di",
                 footer_github: "Codice sorgente su GitHub",
@@ -4118,6 +4126,7 @@
                 th_growth: "Wzrost 24h",
                 th_tracks: "Utwory",
                 th_7d: "Utwory 7d",
+                th_social: "Ocena społeczna",
                 th_updated: "Zaktualizowano",
                 footer: "Spicy Monitor — bieżące statystyki twórców. Projekt",
                 footer_github: "Kod źródłowy na GitHubie",
@@ -5030,7 +5039,7 @@
             `;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                    <td class="mobile-empty-cell" colspan="9" style="text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace;">
                         ${dict.loading_metrics || 'Loading live metrics...'}
                     </td>
                 </tr>
@@ -5066,7 +5075,7 @@
             document.getElementById('milestones-list').innerHTML = errorMessage;
             document.getElementById('database-tbody').innerHTML = `
                 <tr>
-                    <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
+                    <td class="mobile-empty-cell" colspan="9" style="text-align: center; padding: 40px; color: var(--coral); font-family: 'DM Mono', monospace;">
                         ${dict.error_loading || 'Error loading data. Please reload the page.'}
                     </td>
                 </tr>
@@ -5528,6 +5537,9 @@
                     valB = (b.total_songs !== null && b.total_songs !== undefined)
                         ? Number(b.total_songs)
                         : -1;
+                } else if (sortColumn === 'social_rating') {
+                    valA = Number(a.social_rating || 0);
+                    valB = Number(b.social_rating || 0);
                 } else if (sortColumn === 'last_updated') {
                     valA = a.last_updated ? new Date(a.last_updated.replace(' ', 'T')).getTime() : 0;
                     valB = b.last_updated ? new Date(b.last_updated.replace(' ', 'T')).getTime() : 0;
@@ -5573,6 +5585,9 @@
                     valB = (b.total_songs !== null && b.total_songs !== undefined)
                         ? Number(b.total_songs)
                         : -1;
+                } else if (sortColumn === 'social_rating') {
+                    valA = Number(a.social_rating || 0);
+                    valB = Number(b.social_rating || 0);
                 } else if (sortColumn === 'last_updated') {
                     valA = a.last_updated ? new Date(a.last_updated.replace(' ', 'T')).getTime() : 0;
                     valB = b.last_updated ? new Date(b.last_updated.replace(' ', 'T')).getTime() : 0;
@@ -5598,7 +5613,7 @@
             if (filteredUsers.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td class="mobile-empty-cell" colspan="8" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
+                        <td class="mobile-empty-cell" colspan="9" style="text-align: center; padding: 30px; color: var(--muted); font-family: 'DM Mono', monospace;">
                             ${dict.no_results}
                         </td>
                     </tr>
@@ -5686,6 +5701,7 @@
                     <td data-mobile-label="${escapeHtml(dict.th_7d || '7d tracks')}" class="${tracksGrowthClass}" style="color: ${tracksGrowthColor}; font-family: 'DM Mono', monospace;">
                         ${tracksGrowthSign}${formatFullNumber(tracksGrowthVal)}
                     </td>
+                    <td data-mobile-label="${escapeHtml(dict.th_social || 'Social rating')}"><span class="social-rating"><span class="social-rating-rank">${escapeHtml(u.social_rank || 'D')}</span>${Number(u.social_rating || 0)}</span></td>
                     <td data-mobile-label="${escapeHtml(dict.th_updated || 'Updated')}" class="table-muted">${timeAgo(u.last_updated)}</td>
                 `;
                 tbody.appendChild(row);
@@ -6085,6 +6101,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.36 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Added a 0–1000 social rating and D–S rank for every creator.</li><li>Protected historical anchors by thinning dense snapshot clusters before old records.</li></ul></div>
 
                 <div style="margin-bottom: 16px;">
                     <strong style="color: var(--ink);">v1.4.35 (2026-08-15)</strong>
