@@ -125,6 +125,16 @@ assert.deepEqual(
 );
 
 assert.match(workerSource, /weekly_growth:\s*buildWeeklyGrowth\(weeklyGrowthSamples\)/);
+assert.match(
+    workerSource,
+    /s_history\.timestamp[\s\S]*?day_offset \* 24 \+ 12[\s\S]*?day_offset \* 24 - 12[\s\S]*?ORDER BY ABS/,
+    'weekly boundaries should use the closest snapshot within a 12-hour window'
+);
+assert.doesNotMatch(
+    workerSource,
+    /s_history\.timestamp[\s\S]*?<= datetime\('now', printf\('-%d hours', d\.day_offset \* 24\)\)[\s\S]*?ORDER BY s_history\.id DESC/,
+    'weekly boundaries must not use an arbitrarily old snapshot as a 24-hour sample'
+);
 assert.doesNotMatch(dashboardSource, /visit-summary|initVisitSummary|since_last_visit/);
 assert.match(dashboardSource, /let dashboardDesign = 'modern';/);
 assert.match(dashboardSource, /storedDashboardDesign === 'modern' \|\| storedDashboardDesign === 'classic'/);

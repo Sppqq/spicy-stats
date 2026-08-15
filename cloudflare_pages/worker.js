@@ -437,8 +437,12 @@ async function handleDashboardAPI(request, env) {
                 SELECT total_views
                 FROM snapshots s_history
                 WHERE s_history.user_id = u.id
-                    AND substr(s_history.timestamp, 1, 19) <= datetime('now', printf('-%d hours', d.day_offset * 24))
-                ORDER BY s_history.id DESC
+                    AND substr(s_history.timestamp, 1, 19) >= datetime('now', printf('-%d hours', d.day_offset * 24 + 12))
+                    AND substr(s_history.timestamp, 1, 19) <= datetime('now', printf('-%d hours', d.day_offset * 24 - 12))
+                ORDER BY ABS(
+                    strftime('%s', substr(s_history.timestamp, 1, 19))
+                    - strftime('%s', datetime('now', printf('-%d hours', d.day_offset * 24)))
+                ) ASC, s_history.id DESC
                 LIMIT 1
             )
         END AS total_views
