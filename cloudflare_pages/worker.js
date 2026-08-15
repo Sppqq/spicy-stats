@@ -1071,34 +1071,12 @@ async function handleAdminScrapeAll(request, env, ctx) {
 
 async function triggerGlobalScrape(env) {
     try {
-        // Faster-growing profiles become eligible sooner; overdue ratio prevents starvation.
+        // Every profile uses the same two-hour cadence. Oldest successful dispatches go first.
         const { results: users } = await env.DB.prepare(`
-            WITH profile_activity AS (
-                SELECT u.id, u.username, u.discord_id, u.last_scraped_at,
-                    CASE
-                        WHEN past.id IS NULL THEN 30
-                        WHEN MAX(0, COALESCE(latest.total_views, 0) - past.total_views) >= 10000 THEN 30
-                        WHEN MAX(0, COALESCE(latest.total_views, 0) - past.total_views) >= 5000 THEN 60
-                        WHEN MAX(0, COALESCE(latest.total_views, 0) - past.total_views) >= 1000 THEN 120
-                        WHEN MAX(0, COALESCE(latest.total_views, 0) - past.total_views) >= 250 THEN 240
-                        ELSE 360
-                    END AS interval_minutes,
-                    MAX(0, COALESCE(latest.total_views, 0) - COALESCE(past.total_views, latest.total_views, 0)) AS growth_24h
-                FROM users u
-                LEFT JOIN snapshots latest ON latest.id = (SELECT id FROM snapshots WHERE user_id = u.id ORDER BY id DESC LIMIT 1)
-                LEFT JOIN snapshots past ON past.id = (
-                    SELECT id FROM snapshots
-                    WHERE user_id = u.id AND substr(timestamp, 1, 19) <= datetime('now', '-12 hours')
-                    ORDER BY ABS(strftime('%s', substr(timestamp, 1, 19)) - strftime('%s', datetime('now', '-24 hours'))) ASC LIMIT 1
-                )
-            ), eligible AS (
-                SELECT *, (julianday('now') - julianday(COALESCE(last_scraped_at, '1970-01-01 00:00:00'))) * 1440 AS waiting_minutes
-                FROM profile_activity
-            )
-            SELECT id, username, discord_id, interval_minutes, growth_24h
-            FROM eligible
-            WHERE last_scraped_at IS NULL OR waiting_minutes >= interval_minutes
-            ORDER BY (waiting_minutes / interval_minutes) DESC, growth_24h DESC
+            SELECT id, username, discord_id
+            FROM users
+            WHERE last_scraped_at IS NULL OR last_scraped_at <= datetime('now', '-120 minutes')
+            ORDER BY CASE WHEN last_scraped_at IS NULL THEN 0 ELSE 1 END, last_scraped_at ASC, id ASC
             LIMIT 10
         `).all();
 

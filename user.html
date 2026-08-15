@@ -430,7 +430,7 @@
         .profile-social-rank { padding: 2px 5px; border: 1px solid currentColor; line-height: 1; }
         html:not([data-show-social-rating="true"]) .profile-social-wrap { display: none; }
         .profile-social-wrap[hidden] { display: none; }
-        .profile-social-details { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: 300px; padding: 10px; border: 1px solid var(--line); background: var(--white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--ink) 12%, transparent); font-family: 'DM Mono', monospace; font-size: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s; }
+        .profile-social-details { position: fixed; z-index: 1000; width: 300px; max-width: calc(100vw - 16px); padding: 10px; border: 1px solid var(--line); background: var(--white); box-shadow: 8px 8px 0 color-mix(in srgb, var(--ink) 12%, transparent); font-family: 'DM Mono', monospace; font-size: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s; }
         .profile-social-wrap:hover .profile-social-details,
         .profile-social-wrap:focus-within .profile-social-details,
         .profile-social-wrap.is-open .profile-social-details { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
@@ -2813,7 +2813,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div><span data-i18n="footer">Spicy Monitor — live creator metrics. A project by</span> <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.42 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.44 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;"><span data-i18n="contact_info">Found a bug or have an idea? Telegram @lellyn · Discord @sppq</span></div>
                 <div style="margin-top: 6px;"><span data-i18n="credits"></span></div>
@@ -5144,6 +5144,23 @@
             ratingEl.setAttribute('aria-expanded', String(isOpen));
         }
 
+        function positionSocialRatingDetails() {
+            const ratingEl = document.getElementById('profile-social-rating');
+            const detailsEl = document.getElementById('profile-social-details');
+            if (!ratingEl || !detailsEl) return;
+            const trigger = ratingEl.getBoundingClientRect();
+            const panelWidth = Math.min(300, Math.max(0, window.innerWidth - 16));
+            detailsEl.style.width = `${panelWidth}px`;
+            const panelHeight = detailsEl.offsetHeight;
+            const left = Math.min(window.innerWidth - panelWidth - 8, Math.max(8, trigger.left));
+            const spaceBelow = window.innerHeight - trigger.bottom - 8;
+            const top = spaceBelow >= panelHeight
+                ? trigger.bottom + 7
+                : Math.max(8, trigger.top - panelHeight - 7);
+            detailsEl.style.left = `${left}px`;
+            detailsEl.style.top = `${top}px`;
+        }
+
         function renderSocialRatingDetails(dict) {
             const detailsEl = document.getElementById('profile-social-details');
             const details = profileData?.social_rating_details;
@@ -5201,6 +5218,12 @@
             const hasSocialRating = profileData.social_rating !== null && profileData.social_rating !== undefined;
             if (socialRatingWrapEl) socialRatingWrapEl.hidden = !hasSocialRating;
             if (socialRatingEl && hasSocialRating) {
+                if (!socialRatingEl.dataset.popoverBound) {
+                    socialRatingEl.dataset.popoverBound = 'true';
+                    socialRatingEl.addEventListener('mouseenter', positionSocialRatingDetails);
+                    socialRatingEl.addEventListener('focus', positionSocialRatingDetails);
+                    window.addEventListener('resize', positionSocialRatingDetails);
+                }
                 const socialRankEl = document.createElement('span');
                 socialRankEl.className = 'profile-social-rank';
                 socialRankEl.textContent = String(profileData.social_rank || 'D');
@@ -7280,6 +7303,18 @@
             status.style.color = isError ? '#ff745d' : '#87897f';
         }
 
+        function getShareCardCopy() {
+            const copies = {
+                en: { liveData: 'LIVE CREATOR DATA', squareCard: 'CARD / 1:1', storyCard: 'CARD / 9:16', achievement: 'ACHIEVEMENT 01', creatorMomentum: 'CREATOR MOMENTUM', trackedCreator: 'TRACKED CREATOR', rank: 'RANK', totalAudience: 'TOTAL AUDIENCE', momentum: 'MOMENTUM', audienceGrowth: 'AUDIENCE GROWTH', tracked: 'TRACKED', catalogTracks: 'CATALOG TRACKS', viewVelocity: 'VIEW VELOCITY', rising: 'RISING', falling: 'FALLING', catalogLeader: 'CATALOG LEADER', untitled: 'UNTITLED', views: 'VIEWS', tagline: 'ONE PROFILE. ONE SIGNAL. UPDATED LIVE.' },
+                ru: { liveData: 'ДАННЫЕ АВТОРА В РЕАЛЬНОМ ВРЕМЕНИ', squareCard: 'КАРТОЧКА / 1:1', storyCard: 'КАРТОЧКА / 9:16', achievement: 'ДОСТИЖЕНИЕ 01', creatorMomentum: 'ДИНАМИКА АВТОРА', trackedCreator: 'ОТСЛЕЖИВАЕМЫЙ АВТОР', rank: 'РАНГ', totalAudience: 'ОБЩИЙ ОХВАТ', momentum: 'ДИНАМИКА', audienceGrowth: 'РОСТ АУДИТОРИИ', tracked: 'ОТСЛЕЖИВАЕТСЯ', catalogTracks: 'ТРЕКОВ В КАТАЛОГЕ', viewVelocity: 'СКОРОСТЬ ПРОСМОТРОВ', rising: 'РАСТЁТ', falling: 'СНИЖАЕТСЯ', catalogLeader: 'ЛИДЕР КАТАЛОГА', untitled: 'БЕЗ НАЗВАНИЯ', views: 'ПРОСМОТРОВ', tagline: 'ОДИН ПРОФИЛЬ. ОДИН СИГНАЛ. ЖИВЫЕ ДАННЫЕ.' },
+                uk: { liveData: 'ДАНІ АВТОРА В РЕАЛЬНОМУ ЧАСІ', squareCard: 'КАРТКА / 1:1', storyCard: 'КАРТКА / 9:16', achievement: 'ДОСЯГНЕННЯ 01', creatorMomentum: 'ДИНАМІКА АВТОРА', trackedCreator: 'АВТОР ПІД НАГЛЯДОМ', rank: 'РАНГ', totalAudience: 'ЗАГАЛЬНЕ ОХОПЛЕННЯ', momentum: 'ДИНАМІКА', audienceGrowth: 'ЗРОСТАННЯ АУДИТОРІЇ', tracked: 'ВІДСТЕЖУЄТЬСЯ', catalogTracks: 'ТРЕКІВ У КАТАЛОЗІ', viewVelocity: 'ШВИДКІСТЬ ПЕРЕГЛЯДІВ', rising: 'ЗРОСТАЄ', falling: 'ЗНИЖУЄТЬСЯ', catalogLeader: 'ЛІДЕР КАТАЛОГУ', untitled: 'БЕЗ НАЗВИ', views: 'ПЕРЕГЛЯДІВ', tagline: 'ОДИН ПРОФІЛЬ. ОДИН СИГНАЛ. ЖИВІ ДАНІ.' },
+                de: { liveData: 'LIVE-CREATOR-DATEN', squareCard: 'KARTE / 1:1', storyCard: 'KARTE / 9:16', achievement: 'ERFOLG 01', creatorMomentum: 'CREATOR-DYNAMIK', trackedCreator: 'BEOBACHTETER CREATOR', rank: 'RANG', totalAudience: 'GESAMTREICHWEITE', momentum: 'DYNAMIK', audienceGrowth: 'PUBLIKUMSWACHSTUM', tracked: 'ERFASST', catalogTracks: 'KATALOG-TRACKS', viewVelocity: 'AUFRUF-DYNAMIK', rising: 'STEIGEND', falling: 'FALLEND', catalogLeader: 'KATALOG-SPITZE', untitled: 'OHNE TITEL', views: 'AUFRUFE', tagline: 'EIN PROFIL. EIN SIGNAL. LIVE AKTUALISIERT.' },
+                it: { liveData: 'DATI CREATOR IN TEMPO REALE', squareCard: 'SCHEDA / 1:1', storyCard: 'SCHEDA / 9:16', achievement: 'TRAGUARDO 01', creatorMomentum: 'DINAMICA CREATOR', trackedCreator: 'CREATOR MONITORATO', rank: 'RANGO', totalAudience: 'PUBBLICO TOTALE', momentum: 'DINAMICA', audienceGrowth: 'CRESCITA DEL PUBBLICO', tracked: 'MONITORATI', catalogTracks: 'TRACCE IN CATALOGO', viewVelocity: 'VELOCITÀ VISUALIZZAZIONI', rising: 'IN CRESCITA', falling: 'IN CALO', catalogLeader: 'LEADER DEL CATALOGO', untitled: 'SENZA TITOLO', views: 'VISUALIZZAZIONI', tagline: 'UN PROFILO. UN SEGNALE. AGGIORNATO LIVE.' },
+                pl: { liveData: 'DANE TWÓRCY NA ŻYWO', squareCard: 'KARTA / 1:1', storyCard: 'KARTA / 9:16', achievement: 'OSIĄGNIĘCIE 01', creatorMomentum: 'DYNAMIKA TWÓRCY', trackedCreator: 'ŚLEDZONY TWÓRCA', rank: 'RANGA', totalAudience: 'ŁĄCZNY ZASIĘG', momentum: 'DYNAMIKA', audienceGrowth: 'WZROST ODBIORCÓW', tracked: 'ŚLEDZONE', catalogTracks: 'UTWORY W KATALOGU', viewVelocity: 'TEMPO WYŚWIETLEŃ', rising: 'ROŚNIE', falling: 'SPADA', catalogLeader: 'LIDER KATALOGU', untitled: 'BEZ TYTUŁU', views: 'WYŚWIETLENIA', tagline: 'JEDEN PROFIL. JEDEN SYGNAŁ. DANE NA ŻYWO.' }
+            };
+            return copies[localStorage.getItem('spicy-lang') || 'en'] || copies.en;
+        }
+
         function canvasToBlob(canvas) {
             return new Promise((resolve, reject) => {
                 canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to create PNG.')), 'image/png', 1);
@@ -7302,6 +7337,7 @@
             const height = canvas.height;
             const ctx = canvas.getContext('2d');
             const margin = 72;
+            const copy = getShareCardCopy();
 
             setShareCardBusy(true);
             setShareCardStatus('Rendering high-resolution card…');
@@ -7372,13 +7408,13 @@
                 ctx.fillText('SPICY MONITOR', margin + 58, 77);
                 ctx.fillStyle = palette.muted;
                 ctx.font = '600 11px "DM Mono", monospace';
-                ctx.fillText('LIVE CREATOR DATA', margin + 58, 96);
+                ctx.fillText(copy.liveData, margin + 58, 96);
                 ctx.textAlign = 'right';
                 ctx.fillStyle = palette.muted;
-                ctx.fillText(compact ? 'CARD / 1:1' : 'CARD / 9:16', width - margin, 73);
+                ctx.fillText(compact ? copy.squareCard : copy.storyCard, width - margin, 73);
                 ctx.fillStyle = palette.text;
                 ctx.font = '700 11px "DM Mono", monospace';
-                ctx.fillText('ACHIEVEMENT 01', width - margin, 96);
+                ctx.fillText(copy.achievement, width - margin, 96);
                 ctx.textAlign = 'left';
 
                 ctx.strokeStyle = palette.line;
@@ -7422,12 +7458,13 @@
                 const displayName = `@${profileData.username || username}`;
                 ctx.fillStyle = palette.muted;
                 ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
-                ctx.fillText('CREATOR MOMENTUM', profileX, heroY + 16);
+                ctx.fillText(copy.creatorMomentum, profileX, heroY + 16);
                 const nameSize = fitCanvasText(ctx, displayName, maxNameWidth, compact ? 68 : 88, 38);
                 ctx.fillStyle = palette.text;
                 ctx.font = `800 ${nameSize}px Manrope, sans-serif`;
                 ctx.fillText(displayName, profileX, heroY + avatarSize * 0.58);
-                const rankText = document.getElementById('profile-rank')?.textContent?.split('/').pop()?.trim() || 'Tracked creator';
+                const rankNumber = document.getElementById('profile-rank')?.textContent?.match(/#\s*\d+/)?.[0] || '';
+                const rankText = rankNumber ? `${copy.rank} ${rankNumber}` : copy.trackedCreator;
                 ctx.fillStyle = palette.muted;
                 ctx.font = `600 ${compact ? 13 : 15}px "DM Mono", monospace`;
                 ctx.fillText(`${rankText.toUpperCase()}  /  ${periodData.label.toUpperCase()}`, profileX, heroY + avatarSize * 0.88);
@@ -7435,7 +7472,7 @@
                 const viewsY = compact ? 354 : 458;
                 ctx.fillStyle = palette.muted;
                 ctx.font = `600 ${compact ? 14 : 16}px "DM Mono", monospace`;
-                ctx.fillText('TOTAL AUDIENCE', margin, viewsY);
+                ctx.fillText(copy.totalAudience, margin, viewsY);
                 const viewsText = formatViews(Number(profileData.total_views || 0));
                 ctx.fillStyle = palette.text;
                 const viewsSize = fitCanvasText(ctx, viewsText, width - margin * 2, compact ? 142 : 196, 92);
@@ -7453,11 +7490,11 @@
 
                 ctx.fillStyle = growthPositive ? accentInk : '#fffdf8';
                 ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
-                ctx.fillText(`${periodData.label} MOMENTUM`.toUpperCase(), margin + 28, statY + (compact ? 40 : 50));
+                ctx.fillText(`${periodData.label} ${copy.momentum}`.toUpperCase(), margin + 28, statY + (compact ? 40 : 50));
                 ctx.font = `800 ${compact ? 48 : 66}px Manrope, sans-serif`;
                 ctx.fillText(`${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, margin + 28, statY + (compact ? 112 : 140));
                 ctx.font = `600 ${compact ? 11 : 13}px "DM Mono", monospace`;
-                ctx.fillText('AUDIENCE GROWTH', margin + 28, statY + statHeight - 24);
+                ctx.fillText(copy.audienceGrowth, margin + 28, statY + statHeight - 24);
 
                 const catalogX = margin + growthWidth + statGap;
                 const catalogWidth = statWidth - growthWidth - statGap;
@@ -7466,11 +7503,11 @@
                 ctx.fill();
                 ctx.fillStyle = palette.chartText;
                 ctx.font = `700 ${compact ? 12 : 13}px "DM Mono", monospace`;
-                ctx.fillText('TRACKED', catalogX + 24, statY + (compact ? 40 : 50));
+                ctx.fillText(copy.tracked, catalogX + 24, statY + (compact ? 40 : 50));
                 ctx.font = `800 ${compact ? 47 : 62}px Manrope, sans-serif`;
                 ctx.fillText(`${Number(profileData.total_songs || 0)}`, catalogX + 24, statY + (compact ? 112 : 140));
                 ctx.font = `600 ${compact ? 11 : 13}px "DM Mono", monospace`;
-                ctx.fillText('CATALOG TRACKS', catalogX + 24, statY + statHeight - 24);
+                ctx.fillText(copy.catalogTracks, catalogX + 24, statY + statHeight - 24);
 
                 const chartY = compact ? 706 : 942;
                 const chartHeight = compact ? 296 : 474;
@@ -7479,10 +7516,10 @@
                 ctx.fill();
                 ctx.fillStyle = palette.chartText;
                 ctx.font = `700 ${compact ? 12 : 14}px "DM Mono", monospace`;
-                ctx.fillText('VIEW VELOCITY', margin + (compact ? 28 : 34), chartY + (compact ? 42 : 52));
+                ctx.fillText(copy.viewVelocity, margin + (compact ? 28 : 34), chartY + (compact ? 42 : 52));
                 ctx.textAlign = 'right';
                 ctx.fillStyle = growthPositive ? (palette.chartAccent || palette.accent) : palette.negative;
-                ctx.fillText(`${growthPositive ? 'RISING' : 'FALLING'}  ${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, width - margin - (compact ? 28 : 34), chartY + (compact ? 42 : 52));
+                ctx.fillText(`${growthPositive ? copy.rising : copy.falling}  ${growthPositive ? '+' : '−'}${formatViews(Math.abs(periodData.growth))}`, width - margin - (compact ? 28 : 34), chartY + (compact ? 42 : 52));
                 ctx.textAlign = 'left';
                 drawShareSparkline(ctx, periodData.points, {
                     x: margin + (compact ? 28 : 34),
@@ -7501,17 +7538,17 @@
                     ctx.fillRect(margin, topY, 12, 268);
                     ctx.fillStyle = palette.muted;
                     ctx.font = '700 14px "DM Mono", monospace';
-                    ctx.fillText('CATALOG LEADER', margin + 42, topY + 52);
+                    ctx.fillText(copy.catalogLeader, margin + 42, topY + 52);
                     ctx.fillStyle = palette.text;
                     ctx.font = '800 52px Manrope, sans-serif';
-                    ctx.fillText(truncateCanvasText(ctx, topSong.title || 'Untitled', width - margin * 2 - 84), margin + 42, topY + 126);
+                    ctx.fillText(truncateCanvasText(ctx, topSong.title || copy.untitled, width - margin * 2 - 84), margin + 42, topY + 126);
                     ctx.fillStyle = palette.muted;
                     ctx.font = '600 22px Manrope, sans-serif';
                     ctx.fillText(truncateCanvasText(ctx, topSong.artist || profileData.username, width - margin * 2 - 310), margin + 42, topY + 174);
                     ctx.textAlign = 'right';
                     ctx.fillStyle = palette.text;
                     ctx.font = '700 17px "DM Mono", monospace';
-                    ctx.fillText(`${formatViews(Number(topSong.views || 0))} VIEWS`, width - margin - 34, topY + 174);
+                    ctx.fillText(`${formatViews(Number(topSong.views || 0))} ${copy.views}`, width - margin - 34, topY + 174);
                     ctx.textAlign = 'left';
                     ctx.strokeStyle = palette.line;
                     ctx.beginPath();
@@ -7520,7 +7557,7 @@
                     ctx.stroke();
                     ctx.fillStyle = palette.muted;
                     ctx.font = '600 12px "DM Mono", monospace';
-                    ctx.fillText('ONE PROFILE. ONE SIGNAL. UPDATED LIVE.', margin + 42, topY + 244);
+                    ctx.fillText(copy.tagline, margin + 42, topY + 244);
                 }
 
                 ctx.strokeStyle = palette.line;
@@ -7976,6 +8013,8 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;" data-i18n="changelog">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.44 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Removed adaptive refresh bands and restored one fixed two-hour cadence for every profile.</li></ul></div>
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.43 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Kept the social-rating popover inside the viewport and localized all share-card artwork labels.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.42 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Social rating is now unavailable until a profile has at least 24 hours of history.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.41 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Expanded social rating with weekly momentum, relative velocity, track efficiency, release activity, and growth consistency.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.40 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Changed the social-rating breakdown to a hover and tap popover.</li></ul></div>
