@@ -23,6 +23,11 @@ function verifyAdminSecret(secret, env) {
 const REGEX_TITLE_CLEAN = /\s*[-\(]\s*(?:20\d{2}\s+)?(?:remastered|remaster|deluxe|edit|radio edit|live|acoustic)[\)]?/gi;
 const REGEX_ARTIST_CLEAN = /\s+(?:feat\.?|ft\.?|&|and)\s+/gi;
 const REGEX_NON_ALPHANUM = /[^a-z0-9а-яё]/g;
+const SPICYLYRICS_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.35 Safari/537.36";
+
+function createSpicyLyricsHeaders(headers = {}) {
+    return { ...headers, "User-Agent": SPICYLYRICS_USER_AGENT };
+}
 
 const titleCache = new Map();
 const artistCache = new Map();
@@ -1189,7 +1194,7 @@ async function populateMetadataCache(env, targetUsername = null) {
     const { results: users } = await env.DB.prepare(query).bind(...bindParams).all();
     if (!users || users.length === 0) return;
 
-    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" };
+    const headers = createSpicyLyricsHeaders();
 
     const processUser = async (user) => {
         try {
@@ -1764,7 +1769,7 @@ function decodeSpicyLyricsData(data) {
 
 async function fetchSpicyLyricsTRPC(method, input, headers) {
     const baseUrl = `https://spicylyrics.org/api/trpc/${method}?input=`;
-    const response = await fetch(`${baseUrl}${encodeURIComponent(encodeSpicyLyricsInput(input))}`, { headers });
+    const response = await fetch(`${baseUrl}${encodeURIComponent(encodeSpicyLyricsInput(input))}`, { headers: createSpicyLyricsHeaders(headers) });
     if (!response.ok) return null;
 
     const payload = await response.json();
@@ -1772,7 +1777,7 @@ async function fetchSpicyLyricsTRPC(method, input, headers) {
 }
 
 async function fetchUserDataFromAPI(username, discordId = null) {
-    const headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" };
+    const headers = createSpicyLyricsHeaders();
     let userId = discordId, discord_avatar = null;
 
     // СУПЕР БЫСТРЫЙ ПАРСИНГ (Без тяжелых регулярок HTML)

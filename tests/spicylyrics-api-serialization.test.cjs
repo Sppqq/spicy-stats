@@ -59,3 +59,11 @@ test('metadata refresh uses the current tRPC serializer and decoder', () => {
     );
     assert.doesNotMatch(worker, /JSON\.stringify\(\{ json: \{ id: userId \} \}\)/);
 });
+
+test('every SpicyLyrics request uses the configured macOS Chrome user agent', () => {
+    const expectedUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.35 Safari/537.36';
+    assert.match(worker, new RegExp(`SPICYLYRICS_USER_AGENT = ${JSON.stringify(expectedUserAgent).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    assert.equal((worker.match(/createSpicyLyricsHeaders\(\)/g) || []).length, 2);
+    assert.match(worker, /fetch\(`\$\{baseUrl\}[\s\S]*headers: createSpicyLyricsHeaders\(headers\)/);
+    assert.doesNotMatch(worker, /Windows NT 10\.0; Win64; x64/);
+});
