@@ -23,7 +23,7 @@ function verifyAdminSecret(secret, env) {
 const REGEX_TITLE_CLEAN = /\s*[-\(]\s*(?:20\d{2}\s+)?(?:remastered|remaster|deluxe|edit|radio edit|live|acoustic)[\)]?/gi;
 const REGEX_ARTIST_CLEAN = /\s+(?:feat\.?|ft\.?|&|and)\s+/gi;
 const REGEX_NON_ALPHANUM = /[^a-z0-9а-яё]/g;
-const SPICYLYRICS_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.35 Safari/537.36";
+const SPICYLYRICS_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0";
 
 function createSpicyLyricsHeaders(headers = {}) {
     return { ...headers, "User-Agent": SPICYLYRICS_USER_AGENT };
