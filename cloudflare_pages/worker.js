@@ -144,6 +144,19 @@ async function checkSchema(env) {
         `).run().catch(() => {});
 
         await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS scraper_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+            INSERT OR IGNORE INTO scraper_settings (id, enabled)
+            VALUES (1, 1)
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
             CREATE TABLE IF NOT EXISTS missing_tracks_tracker (
                 user_id INTEGER,
                 song_key TEXT,
@@ -251,6 +264,7 @@ export default {
             else if (url.pathname === "/api/admin/update-metadata" && request.method === "POST") response = await handleAdminUpdateMetadata(request, env);
             else if (url.pathname === "/api/admin/scrape-user" && request.method === "POST") response = await handleAdminScrapeUser(request, env);
             else if (url.pathname === "/api/admin/scrape-all" && request.method === "POST") response = await handleAdminScrapeAll(request, env, ctx);
+            else if (url.pathname === "/api/admin/scraping-settings" && request.method === "POST") response = await handleAdminScrapingSettings(request, env);
             else if (url.pathname === "/api/admin/populate-metadata" && request.method === "POST") response = await handleAdminPopulateMetadata(request, env, ctx);
 
             else if (url.pathname === "/api/admin/merge-users" && request.method === "POST") response = await handleAdminMergeUsers(request, env);
@@ -278,6 +292,10 @@ export default {
 
     // ОБРАБОТЧИК ОЧЕРЕДИ (CONSUMER)
     async queue(batch, env) {
+        if (!await isScrapingEnabled(env)) {
+            for (const msg of batch.messages) msg.ack();
+            return;
+        }
         for (const msg of batch.messages) {
             try {
                 const user = msg.body;
@@ -296,6 +314,7 @@ export default {
 // ==========================================
 
 async function handleAddUser(request, env, ctx) {
+    if (!await isScrapingEnabled(env)) return scrapingDisabledResponse(request, env);
     const { username, lang: userLang } = await request.json();
     const lang = userLang || "en";
 
@@ -923,6 +942,7 @@ async function handleAdminStats(request, env) {
         total_users: userCount.cnt || 0, total_snapshots: snapshotCount.cnt || 0, total_songs: songCount.cnt || 0,
         total_metadata: metadataCount.cnt || 0, db_size_bytes: dbSize,
         last_scraper_run: scraperRunRes ? scraperRunRes.last_run : null, scraped_24h: scraped24h ? scraped24h.cnt : 0,
+        scraping_enabled: await isScrapingEnabled(env),
         users: usersList.map(u => ({
             id: u.id, username: u.username, last_scraped_at: u.last_scraped_at || null, snap_count: u.snap_count || 0, last_updated: u.last_updated || null,
             views: u.current_views || 0, song_count: userLatestSnapMap.has(u.id) ? (songCountMap.get(userLatestSnapMap.get(u.id)) || 0) : 0
@@ -1047,6 +1067,7 @@ async function handleAdminSyncProdDb(request, env) {
 async function handleAdminScrapeUser(request, env) {
     const { secret, username } = await request.json().catch(() => ({}));
     if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!await isScrapingEnabled(env)) return scrapingDisabledResponse(request, env);
 
     const cleanName = username.trim().replace(/^@/, "");
     const user = await env.DB.prepare("SELECT id, discord_id FROM users WHERE LOWER(username) = LOWER(?)").bind(cleanName).first();
@@ -1063,14 +1084,42 @@ async function handleAdminScrapeUser(request, env) {
 async function handleAdminScrapeAll(request, env, ctx) {
     const { secret } = await request.json().catch(() => ({}));
     if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!await isScrapingEnabled(env)) return scrapingDisabledResponse(request, env);
 
     ctx.waitUntil(triggerGlobalScrape(env));
 
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
 }
 
+async function isScrapingEnabled(env) {
+    const settings = await env.DB.prepare("SELECT enabled FROM scraper_settings WHERE id = 1").first();
+    return !settings || Number(settings.enabled) !== 0;
+}
+
+function scrapingDisabledResponse(request, env) {
+    return new Response(JSON.stringify({ error: "Parsing is disabled by the emergency switch.", code: "SCRAPING_DISABLED" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) }
+    });
+}
+
+async function handleAdminScrapingSettings(request, env) {
+    const { secret, enabled } = await request.json().catch(() => ({}));
+    if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (typeof enabled !== "boolean") return new Response(JSON.stringify({ error: "The enabled value must be boolean." }), { status: 400, headers: getCorsHeaders(request, env) });
+
+    await env.DB.prepare(`
+        INSERT INTO scraper_settings (id, enabled, updated_at)
+        VALUES (1, ?, datetime('now'))
+        ON CONFLICT(id) DO UPDATE SET enabled = excluded.enabled, updated_at = excluded.updated_at
+    `).bind(enabled ? 1 : 0).run();
+
+    return new Response(JSON.stringify({ success: true, enabled }), { headers: { "Content-Type": "application/json", ...getCorsHeaders(request, env) } });
+}
+
 async function triggerGlobalScrape(env) {
     try {
+        if (!await isScrapingEnabled(env)) return;
         // Every profile uses the same two-hour cadence. Oldest successful dispatches go first.
         const { results: users } = await env.DB.prepare(`
             SELECT id, username, discord_id
@@ -1120,6 +1169,7 @@ async function triggerGlobalScrape(env) {
 async function handleAdminPopulateMetadata(request, env, ctx) {
     const { secret, username } = await request.json().catch(() => ({}));
     if (!verifyAdminSecret(secret, env)) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(request, env) });
+    if (!await isScrapingEnabled(env)) return scrapingDisabledResponse(request, env);
     try {
         if (username) {
             await populateMetadataCache(env, username);
@@ -1132,6 +1182,7 @@ async function handleAdminPopulateMetadata(request, env, ctx) {
 }
 
 async function populateMetadataCache(env, targetUsername = null) {
+    if (!await isScrapingEnabled(env)) return;
     let query = "SELECT id, username, discord_id FROM users";
     let bindParams = [];
     if (targetUsername) { query += " WHERE LOWER(username) = LOWER(?)"; bindParams.push(targetUsername); }
@@ -1152,11 +1203,10 @@ async function populateMetadataCache(env, targetUsername = null) {
             }
             if (!userId) return { user, tracksDetails: [] };
 
-            const tracksRes = await fetch(`https://spicylyrics.org/api/trpc/ttml.getTTMLProfileTracks?input=${encodeURIComponent(JSON.stringify({ json: { id: userId } }))}`, { headers });
-            if (!tracksRes.ok) return { user, tracksDetails: [] };
+            const tracksData = await fetchSpicyLyricsTRPC("ttml.getTTMLProfileTracks", { id: userId }, headers);
+            if (!tracksData) return { user, tracksDetails: [] };
 
-            const jsonRes = await tracksRes.json();
-            const tracksDetails = jsonRes.result?.data?.json?.data || [];
+            const tracksDetails = tracksData.data || [];
             return { user, tracksDetails };
         } catch (err) {
             return { user, tracksDetails: [] };
@@ -1779,6 +1829,7 @@ async function fetchUserDataFromAPI(username, discordId = null) {
 }
 
 async function scrapeAndSave(userId, username, discordId, env) {
+    if (!await isScrapingEnabled(env)) return;
     let data = null;
     try {
         data = await fetchUserDataFromAPI(username, discordId);

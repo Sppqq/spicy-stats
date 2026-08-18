@@ -51,3 +51,11 @@ test('decodes flattened SpicyLyrics profile and track payloads', () => {
         perUser: { makes: [{ id: 'spotify-track-id', view_count: 42 }], uploads: [] }
     });
 });
+
+test('metadata refresh uses the current tRPC serializer and decoder', () => {
+    assert.match(
+        worker,
+        /fetchSpicyLyricsTRPC\("ttml\.getTTMLProfileTracks", \{ id: userId \}, headers\)/
+    );
+    assert.doesNotMatch(worker, /JSON\.stringify\(\{ json: \{ id: userId \} \}\)/);
+});

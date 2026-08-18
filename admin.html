@@ -417,6 +417,82 @@
             cursor: not-allowed;
         }
 
+        .scraper-kill-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 2px solid var(--line);
+            background: var(--white);
+            transition: border-color 160ms ease, background-color 160ms ease;
+        }
+
+        .scraper-kill-switch.is-off {
+            border-color: var(--coral);
+            background: rgba(255, 113, 91, 0.08);
+            box-shadow: 5px 5px 0 rgba(255, 113, 91, 0.28);
+        }
+
+        .kill-switch-copy strong {
+            display: block;
+            font-size: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .kill-switch-copy span {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font: 11px/1.5 'DM Mono', monospace;
+        }
+
+        .kill-switch-lever {
+            position: relative;
+            flex: 0 0 auto;
+            width: 112px;
+            height: 48px;
+            padding: 0;
+            border: 2px solid var(--ink);
+            border-radius: 3px;
+            background: var(--green);
+            color: #101114;
+            font: 800 10px 'DM Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .kill-switch-lever::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 32px;
+            height: 34px;
+            background: #101114;
+            transition: transform 160ms ease;
+        }
+
+        .kill-switch-lever.is-off {
+            background: var(--coral);
+        }
+
+        .kill-switch-lever.is-off::after {
+            right: auto;
+            left: 5px;
+        }
+
+        .kill-switch-lever:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        @media (max-width: 620px) {
+            .scraper-kill-switch { align-items: stretch; flex-direction: column; }
+            .kill-switch-lever { width: 100%; }
+        }
+
         /* Locked auth state */
         #auth-overlay {
             position: fixed;
@@ -655,6 +731,16 @@
 
             <!-- Tab 2: Commands -->
             <div role="tabpanel" aria-labelledby="tab-btn-commands" id="tab-content-commands" class="tab-content" style="display: none;">
+                <section class="scraper-kill-switch" id="scraper-kill-switch">
+                    <div class="kill-switch-copy">
+                        <strong id="scraper-switch-title">Parsing is enabled</strong>
+                        <span id="scraper-switch-description">Cron, queue, manual refreshes and metadata parsing are allowed.</span>
+                    </div>
+                    <button type="button" class="kill-switch-lever" id="scraper-switch-button" role="switch" aria-checked="true" aria-label="Disable all parsing" onclick="toggleScraping()">
+                        <span id="scraper-switch-label">ON</span>
+                    </button>
+                </section>
+
                 <!-- Actions Panel -->
                 <section class="panel">
                     <div class="panel-heading">
@@ -664,10 +750,10 @@
                         </div>
                     </div>
                     <div class="panel-content" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-                        <button class="admin-btn secondary" id="scrape-all-btn" onclick="triggerScrapeAll()">
+                        <button class="admin-btn secondary" id="scrape-all-btn" data-scraping-action onclick="triggerScrapeAll()">
                             ⚡ Run Scraper Queue
                         </button>
-                        <button class="admin-btn secondary" id="populate-metadata-btn" onclick="triggerPopulateMetadata()">
+                        <button class="admin-btn secondary" id="populate-metadata-btn" data-scraping-action onclick="triggerPopulateMetadata()">
                             🔄 Rebuild Metadata Cache
                         </button>
                         <button class="admin-btn coral" id="sync-db-btn" onclick="triggerSyncProdDb()" style="display: none;">
@@ -691,7 +777,7 @@
                     <div class="panel-content">
                         <form onsubmit="triggerSingleScrape(event)" style="display: flex; gap: 10px; max-width: 480px;">
                             <input type="text" id="instant-username" required placeholder="e.g. gayan_" class="admin-input" style="height: 38px;" aria-label="Creator username to scrape">
-                            <button type="submit" id="instant-btn" class="admin-btn" style="height: 38px;">Fetch Snapshot</button>
+                            <button type="submit" id="instant-btn" class="admin-btn" data-scraping-action style="height: 38px;">Fetch Snapshot</button>
                         </form>
                         <div id="instant-feedback" style="display: none; margin-top: 12px; padding: 10px; font-size: 12px; border: 1px solid var(--line); font-family: 'DM Mono', monospace;"></div>
                     </div>
@@ -919,7 +1005,7 @@
             <footer style="margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 24px; line-height: 1.6;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <div>Monitored by Spicy Monitor. Built by <a href="https://glyph-labs.site/" target="_blank" style="color: var(--blue); text-decoration: none; font-weight: 500;">Glyph Labs</a>.</div>
-                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.44 <span style="opacity: 0.7;">(Changelog)</span></span>
+                    <span style="background: var(--line); color: var(--ink); padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('changelog-modal').style.display='flex'">v1.4.45 <span style="opacity: 0.7;">(Changelog)</span></span>
                 </div>
                 <div style="margin-top: 6px;">For suggestions, bug reports, and inquiries: Telegram @lellyn / Discord @sppq</div>
                 <div style="margin-top: 8px;">
@@ -1231,6 +1317,7 @@
                 systemData = await res.json();
                 renderStats();
                 renderUserList();
+                renderScrapingControl();
                 switchTab(activeTab);
             } catch (err) {
                 console.error(err);
@@ -1315,7 +1402,7 @@
                         <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowExport(this, '${escapeHtml(u.username)}')">
                             Export
                         </button>
-                        <button class="admin-btn secondary" style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${escapeHtml(u.username)}')">
+                        <button class="admin-btn secondary" data-scraping-action style="padding: 5px 10px; font-size: 10px; margin-right: 5px;" onclick="triggerRowScrape(this, '${escapeHtml(u.username)}')">
                             Scrape Now
                         </button>
                         <button class="admin-btn coral" style="padding: 5px 10px; font-size: 10px;" onclick="openDeleteModal('${escapeHtml(u.username)}')">
@@ -1325,6 +1412,57 @@
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        function renderScrapingControl() {
+            const enabled = systemData?.scraping_enabled !== false;
+            const panel = document.getElementById('scraper-kill-switch');
+            const button = document.getElementById('scraper-switch-button');
+            const title = document.getElementById('scraper-switch-title');
+            const description = document.getElementById('scraper-switch-description');
+            const label = document.getElementById('scraper-switch-label');
+            if (!panel || !button) return;
+
+            panel.classList.toggle('is-off', !enabled);
+            button.classList.toggle('is-off', !enabled);
+            button.setAttribute('aria-checked', String(enabled));
+            button.setAttribute('aria-label', enabled ? 'Disable all parsing' : 'Enable all parsing');
+            title.textContent = enabled ? 'Parsing is enabled' : 'EMERGENCY STOP — parsing disabled';
+            description.textContent = enabled
+                ? 'Cron, queue, manual refreshes and metadata parsing are allowed.'
+                : 'No SpicyLyrics requests will run. Historical data remains available.';
+            label.textContent = enabled ? 'ON' : 'OFF';
+            document.querySelectorAll('[data-scraping-action]').forEach((control) => {
+                control.disabled = !enabled;
+                control.title = enabled ? '' : 'Parsing is disabled by the emergency switch';
+            });
+        }
+
+        async function toggleScraping() {
+            if (!systemData) return;
+            const button = document.getElementById('scraper-switch-button');
+            const nextEnabled = systemData.scraping_enabled === false;
+            button.disabled = true;
+            try {
+                const res = await spicyFetch(`${API_BASE}/admin/scraping-settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: adminSecret, enabled: nextEnabled })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Failed to update parsing state');
+                systemData.scraping_enabled = data.enabled;
+                renderScrapingControl();
+                const statusMsg = document.getElementById('system-status-msg');
+                statusMsg.textContent = data.enabled
+                    ? 'Parsing enabled. Scheduled and manual updates may run again.'
+                    : 'Emergency stop active. All parsing entry points are blocked.';
+                statusMsg.style.color = data.enabled ? 'var(--green)' : 'var(--coral)';
+            } catch (err) {
+                alert(`Unable to change parsing state: ${err.message}`);
+            } finally {
+                button.disabled = false;
+            }
         }
 
         // Global Command Action
@@ -2294,6 +2432,7 @@
             <h2 style="font-size: 24px; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.1;">Changelog</h2>
 
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.5; font-family: 'Manrope', sans-serif;">
+                <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.45 (2026-08-18)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Added a persistent emergency switch that disables every parsing entry point.</li><li>Updated SpicyLyrics profile ingestion for the current tRPC request and response format.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.44 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Removed adaptive refresh bands and restored one fixed two-hour cadence for every profile.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.43 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Kept the social-rating popover inside the viewport and localized all share-card artwork labels.</li></ul></div>
                 <div style="margin-bottom: 16px;"><strong style="color: var(--ink);">v1.4.42 (2026-08-15)</strong><ul style="margin: 4px 0 0 0; padding-left: 20px; color: var(--muted);"><li>Social rating is now unavailable until a profile has at least 24 hours of history.</li></ul></div>
